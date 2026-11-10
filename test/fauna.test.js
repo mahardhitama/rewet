@@ -43,7 +43,7 @@ test('animals stand only on tiles that meet their rule, and never exceed MAX_FAU
   run(g, 400, () => {
     assert.ok(g.fauna.length <= MAX_FAUNA);
     if ((g.tick - 1) % 4) return; // animals move only on the steps that call faunaTick
-    for (const a of g.fauna) assert.ok(rule(a)(g, a.i), `${a.species} at ${a.i}`);
+    for (const a of g.fauna) assert.ok(a.leaving || rule(a)(g, a.i), `${a.species} at ${a.i}`);
   });
 });
 
@@ -116,19 +116,81 @@ test('move never steps an animal within 2 tiles of fire', () => {
 });
 
 test('balance: a restored map shows more wildlife than a neglected one (L1, L2)', () => {
+  // mean over the weekly steps of the final year: one end tick is too noisy now that animals come and go
   const final = (level, plan) => {
     const g = createGame(level, {}, buildLevelWorld(level));
-    let k = 0;
+    let k = 0, all = 0, forest = 0, steps = 0;
     for (let t = 0; t < level.years * TICKS_PER_YEAR; t++) {
       for (; k < plan.length && plan[k].tick <= t; k++) applyAction(g, plan[k].id, plan[k].y * level.size + plan[k].x);
       step(g);
+      if (t >= (level.years - 1) * TICKS_PER_YEAR && g.tick % 4 === 0) {
+        steps++; all += g.fauna.length; forest += g.fauna.filter((a) => FOREST.includes(a.species)).length;
+      }
     }
-    return { all: g.fauna.length, forest: g.fauna.filter((a) => FOREST.includes(a.species)).length };
+    return { all: all / steps, forest: forest / steps };
   };
   for (const id of [1, 2]) {
     const level = resolveLevel(LEVELS.find((l) => l.id === id));
     const none = final(level, []), plan = final(level, blockPlan(level));
     assert.ok(plan.forest > none.forest, `L${id} forest ${plan.forest} vs ${none.forest}`);
-    assert.ok(plan.all >= none.all + 8, `L${id} total ${plan.all} vs ${none.all}`);
+    assert.ok(plan.all >= none.all + 1, `L${id} total ${plan.all} vs ${none.all}`);
   }
+});
+
+// run a level with its blockPlan; each(g) runs after each step
+function runPlan(id, years, each) {
+  const level = resolveLevel(LEVELS.find((l) => l.id === id));
+  const plan = blockPlan(level), g = createGame(level, {}, buildLevelWorld(level));
+  let k = 0;
+  for (let t = 0; t < (years ?? level.years) * TICKS_PER_YEAR; t++) {
+    for (; k < plan.length && plan[k].tick <= t; k++) applyAction(g, plan[k].id, plan[k].y * level.size + plan[k].x);
+    step(g);
+    each?.(g);
+  }
+  return g;
+}
+const edgeDist = (w, h, i) => Math.min(i % w, ((i / w) | 0), w - 1 - (i % w), h - 1 - ((i / w) | 0));
+
+test('wildlife: at most 8 animals, one tile per step, stay is bounded, leaving animals walk to the edge (L1 to L6)', () => {
+  assert.equal(MAX_FAUNA, 8);
+  for (const id of [1, 2, 3, 4, 5, 6]) {
+    const prev = new Map();
+    runPlan(id, null, (g) => {
+      const { w, h } = g.world;
+      assert.ok(g.fauna.length <= 8, `L${id} count ${g.fauna.length}`);
+      for (const a of g.fauna) {
+        const p = prev.get(a.id);
+        if (p) {
+          assert.ok(Math.abs((a.i % w) - (p.i % w)) <= 1 && Math.abs(((a.i / w) | 0) - ((p.i / w) | 0)) <= 1, `L${id} ${a.species} jumped`);
+          if (a.i !== p.i) { assert.equal(a.from, p.i); assert.equal(a.moved, g.tick - 1); }
+          if (p.leaving) assert.ok(edgeDist(w, h, a.i) <= edgeDist(w, h, p.i), `L${id} ${a.species} walks away from the edge`);
+        } else { assert.equal(a.from, a.i); assert.equal(a.moved, a.born); }
+        assert.ok(g.tick - 1 <= a.leave + 4 * (w + h), `L${id} ${a.species} stays too long`);
+        assert.ok(a.leave - a.born >= 16 && a.leave - a.born <= 52 && (a.leave - a.born) % 4 === 0);
+        prev.set(a.id, { i: a.i, leaving: a.leaving });
+      }
+    });
+  }
+});
+
+test('wildlife: the spawn mix differs between wet and dry weeks for at least 3 species (L6, 3 years)', () => {
+  const wet = {}, dry = {}, seen = new Set();
+  runPlan(6, 3, (g) => {
+    for (const a of g.fauna) {
+      if (seen.has(a.id)) continue;
+      seen.add(a.id);
+      const o = a.born % TICKS_PER_YEAR / 4 < 31 ? wet : dry; // born is the tick of the faunaTick call
+      o[a.species] = (o[a.species] || 0) + 1;
+    }
+  });
+  const differ = FAUNA.filter((f) => (wet[f.id] || 0) !== (dry[f.id] || 0)).length;
+  assert.ok(differ >= 3, JSON.stringify({ wet, dry }));
+});
+
+test('wildlife: an animal past its stay is leaving', () => {
+  const g = green(L1());
+  for (let t = 0; t < 100; t++) faunaTick(g);
+  g.tick = Math.max(...g.fauna.map((a) => a.leave));
+  faunaTick(g);
+  assert.ok(g.fauna.every((a) => a.leaving || a.leave > g.tick));
 });

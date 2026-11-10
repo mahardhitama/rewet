@@ -1,7 +1,8 @@
 import { createWorld, KIND, BLOCK, WET_WT, idx, mulberry32 } from './world.js';
 import { generateTerrain } from './terrain.js';
 import { DRAIN, computeStrength, computeDistance, walkUp } from './drainage.js';
-import { seasonAt, TICKS_PER_YEAR } from './season.js';
+import { seasonAt, TICKS_PER_YEAR, year, elNino, dryStart, isWetSeason } from './season.js';
+export { isWetSeason };
 import { hydroTick, canalTick, canalTarget } from './hydro.js';
 import { ignite, fireTick } from './fire.js';
 import { BRANCH } from './mapgen.js';
@@ -65,10 +66,6 @@ export function placeLevel(level) {
 }
 
 const redrain = (g) => { g.S = computeStrength(g.world); computeDistance(g.world, g.S); };
-const year = (g) => Math.floor(g.tick / TICKS_PER_YEAR);
-const elNino = (g) => g.level.elNinoYear != null && year(g) === g.level.elNinoYear;
-const dryStart = (g) => (elNino(g) ? 21 : 31);
-export const isWetSeason = (g) => seasonAt(g.tick).week < dryStart(g);
 const crewFree = (g) => (t) => t <= g.tick;
 export const freeCrews = (g) => g.crews.filter(crewFree(g)).length;
 const randWind = (rng) => N8[Math.floor(rng() * 8)];

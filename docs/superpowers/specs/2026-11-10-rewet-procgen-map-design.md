@@ -276,3 +276,31 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
    - Level 6 margin: the no-action run now reaches 64.0% against the pass line of 75%. Before Task 13 it reached 56.9%. It still fails with a goodwill loss. The merge removes the lower part of one trunk, so the map drains less.
    - Level 6 cover gain with `blockPlan()` is now 68.2%, near the open 70% revegetation line of item 5. Decide item 5 with this value.
 8. **Fixture `l1-reveg.json` (Task 3):** the `l1-cascade.json` plan, then a plant order on every third tile from tick 208. Each order waits for a free crew and for 170 funds (one plant plus one more action). The cascade has 12 blocks and uses most of the funds, so only 20 plants fit. The run gives rewet 90.7%, cover 15.3%, 1 star. The R27 test is a `todo` until Task 5 tunes `pass.reveg`. After Task 4 (canal depth), the same fixture gives rewet 90.7%, cover 15.9%, 1 star. The level 1 map did not change, so the fixtures stay the same.
+9. **Wildlife visits (revisions Task 1):** all values are game values, `NOT SOURCED`. They are in `src/sim/fauna.js`.
+   - `MAX_FAUNA` is 8. The species caps and targets do not change.
+   - Stay: `leave = born + 4 × (4 + floor(rng × 10))` ticks. This is 4 to 13 weeks. After `leave`, the animal leaves: it walks one tile each week to the edge and goes off the map. Fire within 2 tiles removes it at once.
+   - Spawn chance in each call: `0.35 × weight`. The weight is `wet` in weeks before the dry start and `dry` after it.
+
+     | Species | wet | dry |
+     |---|---|---|
+     | orangutan, gibbon, langur | 1 | 1 |
+     | sunbear, monitor | 0.5 | 1 |
+     | hornbill, gharial | 1 | 0.5 |
+     | stork | 1 | 0.3 |
+     | fishowl | 0.6 | 1 |
+     | otter | 1 | 0.6 |
+     | snakehead | 1 | 0.4 |
+
+   - Runs with `blockPlan()` and with no action. The value is the mean number of animals over the weekly steps of the last year (forest species in brackets).
+
+     | Level | No action | `blockPlan()` |
+     |---|---|---|
+     | 1 | 5.5 (3.0) | 7.9 (5.5) |
+     | 2 | 6.2 (2.3) | 7.7 (5.1) |
+     | 3 | 4.8 (1.2) | 7.9 (5.6) |
+     | 4 | 5.4 (2.3) | 7.8 (6.3) |
+     | 5 | 4.1 (1.2) | 7.8 (6.0) |
+     | 6 | 7.3 (5.3) | 8.0 (7.1) |
+
+   - The balance test now compares the mean of the last year. A single end tick is too noisy when animals come and go. The test needs a forest mean above no action, and a total at least 1 above no action.
+   - Level 6 shows a small gap, because its river and the cap of 8 keep the no-action map nearly full.
