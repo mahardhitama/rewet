@@ -28,6 +28,25 @@ export const PLANT_TILE = 8; // price of one seedling tile in funds, game value,
 export const PLANT_R = 2; // stamp radius: 2 gives a 5x5 patch, game value, NOT SOURCED
 export const plantWeeks = (n) => Math.max(1, Math.ceil(n / 10)); // 10 tiles per crew-week, game value, NOT SOURCED
 const SEEDLING_GROWTH = 1 / 312; // cover gained per tick in the band, game value, NOT SOURCED
+export const SEEDLING_DEATH = 48; // stress at which a seedling dies, game value, NOT SOURCED
+const NURSE = { growth: 2, dry: 0.5 }; // a seedling beside cover >= 0.6 (canopy shade), game values, NOT SOURCED
+
+// Stress per tick out of the band. Flood: 4 (death in 3 weeks). Dry: 1 per tick up to 0.5 m, then 10 per m of depth
+// (0.6 m: 6 weeks, 0.8 m: 3 weeks); a nurse tree halves dry stress. Game values, NOT SOURCED.
+export const seedlingStress = (wt, nurse = false) =>
+  inBand(wt) ? 0 : wt < 0 ? SEEDLING_DEATH / 12 : Math.max(1, (wt - WET_WT) * 10) * (nurse ? NURSE.dry : 1);
+
+// Seedlings grow in the band and gain stress out of it. One tick in the band clears the stress.
+export function growSeedlings(g) {
+  const wd = g.world, { wt, cover } = wd;
+  for (const [i, s] of g.seedlings) {
+    const nurse = nextTo(wd, i, (k) => cover[k] >= 0.6);
+    if (inBand(wt[i])) { cover[i] = Math.min(1, cover[i] + SEEDLING_GROWTH * (nurse ? NURSE.growth : 1)); g.seedlings.set(i, 0); }
+    else if (s + seedlingStress(wt[i], nurse) >= SEEDLING_DEATH) { cover[i] = 0; g.seedlings.delete(i); }
+    else g.seedlings.set(i, s + seedlingStress(wt[i], nurse));
+    if (cover[i] >= 1) g.seedlings.delete(i);
+  }
+}
 
 // Plantable tiles in the stamp, nearest first. A tile that an open plant job will seed does not count.
 export function plantTiles(g, i) {
@@ -245,12 +264,7 @@ export function step(g) {
   }
 
   // 6. growth: seedlings, then natural regrowth beside cover >= 0.6
-  for (const [i, bad] of g.seedlings) {
-    if (inBand(wt[i])) { cover[i] = Math.min(1, cover[i] + SEEDLING_GROWTH); g.seedlings.set(i, 0); }
-    else if (bad + 1 >= 12) { cover[i] = 0; g.seedlings.delete(i); }
-    else g.seedlings.set(i, bad + 1);
-    if (cover[i] >= 1) g.seedlings.delete(i);
-  }
+  growSeedlings(g);
   for (let i = 0; i < n; i++) {
     if (kind[i] === KIND.PEAT && !fire[i] && cover[i] < 1 && inBand(wt[i]) && nextTo(wd, i, (k) => cover[k] >= 0.6))
       cover[i] = Math.min(1, cover[i] + 1 / 1248);

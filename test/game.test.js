@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { KIND, BLOCK, idx } from '../src/sim/world.js';
 import { seasonAt } from '../src/sim/season.js';
 import { canalTarget } from '../src/sim/hydro.js';
-import { createGame, applyAction, step, costOf, placeLevel, isWetSeason, freeCrews, PLANT_TILE, plantTiles } from '../src/sim/game.js';
+import { createGame, applyAction, step, costOf, placeLevel, isWetSeason, freeCrews, PLANT_TILE, plantTiles, growSeedlings, seedlingStress, SEEDLING_DEATH } from '../src/sim/game.js';
 
 const S = 12;
 const canal = [[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6]]; // edge toward dome centre
@@ -340,7 +340,7 @@ test('placeLevel copies canalW and canalD into the world', () => {
     const i = at(x, y);
     assert.equal(w.cWidth[i], Math.fround(canalW[k]));
     assert.equal(w.cDepth[i], Math.fround(canalD[k]));
-    assert.ok(Math.abs(w.cWater[i] - 0.7 * canalD[k]) < 1e-5, `dry water at ${x},${y}`);
+    assert.ok(Math.abs(w.cWater[i] - 0.9 * canalD[k]) < 1e-5, `dry water at ${x},${y}`);
   });
   assert.equal(w.cDepth[at(10, 10)], 0);
 });
@@ -365,4 +365,30 @@ test('an illegal canal tile gets the branch size and the current water level', (
   assert.equal(g.world.cDepth[i], 2.5);
   assert.ok(Math.abs(g.world.cWater[i] - canalTarget(g.world, g.S, i, env.dry)) < 1e-6, `${g.world.cWater[i]}`);
   assert.ok(g.world.cWater[i] > 0);
+});
+
+test('seedling stress: dry stress grows with depth, flood kills in 3 weeks, a nurse tree halves dry stress', () => {
+  const ticksToDie = (wt, nurse = false) => Math.round(SEEDLING_DEATH / seedlingStress(wt, nurse));
+  assert.equal(ticksToDie(0.45), 48); // 12 weeks
+  assert.equal(ticksToDie(0.6), 24); // 6 weeks
+  assert.equal(ticksToDie(0.8), 12); // 3 weeks
+  assert.equal(ticksToDie(-0.1), 12); // flood: 3 weeks
+  assert.equal(ticksToDie(0.6, true), 48);
+  assert.equal(ticksToDie(-0.1, true), 12, 'a nurse tree does not help in a flood');
+  assert.equal(seedlingStress(0.2), 0);
+});
+
+test('growSeedlings: a seedling beside cover >= 0.6 grows twice as fast; a wet tick resets stress; stress kills', () => {
+  const g = createGame(lvl()), wd = g.world;
+  const lone = at(2, 2), nursed = at(8, 2), tree = at(9, 2), dry = at(2, 9);
+  wd.cover[tree] = 0.6;
+  wd.wt.fill(0.2);
+  wd.wt[dry] = 0.8;
+  for (const i of [lone, nursed]) g.seedlings.set(i, 10);
+  g.seedlings.set(dry, SEEDLING_DEATH - 4);
+  growSeedlings(g);
+  assert.ok(Math.abs(wd.cover[nursed] - 2 * wd.cover[lone]) < 1e-7, `${wd.cover[nursed]} vs ${wd.cover[lone]}`);
+  assert.equal(g.seedlings.get(lone), 0);
+  assert.ok(!g.seedlings.has(dry), 'dead');
+  assert.equal(wd.cover[dry], 0);
 });
