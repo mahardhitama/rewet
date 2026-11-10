@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS } from '../src/render/iso.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, yearDir, emitSmoke, resetSmoke, smoke } from '../src/render/iso.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 import { SPECIES } from '../src/journal.js';
 
@@ -219,4 +219,31 @@ test('resetSlides empties the module slide map', async () => {
   assert.equal(slideCount(), 1);
   resetSlides();
   assert.equal(slideCount(), 0);
+});
+
+test('yearDir is stable for one year and changes in the next year', () => {
+  assert.equal(yearDir(7, 3), yearDir(7, 3));
+  assert.notEqual(yearDir(7, 3), yearDir(7, 4));
+  const a = yearDir(12345, 0);
+  assert.ok(a >= 0 && a < 2 * Math.PI);
+});
+
+test('the smoke ring never holds more than 160 puffs, and resetSmoke empties it', () => {
+  resetSmoke();
+  for (let k = 0; k < 1000; k++) emitSmoke(k, 0, 0, 1, k * 500);
+  assert.equal(smoke.length, 160);
+  assert.ok(smoke.every(p => p.born >= 0 && p.life >= 3000 && p.life <= 6000));
+  resetSmoke();
+  assert.equal(smoke.length, 0);
+});
+
+test('a tile emits about 1 puff each 400 ms for a surface fire, whatever the frame rate', () => {
+  resetSmoke();
+  for (let t = 0; t < 4000; t += 16) emitSmoke(5, 0, 0, 1, t);
+  const n = smoke.length;
+  resetSmoke();
+  for (let t = 0; t < 4000; t += 100) emitSmoke(5, 0, 0, 1, t);
+  assert.ok(n >= 9 && n <= 11, `n=${n}`);
+  assert.equal(smoke.length, n);
+  resetSmoke();
 });

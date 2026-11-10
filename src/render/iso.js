@@ -9,6 +9,7 @@ const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x
 export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
+const FLAME = ['#c8321e', '#f08a2c', '#ffd25a', '#fff1b0'], CHAR = '#3a2a22', SMOKE = [150, 146, 140]; // flame layers, outer to core
 const HW = TW / 2, HH = TH / 2;
 const D = 10, EDGE = D + 12, HEAD = 28, SW = TW, SH = HEAD + TH + EDGE + 1; // sprite: anchor (SW/2, HEAD) = tile top vertex
 // Half-width of row r in a 2:1 diamond that is 2*hh rows high.
@@ -196,6 +197,31 @@ export function bankStep(wd, i) {
   }
   return !n ? 0 : c / n >= GREEN_COVER ? 3 : t / n <= WET_WT ? 2 : t / n <= DAMP_WT ? 1 : 0;
 }
+// One flame tongue. Its base is at (bx, by). Layers shrink inwards. lean: sideways pixels at the tip.
+function tongue(g, bx, by, h, wd, lean) {
+  for (let j = 0; j < h; j++) {
+    const f = j / h, half = Math.max(0, Math.round(wd / 2 * (1 - f * f))), ox = Math.round(lean * f * f);
+    g.fillStyle = FLAME[0]; g.fillRect(bx - half + ox, by - j, 2 * half + 1, 1);
+    if (f < .8 && half > 1) { g.fillStyle = FLAME[1]; g.fillRect(bx - half + 1 + ox, by - j, 2 * half - 1, 1); }
+    if (f < .55 && half > 1) { g.fillStyle = FLAME[2]; g.fillRect(bx - half + 2 + ox, by - j, Math.max(1, 2 * half - 3), 1); }
+    if (f < .3 && half > 1) { g.fillStyle = FLAME[3]; g.fillRect(bx + ox, by - j, 1, 1); }
+  }
+}
+// Frame table for the flame sprite: [dx, height, width, lean] of 3 tongues. The heights and leans change from frame to frame.
+const FLAMES = [[[-7, 9, 5, -1], [0, 14, 7, 1], [7, 8, 5, 0]], [[-7, 11, 5, 1], [0, 11, 7, -1], [7, 10, 5, 1]],
+  [[-7, 8, 5, 0], [0, 15, 7, -1], [7, 9, 5, -1]], [[-7, 10, 5, -1], [0, 12, 7, 1], [7, 11, 5, 0]]];
+// Smoke puff: 3 nested disks of fillRect rows, built once for each whole radius from 2 to 6.
+const PUFF_ALPHA = [.08, .12, .2], PUFF_R0 = 2, PUFF_R1 = 6;
+function puffSprite(r) {
+  const c = document.createElement('canvas'); c.width = c.height = 2 * r + 1;
+  const g = c.getContext('2d');
+  PUFF_ALPHA.forEach((a, k) => {
+    const rk = r * (1 - k * .3);
+    g.fillStyle = `rgba(${SMOKE[0]},${SMOKE[1]},${SMOKE[2]},${a})`;
+    for (let dy = -Math.floor(rk); dy <= Math.floor(rk); dy++) { const half = Math.floor(Math.sqrt(rk * rk - dy * dy)); g.fillRect(r - half, r + dy, 2 * half + 1, 1); }
+  });
+  return c;
+}
 function buildCache() {
   const both = f => [sprite((g, x, y) => f(g, x, y, D)), sprite((g, x, y) => f(g, x, y, EDGE))]; // [inner, map-edge]
   const ground = [[], [], []]; // [flooded, wet, dry][cover bin]
@@ -209,6 +235,14 @@ function buildCache() {
   });
   const cache = {
     ground,
+    // Fire art. A frame is drawn with its tile top vertex at (SW/2, HEAD), like a tile sprite.
+    flame: FLAMES.map(f => sprite((g, x, y) => f.forEach(([dx, h, wd, lean]) => tongue(g, x + dx, y + 11, h, wd, lean)))),
+    ember: [0, 1].map(k => sprite((g, x, y) => {
+      g.fillStyle = CHAR; g.fillRect(x - 5, y + 7, 10, 4); g.fillRect(x - 3, y + 6, 6, 1);
+      g.fillStyle = FLAME[1 + k]; g.fillRect(x - 3 + k, y + 8, 5, 2); g.fillRect(x - 1, y + 7, 2, 1);
+      g.fillStyle = FLAME[2 - k]; g.fillRect(x - 1 + k, y + 8, 2, 1);
+    })),
+    puff: Array.from({ length: PUFF_R1 - PUFF_R0 + 1 }, (_, k) => puffSprite(PUFF_R0 + k)),
     heat: Array.from({ length: HEAT_BINS }, (_, b) => both((g, x, y, d) => block(g, x, y, heatColor(b / (HEAT_BINS - 1) * 1.5), d))),
     // Overlays for a block or a backfill. drawWorld draws them on top of the tile sprite.
     // [axis]: the sprite for a channel along AXES[axis]. A block lies across the channel.
@@ -521,6 +555,36 @@ function edges(ctx, sx, sy, which) {
 let flow = null, flowS = null, flowYear = -1, canalBase = null, axis = null, patches = null, bankWeek = -1;
 // Put the bank step of each canal tile in bits 24-25 of its base key.
 const setBanks = wd => { for (let i = 0; i < wd.w * wd.h; i++) if (wd.kind[i] === KIND.CANAL) canalBase[i] = canalBase[i] & 0xffffff | bankStep(wd, i) << 24; };
+// ---- smoke. A ring of 160 puffs that the code reuses. Each puff is stored as an offset from tile 0, so a pan or a zoom moves it with the map.
+const REDUCED = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches; // read once; Node has no matchMedia
+const SMOKE_MAX = 160, EMIT_MS = [0, 400, 1200]; // by fire kind: 1 surface fire, 2 smouldering
+export const smoke = [];
+let smokeHead = 0, smokeN = 0, wind = 0, originX = 0, originY = 0;
+const smokeSlot = new Map(); // tile -> last emit slot, so the rate does not depend on the frame rate
+// Pure. Wind angle in radians for a map seed and a year. A new year gives a new direction.
+export const yearDir = (seed, year) => hash(seed * 31 + year) * 2 * Math.PI;
+export function resetSmoke() { smoke.length = 0; smokeHead = 0; smokeN = 0; smokeSlot.clear(); }
+// Emits at most 1 puff for tile i. sx, sy: the screen point of the fire. kind: 1 surface fire, 2 smouldering.
+export function emitSmoke(i, sx, sy, kind, now) {
+  if (REDUCED) return;
+  const slot = Math.floor((now + hash(i) * EMIT_MS[kind]) / EMIT_MS[kind]);
+  if (smokeSlot.get(i) === slot) return;
+  smokeSlot.set(i, slot);
+  const a = wind + (hash(++smokeN) - .5) * Math.PI / 3; // wind +- 30 degrees
+  const p = smoke.length < SMOKE_MAX ? smoke[smoke.length] = {} : smoke[smokeHead++ % SMOKE_MAX]; // when full, the oldest puff goes
+  p.x = sx - originX; p.y = sy - originY - 4; p.vx = Math.cos(a) * 6; p.vy = Math.sin(a) * 6 - 4; p.born = now; p.life = 3000 + hash(smokeN + .5) * 3000; p.r = PUFF_R0;
+}
+export function drawSmoke(ctx, now, data) {
+  if (data || !cache) return;
+  for (const p of smoke) {
+    const t = (now - p.born) / p.life;
+    if (t < 0 || t >= 1) continue;
+    const s = (now - p.born) / 1000, r = Math.round(PUFF_R0 + (PUFF_R1 - PUFF_R0) * t);
+    ctx.globalAlpha = 1 - t; // the disks hold the 0.08 / 0.12 / 0.2 alpha
+    ctx.drawImage(cache.puff[r - PUFF_R0], Math.round(originX + p.x + p.vx * s) - r, Math.round(originY + p.y + p.vy * s) - r);
+  }
+  ctx.globalAlpha = 1;
+}
 export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 0) {
   cache ??= buildCache();
   const wd = game.world, { w, h, z, wt, cover, kind, block: blk, fire, cWidth, cDepth, cWater } = wd, data = mode === 'data';
@@ -548,10 +612,12 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
   } else if (week !== bankWeek) { setBanks(wd); bankWeek = week; } // the peat changes slowly: one update each week, so the banks do not flicker
   const jobs = new Set(game.jobs.map(j => j.i)), hits = [];
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
+  wind = yearDir(wd.seed, year);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
     const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
     pos[2 * i] = sx; pos[2 * i + 1] = sy;
   }
+  originX = pos[0]; originY = pos[1];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // row-major is back-to-front for this iso layout
     const i = y * w + x, sx = pos[2 * i], sy = pos[2 * i + 1], e = x === w - 1 || y === h - 1 ? 1 : 0;
     if (sx + HW < 0 || sx - HW > bw || sy - HEAD + SH < 0 || sy - HEAD > bh) continue;
@@ -581,18 +647,10 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
     if (game.fireGroups.has(i)) { ctx.fillStyle = '#d23a2a'; ctx.fillRect(sx + 12, sy - 8, 2, 12); ctx.fillRect(sx + 14, sy - 8, 6, 4); }
-    if (fire[i] === 1) { // surface fire: flickering flame pixels
-      for (let f = 0; f < 3; f++) {
-        const fl = ((now / 90 + i + f * 2) | 0) % 3, fx = sx - 8 + f * 8;
-        ctx.fillStyle = '#f08a2c'; ctx.fillRect(fx, sy + 2 - 2 * fl, 4, 8 + 2 * fl);
-        ctx.fillStyle = '#ffd25a'; ctx.fillRect(fx + 1, sy + 6 - 2 * fl, 2, 4);
-      }
-    } else if (fire[i] === 2) { // smouldering peat: ember + rising smoke wisps
-      ctx.fillStyle = (now / 120 + i) % 3 < 1.5 ? '#f08a2c' : '#ffd25a'; ctx.fillRect(sx - 2, sy + 8, 4, 2);
-      for (let s = 0; s < 2; s++) {
-        const t = ((now / 900 + hash(i) + s / 2) % 1);
-        ctx.fillStyle = `rgba(170,160,150,${(1 - t) * 0.6})`; ctx.fillRect(sx - 2 + Math.round(t * 8) - s * 4, sy + 4 - Math.round(t * 24), 3, 3);
-      }
+    if (fire[i] === 1) { // surface fire: a cached flame frame, with a phase for each tile
+      ctx.drawImage(cache.flame[REDUCED ? 0 : ((now / 120 + hash(i) * 4) | 0) % 4], ax, ay); emitSmoke(i, sx, sy + HH, 1, now);
+    } else if (fire[i] === 2) { // smouldering peat: an ember, and thin smoke
+      ctx.drawImage(cache.ember[REDUCED ? 0 : ((now / 400 + hash(i) * 2) | 0) % 2], ax, ay); emitSmoke(i, sx, sy + HH, 2, now);
     }
     if (jobs.has(i)) { ctx.fillStyle = '#efe6cf'; ctx.fillRect(sx - 1, sy - 10, 2, 16); ctx.fillStyle = '#e8b04a'; ctx.fillRect(sx + 1, sy - 10, 8, 4); } // work flag
   }
@@ -633,6 +691,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       if (dbg) (dbg.drawn ??= new Map()).set(a.id, { x: d.x, y: d.y, al: d.al, i: a.i, rx: pos[0], ry: pos[1] });
     }
   }
+  drawSmoke(ctx, now, data);
   if (data) { // bright line where neighbouring tiles straddle WET_WT
     ctx.fillStyle = '#5ff0ff';
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
