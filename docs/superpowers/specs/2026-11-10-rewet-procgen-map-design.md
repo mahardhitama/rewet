@@ -34,7 +34,7 @@ Decisions that the user made in the brainstorm:
 - Each trunk canal touches two opposite map edges. Its bed falls from the inlet to the outlet at each step.
 - In the dry season, an open canal tile shows its water surface below the bank. A tile behind a block shows a higher water surface.
 - Calibration tests C1, C2 and C3 pass with no change to their tolerances.
-- A level opens with the full map visible at 390×844, 844×390 and 1280×800.
+- A level opens with the full map visible at 844×390 and 1280×800. At 390×844, it opens one zoom step in (section 3.2), and the `ALL` button shows the full map.
 - At the largest zoom, one tile is at least 48 CSS px wide and 24 CSS px high on a 390 px wide screen.
 - Each level can pass with a plan that blocks canals. A plan with no blocks does not pass.
 
@@ -122,7 +122,11 @@ Vegetation types: `NONE`, `FERN`, `SEEDLING`, `SHRUB`, `TREE`. The type is not s
 
 - The canvas buffer equals the window size divided by the zoom scale, as now. The buffer has the window aspect ratio, so `object-fit: cover` cuts off less than 1 buffer pixel. `object-fit` stays.
 - `fitScale(innerW, innerH, w, h)` returns the scale at which the full map box (plus `PAD`) fits in the window, below the HUD and above the action bar. The scale can be a fraction below 1. The pixel art then loses pixels at fit. This is accepted. At a whole-number scale, the art stays sharp.
-- Zoom steps: the fit scale, then 1, 2, 3 and 4. The level opens at the fit scale.
+- Zoom steps: the fit scale, then 1, 2, 3 and 4. The level opens at the fit scale, except on a portrait phone.
+- Portrait phone: the window is 600 CSS px wide or less, and taller than it is wide. On a portrait phone, the level opens one zoom step in (`openStep()` in `isoMath.js`). The user approved this rule in Task 8.
+  - Why: the window width limits the 2:1 map. At the fit scale on a 390 px wide phone, a tile is too small to tap. One step in gives tiles that a player can tap at once.
+  - The `ALL` button and the `0` key go back to the fit scale.
+- On a phone (600 CSS px wide or less), the zoom buttons are in the action bar, not in a column at the right edge. The map then uses the full window width at the fit scale.
 - **Input:**
   - mouse wheel: zoom one step around the pointer;
   - pinch with two fingers: zoom around the pinch centre;

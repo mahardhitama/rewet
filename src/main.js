@@ -43,7 +43,7 @@ function boot() {
     $('menu').classList.toggle('on', p === 'menu');
     $('levelSelect').hidden = p !== 'levelSelect';
     $('hud').hidden = p !== 'level' && p !== 'yearReport';
-    $('bar').hidden = $('zoom').hidden = p !== 'level';
+    $('bar').hidden = p !== 'level'; // the zoom buttons are inside the bar
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
   }
@@ -61,7 +61,11 @@ function boot() {
     const items = LEVELS.map(L => {
       const b = document.createElement('button'), s = document.createElement('small'), open = L.id <= save.unlocked;
       b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`; b.disabled = !open;
-      s.textContent = open ? `${SELECT.best(save.stars[L.id] || 0)} · ${SELECT.years(L.years)} · ${L.teaches}` : SELECT.locked(L.id - 1);
+      if (open) s.textContent = `${SELECT.best(save.stars[L.id] || 0)} · ${SELECT.years(L.years)} · ${L.teaches}`;
+      else { // one line: the name and a lock mark; the full text is in the label and the tooltip
+        s.className = 'lock'; s.textContent = SELECT.lockMark;
+        b.title = SELECT.locked(L.id - 1); b.setAttribute('aria-label', `${b.textContent}. ${b.title}`);
+      }
       b.append(s);
       b.onclick = () => { blip(880, 0.06); startLevel(L); };
       return b;

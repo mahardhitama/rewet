@@ -1,5 +1,5 @@
 // Level-screen view state (camera pan, data mode, hover). Lives outside the game; render-only.
-import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom } from './isoMath.js';
+import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom, openStep } from './isoMath.js';
 import { drawWorld } from './iso.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
@@ -15,19 +15,20 @@ export function createMapView(cv) {
   // Cached: a read each frame forces a layout. The observer also sees show and hide, because [hidden] sets display: none.
   const [hud, bar, zoomEl] = ['hud', 'bar', 'zoom'].map(id => document.getElementById(id));
   let ins = { top: 0, bottom: 0, side: 0 };
+  // The zoom buttons cover a side column only when they are fixed at the right edge. On a phone they sit in the action bar.
   const measure = () => { ins = { top: hud.offsetHeight && hud.offsetTop + hud.offsetHeight, bottom: bar.offsetHeight,
-    side: zoomEl.offsetWidth && innerWidth - zoomEl.offsetLeft }; };
+    side: zoomEl.offsetWidth && getComputedStyle(zoomEl).position === 'fixed' ? innerWidth - zoomEl.offsetLeft : 0 }; };
   if (hud && bar && zoomEl) { const ro = new ResizeObserver(measure); [hud, bar, zoomEl].forEach(el => ro.observe(el)); addEventListener('resize', measure); }
   const toBuffer = (cx, cy) => clientToBuffer(cx, cy, cv.getBoundingClientRect(), cv.width, cv.height);
   const v = {
-    mode: 'normal', hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the fit scale
+    mode: 'normal', hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the step from openStep()
     wasDrag: false, // true from the moment the current/last press became a drag; Task 12 click handler skips it
     // Size the canvas for the level screen; pan is re-clamped and the zoom step re-checked on every resize/rotation.
     fit(wd) {
       world = wd;
       const wasFit = v.scale === v.steps[0];
       v.steps = zoomSteps(fitScale(innerWidth, innerHeight, world.w, world.h, ins));
-      v.scale = keepStep(v.steps, v.scale, wasFit);
+      v.scale = keepStep(v.steps, v.scale, wasFit, openStep(innerWidth, innerHeight));
       const c = cameraFor(innerWidth, innerHeight, world.w, world.h, v.pan, v.scale, ins);
       if (cv.width !== c.bw || cv.height !== c.bh) { cv.width = c.bw; cv.height = c.bh; }
       v.cam = c; v.pan = c.pan;

@@ -37,7 +37,13 @@ export const zoomSteps = fit => [fit, ...[1, 2, 3].filter(s => s > fit * 1.1)];
 export const nearestStep = (steps, scale) => steps.reduce((a, b) => Math.abs(b - scale) < Math.abs(a - scale) ? b : a);
 
 // The fit value is a float that changes with the insets and the window size, so a view at fit must follow it, not snap to an integer step.
-export const keepStep = (steps, scale, wasFit) => scale == null || wasFit ? steps[0] : nearestStep(steps, scale);
+// A new view (scale null) opens at steps[open], or at the last step when fewer steps exist.
+export const keepStep = (steps, scale, wasFit, open = 0) =>
+  scale == null ? steps[Math.min(open, steps.length - 1)] : wasFit ? steps[0] : nearestStep(steps, scale);
+
+// Index of the zoom step a level opens at. A portrait phone opens one step in: at fit, its tiles are too small to tap.
+export const PHONE_W = 600; // CSS px, the same breakpoint as the phone layout in index.html
+export const openStep = (innerW, innerH) => innerW <= PHONE_W && innerH > innerW ? 1 : 0;
 
 // Level-screen buffer: ceil(innerWidth/scale) x ceil(innerHeight/scale), map centred between the insets plus a clamped pan.
 export function cameraFor(innerW, innerH, w, h, pan = { x: 0, y: 0 }, scale, insets = {}) {

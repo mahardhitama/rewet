@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TW, TH, PAD, HUD_PAD, tileToScreen, screenToTile, cameraFor, clientToBuffer, clampPan, zOffset, fitScale, zoomSteps, panForZoom, nearestStep, keepStep } from '../src/render/isoMath.js';
+import { TW, TH, PAD, HUD_PAD, tileToScreen, screenToTile, cameraFor, clientToBuffer, clampPan, zOffset, fitScale, zoomSteps, panForZoom, nearestStep, keepStep, openStep } from '../src/render/isoMath.js';
 
 // A point strictly inside tile (x, y): the diamond centre, plus nudges toward each corner.
 const inner = (x, y, v) => {
@@ -98,6 +98,23 @@ test('keepStep keeps the view at the fit step when the fit value changes', () =>
   assert.equal(keepStep([0.3, 1, 2, 3], null, false), 0.3); // a new view opens at fit
   assert.equal(keepStep([0.5, 1, 2, 3], 2, false), 2); // a non-fit step that still exists stays
   assert.equal(keepStep([0.5, 1, 2], 3, false), 2); // a step that no longer exists falls to the nearest
+});
+
+test('a portrait phone opens one zoom step in; other windows open at fit', () => {
+  assert.equal(openStep(390, 844), 1);
+  assert.equal(openStep(844, 390), 0);
+  assert.equal(openStep(1280, 800), 0);
+  assert.equal(openStep(768, 1024), 0); // portrait tablet: wider than the phone breakpoint
+  assert.equal(keepStep([0.49, 1, 2, 3], null, false, 1), 1);
+  assert.equal(keepStep([3.5], null, false, 1), 3.5); // no step above fit: open at fit
+  assert.equal(keepStep([0.49, 1, 2, 3], 1, false, 1), 1); // the open step applies only to a new view
+});
+
+test('portrait 390x844: the map is wider with no side inset (zoom buttons in the action bar)', () => {
+  const ins = { top: 110, bottom: 160 };
+  assert.ok(fitScale(390, 844, 22, 22, ins) > 1.3 * fitScale(390, 844, 22, 22, { ...ins, side: 56 }));
+  const box = (22 + 22) * TW / 2 + 2 * PAD; // the map box plus PAD fills the width at fit
+  assert.ok(Math.abs(fitScale(390, 844, 22, 22, ins) * box - 390) < 1);
 });
 
 test('inverse still exact with a pan offset applied', () => {

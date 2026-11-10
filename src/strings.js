@@ -9,6 +9,7 @@ export const TOAST = {
 export const SELECT = {
   title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}`,
   locked: n => `Locked: restore site ${n} first`,
+  lockMark: 'Locked', // visible on a locked row; the full text is in the label
   best: n => (n ? '★'.repeat(n) + '☆'.repeat(3 - n) : '☆☆☆'),
   upTitle: 'Upgrades',
   stars: n => `Stars available: ${n}`,
@@ -25,8 +26,9 @@ export const UPGRADES = {
 
 export const HUD = {
   time: (year, years, wet, week) => `Year ${year}/${years} · ${wet ? 'Wet' : 'Dry'} season · wk ${week}`,
+  // one item each: a row wraps only between items
   stats: (funds, crews, total, goodwill, wetNow, wetDry) =>
-    `Funds ${funds} · Crews ${crews}/${total} · Goodwill ${goodwill} · Wet now ${wetNow}% · Dry-season wet ${wetDry == null ? '–' : `${wetDry}%`} (scored)`,
+    [`Funds ${funds}`, `Crews ${crews}/${total}`, `Goodwill ${goodwill}`, `Wet now ${wetNow}%`, `Dry-season wet ${wetDry == null ? '–' : `${wetDry}%`} (scored)`],
   pause: 'Pause', x1: '×1', x2: '×2',
   legend: ['0 m', '40 cm', '1.5 m'], // water table below the surface
   legendTitle: 'Water table depth (data view). Wet = at or above 40 cm.',
@@ -42,6 +44,9 @@ export const ZOOM = {
   out: ['−', 'Zoom out (-)'],
   fit: ['ALL', 'All of the map (0)'], // the name starts with the visible word (WCAG 2.5.3)
 };
+
+// label of the group tabs in the action bar (phone layout)
+export const BAR = { tabs: 'Action groups' };
 
 export const R_NAMES = { rewet: 'Rewetting', reveg: 'Revegetation', revit: 'Revitalisation', defense: 'Defense' };
 

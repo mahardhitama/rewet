@@ -5,7 +5,7 @@ import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { blip } from './audio.js';
-import { HUD, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
+import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
 
 const $ = id => document.getElementById(id);
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -26,7 +26,7 @@ function tip(msg, x, y) {
 
 function arm(id) {
   armed = armed === id ? null : id;
-  for (const b of $('bar').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === armed);
+  for (const b of $('barGroups').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === armed);
   $('barHint').textContent = armed ? ACTION_TEXT[armed][1] : SELECT_HINT;
 }
 
@@ -34,17 +34,34 @@ function bind() {
   bound = true;
   const groups = {};
   for (const [id, a] of Object.entries(ACTIONS)) (groups[a.r] ??= []).push(id);
-  $('barGroups').replaceChildren(...['rewet', 'reveg', 'revit', 'defense'].map(r => {
-    const g = document.createElement('div'), h = document.createElement('span');
-    g.className = 'grp'; h.textContent = R_NAMES[r]; g.append(h);
+  const R = ['rewet', 'reveg', 'revit', 'defense'];
+  $('barGroups').replaceChildren(...R.map(r => {
+    const g = document.createElement('div'), h = document.createElement('span'), row = document.createElement('div');
+    g.className = 'grp'; g.dataset.r = r; h.textContent = R_NAMES[r]; g.append(h, row);
     for (const id of groups[r]) {
       const b = document.createElement('button'), s = document.createElement('small');
       b.dataset.id = id; b.textContent = ACTION_TEXT[id][0]; b.title = ACTION_TEXT[id][1]; b.append(s);
       b.onclick = () => { blip(880, 0.04); arm(id); b.blur(); };
-      g.append(b);
+      row.append(b);
     }
     return g;
   }));
+  // The arrow marker shows while more buttons are to the right of the scroll position.
+  const bg = $('barGroups'), more = () => { $('barMore').hidden = bg.scrollLeft + bg.clientWidth >= bg.scrollWidth - 1; };
+  bg.addEventListener('scroll', more, { passive: true }); new ResizeObserver(more).observe(bg);
+  // Phone layout: CSS shows only the group with the class "cur". The tabs pick it.
+  const tab = r => {
+    for (const g of bg.children) g.classList.toggle('cur', g.dataset.r === r);
+    for (const t of $('barTabs').children) { t.classList.toggle('on', t.dataset.r === r); t.setAttribute('aria-pressed', t.dataset.r === r); }
+    more();
+  };
+  $('barTabs').setAttribute('aria-label', BAR.tabs);
+  $('barTabs').replaceChildren(...R.map(r => {
+    const t = document.createElement('button'); t.dataset.r = r; t.textContent = R_NAMES[r];
+    t.onclick = () => { blip(880, 0.04); tab(r); t.blur(); }; // blur: Space must pause, not press the tab again
+    return t;
+  }));
+  tab('rewet');
   const speed = { bPause: 0, bX1: 1, bX2: 2 };
   for (const [id, s] of Object.entries(speed)) { $(id).textContent = HUD[id.slice(1).toLowerCase()]; $(id).onclick = e => { H.setSpeed(s); e.currentTarget.blur(); }; }
   $('bData').onclick = e => { H.toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
@@ -85,9 +102,12 @@ export function renderUI(game, { paused, speed, data }) {
   let peat = 0, wet = 0;
   for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; }
   $('hudTime').textContent = HUD.time(Math.min(year + 1, game.level.years), game.level.years, isWetSeason(game), week + 1);
-  $('hudStats').textContent = HUD.stats(game.funds, freeCrews(game), game.crews.length,
+  const stats = HUD.stats(game.funds, freeCrews(game), game.crews.length,
     Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0,
     game.dryWtHistory.length ? Math.round(dryWetPct(game)) : null); // scored measure: none before the first dry season
+  const hs = $('hudStats');
+  if (hs.children.length !== stats.length) hs.replaceChildren(...stats.map(() => document.createElement('span')));
+  stats.forEach((t, k) => { if (hs.children[k].textContent !== t) hs.children[k].textContent = t; });
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
   $('bData').textContent = data ? HUD.mapView : HUD.dataView;
   for (const b of $('barGroups').querySelectorAll('button')) {
