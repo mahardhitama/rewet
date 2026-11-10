@@ -31,3 +31,19 @@ test('smoothed: neighbour diff small', () => {
   for (let y = 0; y < W.h; y++) for (let x = 0; x < W.w - 1; x++) { s += Math.abs(W.z[idx(W.w, x, y)] - W.z[idx(W.w, x + 1, y)]); c++; }
   assert.ok(s / c < 0.1);
 });
+test('tilted terrain falls along each straight path to the outlet', () => {
+  for (const outlet of ['N', 'E', 'S', 'W']) {
+    const W = mk(1, 20, 20);
+    generateTerrain(W, { microAmp: 0, tilt: 1, outlet });
+    const [dx, dy] = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] }[outlet];
+    for (let a = 0; a < 20; a++) for (let b = 0; b < 19; b++) {
+      const [x, y] = dx ? [dx > 0 ? b : 19 - b, a] : [a, dy > 0 ? b : 19 - b];
+      assert.ok(W.z[idx(20, x + dx, y + dy)] < W.z[idx(20, x, y)], `${outlet} ${x},${y}`);
+    }
+  }
+});
+test('tilt 0 gives the old dome', () => {
+  const A = mk(5), B = mk(5);
+  generateTerrain(A); generateTerrain(B, { tilt: 0 });
+  assert.deepEqual(A.z, B.z);
+});

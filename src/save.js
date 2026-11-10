@@ -1,7 +1,8 @@
+import { SPECIES } from './journal.js';
 // The only module that touches localStorage. Pure helpers take an injected `storage` ({getItem, setItem, removeItem?}).
 export const SAVE_KEY = 'rewet_v1';
 export const MAX_LEVEL = 6; // levels above this are the sandbox; unlocked = MAX_LEVEL + 1 opens it
-export const DEFAULT_SAVE = { version: 1, unlocked: 1, stars: {}, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false } };
+export const DEFAULT_SAVE = { version: 1, unlocked: MAX_LEVEL, stars: {}, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false }, found: [] }; // found: ids of the species in the journal
 export const UPGRADE_COST = { crew: 3, cheapBlocks: 3, fastCrew: 4 };
 
 // Lazy methods: merely reading `localStorage` can throw when storage is blocked, and the callers here catch that.
@@ -14,10 +15,11 @@ const num = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
 function sanitize(o) {
   if (!o || typeof o !== 'object' || o.version !== 1) return null;
   const s = fresh();
-  if (num(o.unlocked, 1, MAX_LEVEL + 1)) s.unlocked = o.unlocked;
+  if (num(o.unlocked, 1, MAX_LEVEL + 1)) s.unlocked = Math.max(MAX_LEVEL, o.unlocked); // old saves open all levels
   for (let id = 1; id <= MAX_LEVEL; id++) if (num(o.stars?.[id], 1, 3)) s.stars[id] = o.stars[id];
   for (const k of Object.keys(UPGRADE_COST)) if (o.upgrades?.[k] === 1) s.upgrades[k] = 1;
   s.settings.mute = o.settings?.mute === true;
+  if (Array.isArray(o.found)) s.found = [...new Set(o.found.filter(id => SPECIES.some(sp => sp.id === id)))];
   return s;
 }
 
@@ -53,7 +55,7 @@ export function clearSave(storage) {
 export const totalStars = (save) => Object.values(save.stars).reduce((a, b) => a + b, 0);
 export const spentStars = (save) => Object.entries(UPGRADE_COST).reduce((a, [k, c]) => a + (save.upgrades[k] ? c : 0), 0);
 export const availableStars = (save) => totalStars(save) - spentStars(save);
-export const hasProgress = (save) => save.unlocked > 1 || totalStars(save) > 0;
+export const hasProgress = (save) => totalStars(save) > 0 || save.unlocked > MAX_LEVEL;
 
 export function recordResult(save, levelId, stars) {
   const s = structuredClone(save);
@@ -63,6 +65,12 @@ export function recordResult(save, levelId, stars) {
     s.unlocked = Math.max(s.unlocked, Math.min(levelId + 1, MAX_LEVEL + 1));
   }
   return s;
+}
+
+// isNew is false for an unknown id and for an id that is already in found. The save then stays the same.
+export function recordFind(save, id) {
+  if (!SPECIES.some(sp => sp.id === id) || save.found.includes(id)) return { save, isNew: false };
+  return { save: { ...structuredClone(save), found: [...save.found, id] }, isNew: true };
 }
 
 export function buyUpgrade(save, id) {

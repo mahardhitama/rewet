@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, BLOCK, idx } from '../src/sim/world.js';
-import { createGame, applyAction, step, costOf, placeLevel, isWetSeason, freeCrews } from '../src/sim/game.js';
+import { seasonAt } from '../src/sim/season.js';
+import { canalTarget } from '../src/sim/hydro.js';
+import { createGame, applyAction, step, costOf, placeLevel, isWetSeason, freeCrews, PLANT_TILE, plantTiles } from '../src/sim/game.js';
 
 const S = 12;
 const canal = [[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6]]; // edge toward dome centre
@@ -60,10 +62,11 @@ test('wet season discount 0.8', () => {
   g.tick = 31 * 4; // dry
   assert.equal(costOf(g, 'tempBlock'), 100);
   g.tick = 25 * 4; // wet normally
-  assert.equal(costOf(g, 'plant'), 96);
+  assert.equal(costOf(g, 'plant'), Math.round(PLANT_TILE * 0.8 * 10) / 10); // per tile, 1 decimal (R2)
+  assert.equal(costOf(g, 'plant'), 6.4);
   const n = createGame(lvl({ elNinoYear: 0 }));
   n.tick = 25 * 4; // El Nino year: dry from week 21
-  assert.equal(costOf(n, 'plant'), 120);
+  assert.equal(costOf(n, 'plant'), PLANT_TILE);
   const c = createGame(lvl(), { cheapBlocks: true });
   assert.equal(costOf(c, 'tempBlock'), 60);
   assert.equal(costOf(c, 'well'), 64);
@@ -165,29 +168,81 @@ test('mound lifts the tile above the water without adding water', () => {
   assert.ok(Math.abs(head(a) - head(b)) < 0.02, `head diff ${head(a) - head(b)}`);
 });
 
-test('R27: plant seeds a 3x3 patch of peat, skipping canals, cover 1 and existing seedlings', () => {
+const run = (g, n = 12) => { for (let t = 0; t < n; t++) step(g); };
+
+test('R27: plant seeds a 5x5 stamp of peat, skipping canals, cover 1 and existing seedlings', () => {
   const g = createGame(lvl());
   g.world.cover[at(2, 7)] = 1;
   g.seedlings.set(at(3, 7), 5);
   assert.equal(applyAction(g, 'plant', at(2, 7)).ok, true); // centre has cover 1, neighbours are eligible
-  for (let t = 0; t < 4; t++) step(g);
-  for (const [x, y] of [[1, 7], [1, 8], [2, 8], [3, 8]]) assert.ok(g.seedlings.has(at(x, y)), `${x},${y}`);
-  for (const x of [1, 2, 3]) assert.ok(!g.seedlings.has(at(x, 6)), 'canal row skipped');
+  run(g);
+  for (const [x, y] of [[0, 7], [1, 7], [1, 8], [2, 8], [3, 8], [4, 9], [4, 7]]) assert.ok(g.seedlings.has(at(x, y)), `${x},${y}`);
+  for (let x = 0; x <= 4; x++) assert.ok(!g.seedlings.has(at(x, 6)), 'canal row skipped');
   assert.ok(!g.seedlings.has(at(2, 7)), 'cover 1 skipped');
-  assert.equal(g.seedlings.size, 5); // (3,7) kept, not re-seeded
-  assert.deepEqual([...g.planted.keys()].sort((a, b) => a - b), [at(1, 7), at(1, 8), at(2, 8), at(3, 8)]);
+  assert.ok(g.seedlings.has(at(3, 7)), '(3,7) kept');
+  assert.ok(!g.planted.has(at(3, 7)));
 });
 
-test('R32: plant needs an eligible tile in the 3x3; a seeded centre can extend the patch', () => {
+test('R27: a 5x5 stamp on open peat seeds 25 tiles, costs round(25 x price), takes 3 weeks', () => {
+  const g = createGame(lvl()); // week 0 is wet: 6.4 per tile
+  const f = g.funds, i = at(8, 3);
+  assert.equal(plantTiles(g, i).length, 25);
+  assert.deepEqual(applyAction(g, 'plant', i), { ok: true });
+  assert.equal(g.funds, f - Math.round(25 * costOf(g, 'plant')));
+  assert.equal(g.jobs[0].weeks, 3);
+  assert.equal(g.jobs[0].tiles.length, 25);
+  assert.equal(g.jobs[0].doneAt, 12);
+  run(g, 11);
+  assert.equal(g.planted.size, 0, 'not done before 3 weeks');
+  run(g, 1);
+  assert.equal(g.planted.size, 25);
+});
+
+test('R27: planting time is 1 week for 4 tiles, 3 weeks for 25', () => {
   const g = createGame(lvl());
-  assert.equal(applyAction(g, 'plant', at(8, 8)).ok, true);
-  for (let t = 0; t < 4; t++) step(g);
-  assert.ok(g.seedlings.has(at(8, 8)));
-  assert.equal(applyAction(g, 'plant', at(9, 8)).ok, true); // seeded centre, new column x = 10
-  for (let t = 0; t < 4; t++) step(g);
-  assert.equal(g.planted.size, 12);
+  g.funds = 26; // 4 tiles at 6.4, 5 tiles would cost 32
+  assert.equal(applyAction(g, 'plant', at(8, 3)).ok, true);
+  assert.equal(g.jobs[0].tiles.length, 4);
+  assert.equal(g.jobs[0].weeks, 1);
+});
+
+test('R27: with funds for 3 tiles the 3 nearest tiles are seeded', () => {
+  const g = createGame(lvl());
+  g.funds = 20; // 3 tiles at 6.4 cost 19.2, 4 tiles cost 25.6
+  const i = at(8, 3), want = plantTiles(g, i).slice(0, 3);
+  assert.equal(want[0], i); // nearest first
+  assert.equal(applyAction(g, 'plant', i).ok, true);
+  run(g);
+  assert.deepEqual([...g.planted.keys()].sort((a, b) => a - b), want.sort((a, b) => a - b));
+  assert.ok(g.funds < costOf(g, 'plant'));
+});
+
+test('R27: funds below one tile price refuse with funds', () => {
+  const g = createGame(lvl());
+  g.funds = 6; // below one tile at 6.4
+  assert.deepEqual(applyAction(g, 'plant', at(8, 3)), { ok: false, reason: 'funds' });
+  assert.equal(g.jobs.length, 0);
+});
+
+test('R27: overlapping plant jobs charge only new tiles', () => {
+  const g = createGame(lvl());
+  assert.equal(applyAction(g, 'plant', at(7, 3)).ok, true); // 25 tiles: x 5-9, y 1-5
   const f = g.funds;
-  assert.deepEqual(applyAction(g, 'plant', at(9, 8)), { ok: false, reason: 'nothingToPlant' });
+  assert.equal(plantTiles(g, at(9, 3)).length, 10); // only x 10 and 11 are new, y 1-5
+  assert.equal(applyAction(g, 'plant', at(9, 3)).ok, true);
+  assert.equal(g.jobs[1].tiles.length, 10);
+  assert.equal(g.funds, f - Math.round(10 * costOf(g, 'plant')));
+  for (const j of g.jobs) for (const t of j.tiles) assert.equal(g.jobs.filter((q) => q.tiles.includes(t)).length, 1);
+});
+
+test('R32: plant needs a plantable tile in the 5x5; tiles are checked again at finish', () => {
+  const g = createGame(lvl());
+  assert.equal(applyAction(g, 'plant', at(8, 3)).ok, true);
+  g.seedlings.set(at(8, 3), 0); // another source seeds a tile before the job ends
+  run(g);
+  assert.equal(g.planted.size, 24);
+  const f = g.funds;
+  assert.deepEqual(applyAction(g, 'plant', at(8, 3)), { ok: false, reason: 'nothingToPlant' });
   assert.deepEqual(applyAction(g, 'plant', at(3, 6)), { ok: false, reason: 'invalid' }); // canal centre
   assert.equal(g.funds, f);
 });
@@ -266,4 +321,48 @@ test('placeLevel canal z is the dome term of the default terrain', () => {
     maxMicro = Math.max(maxMicro, Math.abs(free.z[i] - dome(x, y)));
   }
   assert.ok(maxMicro > 0.05 && maxMicro <= 0.3 + 1e-5, `micro ${maxMicro}`);
+});
+
+test('placeLevel reads canalZ and level.terrain when present', () => {
+  const canalZ = canal.map((_, k) => -1 - 0.01 * k);
+  const terrain = { tilt: 1, outlet: 'E' };
+  const w = placeLevel(lvl({ canalZ, terrain }));
+  const free = placeLevel(lvl({ canals: [], terrain }));
+  const flat = placeLevel(lvl({ canals: [] }));
+  canal.forEach(([x, y], k) => assert.ok(Math.abs(w.z[at(x, y)] - canalZ[k]) < 1e-6, `canal z at ${x},${y}`));
+  assert.ok(free.z[at(0, 10)] > flat.z[at(0, 10)] + 0.5, 'tilt raises the high edge');
+});
+
+test('placeLevel copies canalW and canalD into the world', () => {
+  const canalW = canal.map((_, k) => 8 + k), canalD = canal.map((_, k) => 5 - 0.1 * k);
+  const w = placeLevel(lvl({ canalW, canalD }));
+  canal.forEach(([x, y], k) => {
+    const i = at(x, y);
+    assert.equal(w.cWidth[i], Math.fround(canalW[k]));
+    assert.equal(w.cDepth[i], Math.fround(canalD[k]));
+    assert.ok(Math.abs(w.cWater[i] - 0.7 * canalD[k]) < 1e-5, `dry water at ${x},${y}`);
+  });
+  assert.equal(w.cDepth[at(10, 10)], 0);
+});
+
+test('backfill sets cWater to 0', () => {
+  const g = createGame(lvl({ canalW: canal.map(() => 8), canalD: canal.map(() => 5) }));
+  const i = at(2, 6);
+  assert.ok(g.world.cWater[i] > 0);
+  applyAction(g, 'backfill', i);
+  for (let t = 0; t < 24; t++) step(g);
+  assert.equal(g.world.cWater[i], 0);
+  assert.equal(g.world.cDepth[i], 0);
+  assert.equal(g.world.cWidth[i], 0);
+});
+
+test('an illegal canal tile gets the branch size and the current water level', () => {
+  const g = createGame(lvl({ canals: [], illegalCanals: [[[0, 2], [1, 2]]] }));
+  for (let t = 0; t < 8; t++) step(g);
+  const i = at(0, 2), env = seasonAt(g.tick - 1);
+  assert.equal(g.world.kind[i], KIND.CANAL);
+  assert.equal(g.world.cWidth[i], 4);
+  assert.equal(g.world.cDepth[i], 2.5);
+  assert.ok(Math.abs(g.world.cWater[i] - canalTarget(g.world, g.S, i, env.dry)) < 1e-6, `${g.world.cWater[i]}`);
+  assert.ok(g.world.cWater[i] > 0);
 });

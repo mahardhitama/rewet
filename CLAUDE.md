@@ -30,6 +30,7 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 ## Commands
 
 - **Run:** `python3 -m http.server 8765`, then open http://localhost:8765. ES modules don't load from `file://`.
+- **Deploy:** Netlify serves the repo root (`netlify.toml`, no build). Follow `.claude/skills/rewet/deploy.md`. Ask the user before each production deploy.
 - **Tests:** `npm test` (= `node --test`, Node ≥ 20).
 - **Single test file:** `node --test test/hydro.test.js`
 - **Single test by name:** `node --test --test-name-pattern="C1" test/hydro.calibration.test.js`
@@ -57,13 +58,14 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 ## Domain facts
 
 - Every number about the real world (emission factors, water thresholds, subsidence rates) must come from a source opened in the session, with page or table cited, recorded in `docs/references/`.
-- Mark a value `NOT SOURCED` rather than giving it from memory. Still open: the PP 57/2016 Article 23 text for the 0.4 m rule.
+- Mark a value `NOT SOURCED` rather than giving it from memory. The 0.4 m rule is sourced: PP 57/2016 Article 23(3)(a), key `PP57` in `docs/references/peat-hydrology-and-emissions.md`.
 
 ## Rendering and save notes
 
 - **Rendering:**
-  - The canvas is a 320×180 buffer, upscaled with `image-rendering: pixelated` and `object-fit: cover`.
-  - All art is drawn with `fillRect`. The intro draws each frame. Map sprites are built once into a cache in `src/render/iso.js`. No image or audio assets.
+  - The canvas has the size of the window divided by the map zoom, upscaled with `image-rendering: pixelated` and `object-fit: cover`. `src/render/view.js` sets it.
+  - The intro and the menu draw a generated map (`src/render/introStory.js`) through the same view, at the fit zoom (`map.whole`).
+  - All art is drawn with `fillRect`. Map sprites are built once into a cache in `src/render/iso.js`. No image or audio assets.
   - Sound is WebAudio synthesis in `src/audio.js`.
 - **`localStorage` key:** `rewet_v1`, read and written only through `src/save.js`. It migrates the old prototype keys `rewet_save` and `rewet_mute`.
 - **Gotcha:** a global click/keydown listener skips the intro. Any button that starts the intro must call `stopPropagation()`, as `#bReplay` does.

@@ -8,7 +8,6 @@ export const TOAST = {
 
 export const SELECT = {
   title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}`,
-  locked: n => `Locked: restore site ${n} first`,
   best: n => (n ? '★'.repeat(n) + '☆'.repeat(3 - n) : '☆☆☆'),
   upTitle: 'Upgrades',
   stars: n => `Stars available: ${n}`,
@@ -25,14 +24,42 @@ export const UPGRADES = {
 
 export const HUD = {
   time: (year, years, wet, week) => `Year ${year}/${years} · ${wet ? 'Wet' : 'Dry'} season · wk ${week}`,
-  stats: (funds, crews, total, goodwill, wetNow, wetDry) =>
-    `Funds ${funds} · Crews ${crews}/${total} · Goodwill ${goodwill} · Wet now ${wetNow}% · Dry-season wet ${wetDry == null ? '–' : `${wetDry}%`} (scored)`,
+  timeShort: (year, years, wet, week) => `${year}/${years} · ${wet ? 'Wet' : 'Dry'} · wk ${week}`, // phone: labels hidden
+  // 6 parts, each { id, label, value, full }. full is the text for the screen reader and the tooltip.
+  // time is { year, years, wet, week }. short is true when the labels are hidden.
+  parts: (time, funds, crews, total, goodwill, wetNow, wetDry, short) => {
+    const t = HUD.time(time.year, time.years, time.wet, time.week);
+    const dry = wetDry == null ? '–' : `${wetDry}%`;
+    const p = (id, label, value, full = `${label} ${value}`) => ({ id, label, value, full });
+    return [
+      p('time', '', short ? HUD.timeShort(time.year, time.years, time.wet, time.week) : t, t),
+      p('funds', 'Funds', `${funds}`),
+      p('crew', 'Crews', `${crews}/${total}`),
+      p('goodwill', 'Goodwill', `${goodwill}`),
+      p('wet', 'Wet now', `${wetNow}%`),
+      p('score', 'Dry-season wet', dry, `Dry-season wet ${dry} (scored)`),
+    ];
+  },
   pause: 'Pause', x1: '×1', x2: '×2',
   legend: ['0 m', '40 cm', '1.5 m'], // water table below the surface
   legendTitle: 'Water table depth (data view). Wet = at or above 40 cm.',
-  keys: 'P/Space pause · 1/2 speed · D data view · drag/arrows pan · Esc menu',
+  keys: 'P/Space pause · 1/2 speed · D data view · drag/arrows pan · +/- zoom · 0 full map · Esc menu',
   dataView: 'Data view',
   mapView: 'Map view',
+};
+
+// visible text, label for screen readers and the tooltip
+export const ZOOM = {
+  group: 'Zoom',
+  in: ['+', 'Zoom in (+)'],
+  out: ['−', 'Zoom out (-)'],
+  fit: ['ALL', 'All of the map (0)'], // the name starts with the visible word (WCAG 2.5.3)
+};
+
+// the name line above the slots, and the accessible name of a slot
+export const BAR = {
+  name: (name, meta) => `${name}: ${meta}`,
+  slot: (name, group, meta) => `${name}, ${group}, ${meta}`,
 };
 
 export const R_NAMES = { rewet: 'Rewetting', reveg: 'Revegetation', revit: 'Revitalisation', defense: 'Defense' };
@@ -43,14 +70,14 @@ export const ACTION_TEXT = {
   permBlock: ['Perm block', 'Permanent block: tap a temporary block to make it permanent.'],
   backfill: ['Backfill', 'Backfill: tap a canal tile to fill it with peat. Removes the drainage.'],
   well: ['Deep well', 'Deep well: fire crews within 3 tiles put fires out 2× faster.'],
-  plant: ['Plant', 'Plant seedlings on a 3×3 patch around the tapped peat. They survive only at 0–40 cm water depth.'],
+  plant: ['Plant', 'Plant seedlings on a 5×5 patch around the tapped peat. You pay for each tile. They survive only at 0–40 cm water depth.'],
   mound: ['Mound', 'Planting mound: raises a peat tile 20 cm, out of floodwater.'],
   palud: ['Paludiculture', 'Paludiculture: tap a wet peat tile next to the village.'],
   pond: ['Fish pond', 'Fish pond: tap an open canal tile upstream of a block.'],
   fireGroup: ['Fire group', 'Fire-care group: tap a village tile. Spots fires, halves arson.'],
   fireCrew: ['Fire crew', 'Fire crew: tap a burning tile. The crew stays until the fire is out.'],
 };
-export const actionMeta = (cost, weeks) => weeks === Infinity ? 'until out' : `${cost} · ${weeks}w`;
+export const actionMeta = (cost, weeks, perTile = false) => weeks === Infinity ? 'until out' : perTile ? `${cost}/tile · 1–${weeks}w` : `${cost} · ${weeks}w`; // perTile: weeks is the longest job
 export const SELECT_HINT = 'Pick an action, then tap a tile. Tap the action again to cancel.';
 
 export const REASON = {
@@ -67,10 +94,14 @@ export const REPORT = {
   chart: 'Mean peat water depth, past year',
   chartAria: 'Chart of mean peat water-table depth per week over the past year, with the 40 cm wet line',
   line40: '40 cm',
-  burnt: pct => `Burnt so far: ${pct}% of the site`,
-  seedlings: (alive, planted) => planted ? `Seedling survival: ${alive}/${planted} planted this year` : 'Seedling survival: none planted this year',
-  goodwill: g => `Village goodwill: ${g}`,
-  grant: (grant, funds) => `Grant received: +${grant} · Funds now ${funds}`,
+  // each row is [label, value]
+  rows: (burntPct, sv, goodwill, grant, funds) => [
+    ['Burnt so far', `${burntPct}% of the site`],
+    ['Seedling survival', sv.planted ? `${sv.alive}/${sv.planted} planted this year` : 'none planted this year'],
+    ['Village goodwill', `${goodwill}`],
+    ['Grant received', `+${grant} · Funds now ${funds}`],
+  ],
+  speciesRow: names => ['Species seen', `${names.length}`, names.join(', ')], // [label, count, namesText]
   elNino: 'Warning: El Niño next year. The dry season starts 10 weeks early. Get blocks and wells in place.',
   cont: 'Continue',
 };
@@ -80,16 +111,20 @@ export const DEBRIEF = {
   stars: n => '★'.repeat(n) + '☆'.repeat(3 - n),
   before: 'Start', after: 'End',
   thumbs: 'Water depth at start and end (blue wet, brown dry)',
-  goals: (r, p) => [
-    `${r.rewetPct >= p.rewet ? '✓' : '✗'} Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season (pass: ${p.rewet}%).`,
-    `${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation: forest cover is ${r.coverPct.toFixed(0)}% (goal: ${p.reveg}%).`,
-    `${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation: village goodwill is ${r.goodwill.toFixed(0)} (goal: ${p.revit}).`,
+  goalHead: ['Goal', 'Result', 'Pass mark'],
+  // each row is [goal, result, pass mark]
+  goalRows: (r, p) => [
+    [`${r.rewetPct >= p.rewet ? '✓' : '✗'} Rewetting`, `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`, `${p.rewet}%`],
+    [`${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation`, `new forest cover is ${r.coverPct.toFixed(0)}%`, `${p.reveg}%`],
+    [`${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation`, `village goodwill is ${r.goodwill.toFixed(0)}`, `${p.revit}`],
   ],
   goalsTitle: 'Goal status',
   dataTitle: 'Data',
-  avoided: tc => `Drainage emissions avoided: ${tc.toFixed(1)} (estimate, t C)`,
-  fire: tc => `Fire emissions: ${tc.toFixed(1)} (estimate, t C)`,
-  seedlings: (alive, planted) => planted ? `Seedling survival: ${alive}/${planted}` : 'Seedling survival: none planted',
+  dataRows: (co2, sv) => [
+    ['Drainage emissions avoided', `${co2.avoidedTC.toFixed(1)} (estimate, t C)`],
+    ['Fire emissions', `${co2.fireTC.toFixed(1)} (estimate, t C)`],
+    ['Seedling survival', sv.planted ? `${sv.alive}/${sv.planted}` : 'none planted'],
+  ],
   allMet: 'All goals met. Well done.',
   passed: 'Site restored.',
   failed: 'Site not restored.',
@@ -101,10 +136,11 @@ export const DEBRIEF = {
   },
   menu: 'Menu',
   sandbox: seed => `Sandbox (seed ${seed}): figures only, no pass mark.`,
-  figures: r => [
-    `Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season.`,
-    `Revegetation: forest cover is ${r.coverPct.toFixed(0)}%.`,
-    `Revitalisation: village goodwill is ${r.goodwill.toFixed(0)}.`,
+  figureHead: ['Goal', 'Result'],
+  figureRows: r => [
+    ['Rewetting', `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`],
+    ['Revegetation', `new forest cover is ${r.coverPct.toFixed(0)}%`],
+    ['Revitalisation', `village goodwill is ${r.goodwill.toFixed(0)}`],
   ],
 };
 
@@ -116,3 +152,22 @@ export const HINTS = {
 };
 
 export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
+
+export const INTRO = { skip: 'Skip' };
+
+export const MENU = {
+  label: 'Progress',
+  stars: (x, n) => ['Stars', `${x} of ${n}`],
+  found: (x, n) => ['Wildlife found', `${x} of ${n}`],
+};
+
+export const JOURNAL = {
+  title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next',
+  count: (x, n) => `Wildlife found ${x} of ${n}`,
+  pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
+  contentsConcepts: 'Contents: ideas', contentsWildlife: 'Contents: wildlife',
+  found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
+  hidden: (k, n) => `Unknown species ${k} of ${n}, not found yet`,
+  status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
+  statusLabel: 'IUCN status', sources: 'Sources', hint: 'Left and Right arrows turn pages. Esc closes.',
+};

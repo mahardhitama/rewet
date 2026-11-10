@@ -1,9 +1,12 @@
-import { createWorld, KIND, BLOCK, WET_WT, idx } from './world.js';
+import { createWorld, KIND, BLOCK, WET_WT, idx, mulberry32 } from './world.js';
 import { generateTerrain } from './terrain.js';
 import { DRAIN, computeStrength, computeDistance, walkUp } from './drainage.js';
-import { seasonAt, TICKS_PER_YEAR } from './season.js';
-import { hydroTick } from './hydro.js';
+import { seasonAt, TICKS_PER_YEAR, year, elNino, dryStart, isWetSeason } from './season.js';
+export { isWetSeason };
+import { hydroTick, canalTick, canalTarget } from './hydro.js';
 import { ignite, fireTick } from './fire.js';
+import { BRANCH } from './mapgen.js';
+import { faunaTick, FAUNA_SALT } from './fauna.js';
 
 const TPW = 4; // ticks per week
 const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
@@ -21,12 +24,30 @@ const ok = (cond) => cond || 'invalid';
 const isCanal = (wd, i) => wd.kind[i] === KIND.CANAL;
 const plantable = (wd, g) => (j) => wd.kind[j] === KIND.PEAT && !g.seedlings.has(j) && wd.cover[j] < 1;
 
+export const PLANT_TILE = 8; // price of one seedling tile in funds, game value, NOT SOURCED
+export const PLANT_R = 2; // stamp radius: 2 gives a 5x5 patch, game value, NOT SOURCED
+export const plantWeeks = (n) => Math.max(1, Math.ceil(n / 10)); // 10 tiles per crew-week, game value, NOT SOURCED
+const SEEDLING_GROWTH = 1 / 312; // cover gained per tick in the band, game value, NOT SOURCED
+
+// Plantable tiles in the stamp, nearest first. A tile that an open plant job will seed does not count.
+export function plantTiles(g, i) {
+  const wd = g.world, { w, h } = wd, x = i % w, y = (i / w) | 0, can = plantable(wd, g), taken = new Set();
+  for (const j of g.jobs) if (j.id === 'plant') for (const t of j.tiles) taken.add(t);
+  const out = [];
+  for (let yy = Math.max(0, y - PLANT_R); yy <= Math.min(h - 1, y + PLANT_R); yy++)
+    for (let xx = Math.max(0, x - PLANT_R); xx <= Math.min(w - 1, x + PLANT_R); xx++) {
+      const j = yy * w + xx;
+      if (can(j) && !taken.has(j)) out.push([Math.max(Math.abs(xx - x), Math.abs(yy - y)), j]);
+    }
+  return out.sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((e) => e[1]);
+}
+
 export const ACTIONS = {
   tempBlock: { cost: 100, weeks: 1, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.NONE) },
   permBlock: { cost: 250, weeks: 3, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.TEMP) },
   backfill: { cost: 600, weeks: 6, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i)) },
   well: { cost: 80, weeks: 1, r: 'defense', valid: (_wd, i, g) => ok(!g.wells.has(i)) },
-  plant: { cost: 120, weeks: 1, r: 'reveg', valid: (wd, i, g) => (wd.kind[i] !== KIND.PEAT ? 'invalid' : near(wd, i, 1, plantable(wd, g)) || 'nothingToPlant') },
+  plant: { cost: PLANT_TILE, weeks: 1, r: 'reveg', valid: (wd, i, g) => (wd.kind[i] !== KIND.PEAT ? 'invalid' : plantTiles(g, i).length > 0 || 'nothingToPlant') }, // cost is per tile, weeks is the minimum
   mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i, g) => (g.mounds.has(i) ? 'mounded' : ok(wd.kind[i] === KIND.PEAT)) }, // one per tile
   palud: {
     cost: 200, weeks: 2, r: 'revit',
@@ -41,26 +62,28 @@ export const ACTIONS = {
 
 function domeZ(level) {
   const d = createWorld({ w: level.size, h: level.size, seed: level.seed });
-  generateTerrain(d, { microAmp: 0 });
+  generateTerrain(d, { ...level.terrain, microAmp: 0 });
   return d.z;
 }
 
 export function placeLevel(level) {
   const world = createWorld({ w: level.size, h: level.size, seed: level.seed });
-  generateTerrain(world);
-  const dome = domeZ(level);
+  generateTerrain(world, level.terrain);
+  const dome = level.canalZ ? null : domeZ(level);
   const set = (list, k) => { for (const [x, y] of list || []) world.kind[idx(world.w, x, y)] = k; };
   set(level.rivers, KIND.RIVER); set(level.villages, KIND.VILLAGE); set(level.farms, KIND.FARM); set(level.canals, KIND.CANAL);
-  for (const [x, y] of level.canals || []) { const i = idx(world.w, x, y); world.z[i] = dome[i]; } // monotone canal bed (R8)
-  computeDistance(world, computeStrength(world));
+  (level.canals || []).forEach(([x, y], k) => {
+    const i = idx(world.w, x, y);
+    world.z[i] = dome ? dome[i] : level.canalZ[k]; // monotone canal bed (R8)
+    if (level.canalW) { world.cWidth[i] = level.canalW[k]; world.cDepth[i] = level.canalD[k]; }
+  });
+  const S = computeStrength(world);
+  computeDistance(world, S);
+  for (let i = 0; i < world.n; i++) world.cWater[i] = canalTarget(world, S, i, 1); // buildLevelWorld ends in the dry season
   return world;
 }
 
 const redrain = (g) => { g.S = computeStrength(g.world); computeDistance(g.world, g.S); };
-const year = (g) => Math.floor(g.tick / TICKS_PER_YEAR);
-const elNino = (g) => g.level.elNinoYear != null && year(g) === g.level.elNinoYear;
-const dryStart = (g) => (elNino(g) ? 21 : 31);
-export const isWetSeason = (g) => seasonAt(g.tick).week < dryStart(g);
 const crewFree = (g) => (t) => t <= g.tick;
 export const freeCrews = (g) => g.crews.filter(crewFree(g)).length;
 const randWind = (rng) => N8[Math.floor(rng() * 8)];
@@ -72,8 +95,9 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
     world, level, upgrades, tick: 0, funds: level.grant,
     crews: new Array(3 + (upgrades.crew || 0)).fill(0), jobs: [], goodwill: 50, burnt: new Set(),
     dryWtHistory: [], wind: randWind(world.rng), events: [], S,
-    wt0: Float32Array.from(world.wt), wetTicks: new Uint16Array(world.n),
+    wt0: Float32Array.from(world.wt), cover0: Float32Array.from(world.cover), wetTicks: new Uint16Array(world.n),
     wells: new Set(), mounds: new Set(), seedlings: new Map(), planted: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(), // planted: tile -> tick it was last seeded
+    fauna: [], seen: new Set(), faunaRng: mulberry32(world.seed ^ FAUNA_SALT), faunaNext: 0, // wildlife (fauna.js): display only, no effect on the sim
     dome: null, // lazy domeZ(level), for illegal-canal beds
     illegal: (level.illegalCanals || []).map(() => 0), // next path index per illegal canal; -1 = stopped
   };
@@ -84,6 +108,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
 export function costOf(g, id) {
   let c = ACTIONS[id].cost;
   if (isWetSeason(g)) c *= 0.8;
+  if (id === 'plant') return Math.round(c * 10) / 10; // price per tile, 1 decimal
   if (g.upgrades.cheapBlocks && BLOCKS.has(id)) c *= 0.75;
   return Math.round(c);
 }
@@ -100,24 +125,29 @@ export function applyAction(g, id, i) {
   } else if (k >= 0) return { ok: false, reason: 'busy' };
   const crew = g.crews.findIndex(crewFree(g));
   if (crew < 0) return { ok: false, reason: 'crew' };
-  const cost = costOf(g, id);
+  let cost = costOf(g, id), weeks = a.weeks, tiles;
+  if (id === 'plant') { // the stamp shrinks to the nearest tiles the funds can pay
+    const all = plantTiles(g, i), n = Math.min(all.length, Math.floor(g.funds / cost + 1e-9));
+    if (n === 0) return { ok: false, reason: 'funds' };
+    tiles = all.slice(0, n); weeks = plantWeeks(n); cost = Math.round(n * cost);
+  }
   if (cost > g.funds) return { ok: false, reason: 'funds' };
   g.funds -= cost;
-  const doneAt = g.tick + a.weeks * TPW;
+  const doneAt = g.tick + weeks * TPW;
   g.crews[crew] = doneAt;
-  g.jobs.push({ id, i, doneAt, crew });
+  g.jobs.push(tiles ? { id, i, doneAt, crew, tiles, weeks } : { id, i, doneAt, crew });
   return { ok: true };
 }
 
-function finish(g, { id, i }) {
+function finish(g, { id, i, tiles }) {
   const wd = g.world;
   if (id === 'tempBlock') { wd.block[i] = BLOCK.TEMP; redrain(g); }
   else if (id === 'permBlock') { wd.block[i] = BLOCK.PERM; redrain(g); }
-  else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; redrain(g); }
+  else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; wd.cWidth[i] = wd.cDepth[i] = wd.cWater[i] = 0; redrain(g); }
   else if (id === 'well') g.wells.add(i);
-  else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27); eligibility checked now, not at order time (R32)
+  else if (id === 'plant') { // the paid tiles of the 5x5 stamp (R27); eligibility checked now, not at order time (R32)
     const can = plantable(wd, g);
-    near(wd, i, 1, (j) => { if (can(j)) { g.seedlings.set(j, 0); g.planted.set(j, g.tick); } return false; });
+    for (const j of tiles) if (can(j)) { g.seedlings.set(j, 0); g.planted.set(j, g.tick); }
   }
   else if (id === 'mound') { g.mounds.add(i); wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
   else if (id === 'palud') g.paluds.add(i);
@@ -159,6 +189,7 @@ export function step(g) {
 
   // 3. hydrology
   hydroTick(wd, g.S, env);
+  canalTick(wd, g.S, env);
   for (let i = 0; i < n; i++) if (wt[i] <= WET_WT) g.wetTicks[i]++;
   if (dry && g.tick % TPW === 0) {
     if (env.week === dryStart(g)) g.dryWtHistory = [];
@@ -174,6 +205,7 @@ export function step(g) {
   }
   const { burnt } = fireTick(wd, env, g.wind);
   for (const i of burnt) onLit(g, i);
+  if (g.tick % 4 === 0) faunaTick(g);
 
   // 5. threats
   if (dry && rng() < (g.level.arson * (1 - g.goodwill / 100)) / 147) {
@@ -185,16 +217,23 @@ export function step(g) {
     }
   }
   if (g.tick % 8 === 7) {
-    let changed = false;
+    const dug = [];
     g.illegal.forEach((p, c) => {
       const path = g.level.illegalCanals[c];
       if (p < 0 || p >= path.length) return;
       const i = idx(wd.w, path[p][0], path[p][1]);
       if (wd.block[i] !== BLOCK.NONE || kind[i] === KIND.VILLAGE || kind[i] === KIND.RIVER) { g.illegal[c] = -1; return; }
-      if (kind[i] !== KIND.CANAL) { kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]); changed = true; }
+      if (kind[i] !== KIND.CANAL) {
+        kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]);
+        wd.cWidth[i] = BRANCH.w; wd.cDepth[i] = BRANCH.d;
+        dug.push(i);
+      }
       g.illegal[c] = p + 1;
     });
-    if (changed) redrain(g);
+    if (dug.length) {
+      redrain(g);
+      for (const i of dug) wd.cWater[i] = canalTarget(wd, g.S, i, env.dry);
+    }
   }
   if (!dry && g.tick % TPW === 0) {
     let washed = false;
@@ -207,7 +246,7 @@ export function step(g) {
 
   // 6. growth: seedlings, then natural regrowth beside cover >= 0.6
   for (const [i, bad] of g.seedlings) {
-    if (inBand(wt[i])) { cover[i] = Math.min(1, cover[i] + 1 / 416); g.seedlings.set(i, 0); }
+    if (inBand(wt[i])) { cover[i] = Math.min(1, cover[i] + SEEDLING_GROWTH); g.seedlings.set(i, 0); }
     else if (bad + 1 >= 12) { cover[i] = 0; g.seedlings.delete(i); }
     else g.seedlings.set(i, bad + 1);
     if (cover[i] >= 1) g.seedlings.delete(i);

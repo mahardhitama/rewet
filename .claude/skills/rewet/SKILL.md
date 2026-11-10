@@ -1,6 +1,6 @@
 ---
 name: rewet
-description: Use first, before any other skill, for every task in the Rewet peatland restoration game repo - gameplay, simulation, balance, UI, usability, sound, sprites, design polish, impeccable, performance, ponytail, documentation, mermaid diagrams, research of real-world values, methane or emission numbers, status reports, Slack updates, skill files, commit messages, branches, or new features.
+description: Use first, before any other skill, for every task in the Rewet peatland restoration game repo - gameplay, simulation, balance, UI, usability, sound, sprites, design polish, impeccable, performance, ponytail, documentation, mermaid diagrams, research of real-world values, methane or emission numbers, status reports, Slack updates, skill files, commit messages, branches, deploys to Netlify, or new features.
 ---
 
 # Rewet router
@@ -30,6 +30,7 @@ This skill sends each Rewet task to the area file that holds its rules. CLAUDE.m
 | "Polish", "make it look better", demo or funder showcase, visual critique | `design-polish.md` |
 | Slow, laggy, frame drops, "optimize", "simplify", code size | `optimize.md` |
 | New feature, branch, plan, review, merge, "take it to done" | `workflow.md` |
+| Deploy, release, Netlify, publish the site, version number | `deploy.md` |
 
 ## Common mistakes
 

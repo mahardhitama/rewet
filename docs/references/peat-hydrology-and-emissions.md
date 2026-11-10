@@ -2,6 +2,16 @@
 
 Checked 2026-11-10. Every value below was read in the opened document named next to it.
 
+## Sources
+
+| Key | Source | Access |
+|---|---|---|
+| R14 | Ritzema, H.P. et al. (2014). "Canal blocking strategies for hydrological restoration of degraded tropical peatlands in Central Kalimantan, Indonesia". *Catena* 114, 11–20. DOI 10.1016/j.catena.2013.10.009. Page numbers are post-print numbers. | PDF opened: https://edepot.wur.nl/282926 |
+| IPCC13 | IPCC (2014). *2013 Supplement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories: Wetlands*. | PDF opened: https://www.ipcc.ch/site/assets/uploads/2018/03/Wetlands_Supplement_Entire_Report.pdf |
+| PP57 | Peraturan Pemerintah No. 57 Tahun 2016 (Lembaran Negara 2016 No. 260). It changes PP 71/2014. | PDF opened 2026-11-10: https://peraturan.go.id/files/pp57-2016bt.pdf |
+
+Every value in section 1 comes from R14 or IPCC13. On 2026-11-10 we read these again: R14 pages 2, 10 and 11, and IPCC13 Table 2.1 (oil palm and sago rows), Table 2.6 and Table 3.1. We read the other values in an earlier session. See `peat-restoration-concepts.md` for more facts with these keys.
+
 ## 1. Answer
 
 ### Canal drainage versus distance (Ritzema et al. 2014)
@@ -68,11 +78,11 @@ Source: Table 3.1, p.3.12.
 
 ## 3. Not sourced
 
-- **Indonesian 0.4 m damage criterion** (PP 71/2014 as amended by PP 57/2016, Art. 23): NOT SOURCED.
-  - peraturan.bpk.go.id returned a bot-check page.
-  - peraturan.go.id failed with a TLS error.
-  - The ministerial regulation P.15/MENLHK/SETJEN/KUM.1/2/2017 (FAOLEX ins174419), which was opened, cites Art. 23 but does not state 0.4 m.
-  - Only secondary press (Mongabay) gives the value. **Need the PP 57/2016 PDF.**
+- **Indonesian 0.4 m damage criterion** (PP 71/2014 as amended by PP 57/2016, Art. 23): SOURCED on 2026-11-10 (PP57 PDF page 11).
+  - Article 23(3)(a) says a peat ecosystem with a cultivation function is damaged when the water table is "lebih dari 0,4 (nol koma empat) meter di bawah permukaan Gambut pada titik penaatan".
+  - Article 23(3)(b) adds exposed pyrite or quartz sediment under the peat.
+  - Source: https://peraturan.go.id/files/pp57-2016bt.pdf (the earlier attempt used the wrong file name). The text applies to the cultivation function only.
+  - Not checked: a later amendment of the article.
 - **C-to-CO2 conversion (44/12):** NOT SOURCED here. It isn't stated in the opened Wetlands Supplement text. Needed if the game shows CO2 rather than CO2-C.
 - **Exponential decay fit** (L ≈ 100 m dry, ≈ 45 m wet): my own fit to Table 4, not a published parameter.
 - **How leaky a blocked canal is** (fraction of drainage kept): game tuning. Calibrated against the 1.12 → 0.37 m result above, not a published value.
@@ -82,5 +92,6 @@ Source: Table 3.1, p.3.12.
 - https://edepot.wur.nl/282926: downloaded 2026-11-10, read with `pdftotext -layout`.
 - https://www.ipcc.ch/site/assets/uploads/2018/03/Wetlands_Supplement_Entire_Report.pdf: downloaded 2026-11-10, read with `pdftotext -layout`; pages confirmed from the page footers.
 - https://faolex.fao.org/docs/pdf/ins174419.pdf: downloaded 2026-11-10, read with `pdftotext`.
-- Tried and failed: https://peraturan.bpk.go.id/Details/5768/pp-no-57-tahun-2016 (bot check), https://peraturan.go.id/files/pp57-2016.pdf (TLS).
+- https://peraturan.go.id/files/pp57-2016bt.pdf: downloaded 2026-11-10, read with `pdftotext -layout`. Article 23 is on PDF page 11.
+- Tried and failed: https://peraturan.bpk.go.id/Details/5768/pp-no-57-tahun-2016 (bot check), https://peraturan.go.id/files/pp57-2016.pdf (returned an HTML page, not the PDF).
 - Search used to find the sources (not cited): Mongabay, "Catatan Hukum Peraturan Gambut: Lama vs Baru" (2016).

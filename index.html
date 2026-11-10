@@ -6,83 +6,177 @@
 <title>Rewet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#efe6cf;--dim:#a99f86;--accent:#e8b04a;--panel:#14120ecc;--line:#3a3328}
+:root{--ink:#efe6cf;--dim:#a99f86;--accent:#e8b04a;--panel:#14120ecc;--line:#3a3328;--c-time:#9cc4ff;--c-funds:#f2d16b;--c-crew:#ff9d6e;--c-good:#f58fc0;--c-wet:#5ff0ff;--c-score:#8fe08a;--c-rewet:var(--c-wet);--c-reveg:var(--c-score);--c-revit:var(--c-good);--c-defense:var(--c-crew);--fs-label:14px;--fs-body:16px;--fs-head:24px;--fs-title:clamp(64px,14vw,144px)}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:#0e0d0b;color:var(--ink);font-family:VT323,monospace;font-size:22px;overflow:hidden}
+html,body{margin:0;height:100%;background:#0e0d0b;color:var(--ink);font-family:Silkscreen,monospace;font-size:var(--fs-body);overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;touch-action:none}
-#intro{position:fixed;left:0;right:0;bottom:12vh;text-align:center;padding:0 16px;pointer-events:none}
-#line{font-size:clamp(22px,3.4vw,34px);text-shadow:0 2px 0 #000;transition:opacity .6s}
-#skip{position:fixed;right:16px;bottom:16px;font:inherit;font-size:18px;color:var(--dim);background:none;border:1px solid var(--line);padding:4px 10px;cursor:pointer}
-#menu{position:fixed;left:max(16px,6vw);top:50%;transform:translateY(-50%);width:min(340px,calc(100% - 32px));opacity:0;pointer-events:none;transition:opacity .8s}
-#menu.on{opacity:1;pointer-events:auto}
-h1{font-family:Silkscreen,monospace;font-weight:400;font-size:clamp(44px,8vw,72px);margin:0;line-height:1;letter-spacing:2px;color:var(--ink);text-shadow:0 4px 0 #2d4a24}
-.sub{color:var(--dim);margin:6px 0 28px}
-.btn{display:block;width:100%;text-align:left;font-family:Silkscreen,monospace;font-size:18px;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:12px 14px;margin-bottom:8px;cursor:pointer}
+#intro{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none}
+#line{font-size:var(--fs-head);background:var(--panel);border:2px solid var(--line);padding:12px 16px;max-width:min(640px,100% - 32px);text-align:center;transition:opacity .6s}
+#skip,#findOpen,.jb,.btn{display:grid;grid-template-columns:24px 1fr 24px;align-items:center;gap:8px;text-align:center}
+#skip{position:fixed;right:16px;bottom:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--dim);background:none;border:1px solid var(--line);padding:4px 8px;min-height:44px;cursor:pointer}
+#skip:hover,#skip:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+#menu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;min-width:min(360px,calc(100% - 32px));max-width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .8s,visibility .8s}
+#menu.on{opacity:1;visibility:visible;pointer-events:auto}
+#ver{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);font-size:var(--fs-label);color:var(--dim);background:var(--panel);padding:2px 8px;opacity:0;transition:opacity .8s;pointer-events:none}
+#menu.on+#ver{opacity:1}
+h1{display:flex;justify-content:center;white-space:nowrap;font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-title);margin:0;line-height:1;letter-spacing:2px;color:var(--ink);text-shadow:0 4px 0 #2d4a24}
+.sub{display:inline-block;font-size:var(--fs-body);color:var(--dim);background:var(--panel);padding:2px 8px;margin:8px 0 24px}
+.btn{width:100%;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:8px 12px;min-height:44px;margin-bottom:8px;cursor:pointer}
+.t{min-width:0}
+.tree{visibility:hidden}
+.tree svg,.pic svg{display:block}
+:is(.btn,.jb,#findOpen,#skip):hover:not(:disabled) .tree,:is(.btn,.jb,#findOpen,#skip):focus-visible .tree{visibility:visible}
 .btn:hover:not(:disabled),.btn:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
-.btn:hover:not(:disabled)::before,.btn:focus-visible::before{content:"▶ "}
 .btn:disabled{opacity:.4;cursor:default}
-dialog{background:#14120e;color:var(--ink);border:2px solid var(--line);padding:20px;width:min(380px,calc(100% - 32px));font:inherit}
+dialog{position:fixed;inset:auto;left:50%;top:50%;margin:0;transform:translate(-50%,-50%);max-height:calc(100% - 32px);overflow:auto;background:#14120e;color:var(--ink);border:2px solid var(--line);padding:20px;width:min(380px,calc(100% - 32px));font:inherit}
 dialog::backdrop{background:#0008}
-dialog h2{font-family:Silkscreen,monospace;font-size:20px;margin:0 0 14px}
+dialog h2{font-family:Silkscreen,monospace;font-size:var(--fs-head);margin:0 0 14px}
 dialog label{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
 dialog p{margin:6px 0;color:var(--dim)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14120e;border:2px solid var(--accent);padding:8px 14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px)}
 #toast.on{opacity:1}
-#levelSelect,#report,#debrief{position:fixed;left:max(16px,6vw);top:50%;transform:translateY(-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
-#levelSelect h2,#report h2,#debrief h2{font-family:Silkscreen,monospace;font-weight:400;font-size:24px;margin:0 0 14px}
-#levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:18px;margin:14px 0 6px}
-#levelSelect #lsStars{color:var(--accent);font-family:VT323,monospace;font-size:22px;margin-bottom:6px}
-#levelSelect .btn small{display:block;font-family:VT323,monospace;font-size:20px;color:var(--dim);margin-top:2px}
-#report,#debrief{background:#14120e;border:2px solid var(--line);padding:16px}
+#findToast{position:fixed;left:50%;width:max-content;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#14120e;border:2px solid var(--accent);padding:4px 4px 4px 14px;max-width:calc(100% - 16px);pointer-events:none}
+#findMsg{min-width:0}
+#findOpen{pointer-events:auto;flex:none;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);min-width:44px;min-height:44px;padding:4px 12px;cursor:pointer}
+#findOpen:hover,#findOpen:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+#menu .btn{display:grid;max-width:360px;margin-inline:auto}
+.metrics{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
+.metrics td,.metrics th{padding:4px 4px;border-bottom:1px solid var(--line);text-align:right;color:var(--ink);font-weight:400}
+.metrics td:first-child,.metrics th:first-child{text-align:left;color:var(--dim)}
+.metrics th{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--dim)}
+.metrics td:nth-child(2):not(:last-child),.metrics th:nth-child(2):not(:last-child){text-align:left}
+.metrics td[colspan]{text-align:left;color:var(--ink)}
+#report .metrics,#debrief .metrics{margin-bottom:12px}
+#dbGoals td:first-child{white-space:nowrap}
+#menuStats{max-width:360px;margin:16px auto 0;background:var(--panel)}
+#menuStats td{padding:4px 8px}
+/* short landscape: a smaller title and 2 button columns, so the menu fits with no scroll */
+@media (max-height:500px){:root{--fs-title:clamp(40px,14vh,64px)}#menu{display:grid;grid-template-columns:repeat(2,minmax(0,360px));column-gap:8px;justify-content:center}#menu>h1,#menu>.sub,#menu>#menuStats{grid-column:1/-1;justify-self:center}#menu .sub{margin:4px 0 12px}#menu .btn{max-width:none}#menuStats{margin-top:8px}}
+#levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
+#levelSelect h2,#report h2,#debrief h2{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-head);margin:0 0 14px}
+#levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:14px 0 6px}
+#levelSelect #lsStars{color:var(--accent);font-family:Silkscreen,monospace;font-size:var(--fs-body);margin-bottom:6px}
+#levelSelect .btn small{display:block;font-family:Silkscreen,monospace;font-size:var(--fs-body);color:var(--dim);margin-top:2px}
 #report p,#debrief p{margin:6px 0}
-#hud{position:fixed;left:12px;top:12px;max-width:calc(100% - 24px);background:var(--panel);border:2px solid var(--line);padding:6px 10px}
-#hud small{display:block;color:var(--dim);font-size:18px}
-.hb{font:inherit;font-size:18px;color:var(--ink);background:none;border:1px solid var(--line);padding:2px 8px;margin:4px 4px 0 0;cursor:pointer}
-.hb:hover,.hb:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+/* a grid, so the legend can sit under the row: width:max-content gives the centred box its full content width */
+#hud{position:fixed;left:50%;top:8px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 16px);display:grid;grid-template-columns:auto auto;align-items:center;column-gap:8px;white-space:nowrap;background:var(--panel);border:2px solid var(--line);padding:4px 8px}
+#hudRow,#hudBtns{display:flex;align-items:center}
+#hudBtns{gap:4px}
+.part{--pc:var(--ink);display:flex;align-items:center;gap:4px;padding:0 8px;border-left:2px solid var(--line)}
+#hudRow>.part:first-child{border-left:0}
+.part[data-id=time]{--pc:var(--c-time)}.part[data-id=funds]{--pc:var(--c-funds)}.part[data-id=crew]{--pc:var(--c-crew)}.part[data-id=goodwill]{--pc:var(--c-good)}.part[data-id=wet]{--pc:var(--c-wet)}.part[data-id=score]{--pc:var(--c-score)}
+.part svg,.part .l{color:var(--pc);flex:none}
+.part .l{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label)}
+.part .v{color:var(--ink)}
+.sep{width:2px;height:24px;margin-left:8px;background:var(--line)}
+.hb{display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:var(--fs-body);color:var(--ink);background:none;border:1px solid var(--line);padding:2px 8px;min-width:44px;min-height:44px;cursor:pointer}
+.hb svg{flex:none}
+.hb:hover{border-color:var(--accent);color:var(--accent)}
+.hb:focus-visible,#zoom button:focus-visible{outline:2px solid var(--dim);outline-offset:1px} /* an outline, so the ring also shows on a selected button */
 .hb.on{border-color:var(--accent);color:var(--accent)}
-#legend{position:relative;width:180px;height:28px;margin-top:6px;font-size:16px;color:var(--dim)}
+#legend{grid-column:1/-1;display:flex;justify-content:center;margin-top:4px}
+#legend[hidden]{display:none}
+#legendIn{position:relative;width:240px;height:28px;font-size:var(--fs-body);color:var(--dim)}
 #legendBar{position:relative;height:8px;border:1px solid var(--line)}
 #legendMark{position:absolute;top:-4px;width:2px;height:14px;background:#5ff0ff}
-#legend i{position:absolute;top:10px;font-style:normal;white-space:nowrap}
-#legend i:nth-of-type(1){left:0}#legend i:nth-of-type(2){transform:translateX(-50%);color:#5ff0ff}#legend i:nth-of-type(3){right:0}
-#bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:2px solid var(--line);padding:4px 8px 6px}
-#barHint{font-size:18px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#barGroups{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
-.grp{display:flex;gap:4px;align-items:stretch;flex:none}
-.grp span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:Silkscreen,monospace;font-size:10px;color:var(--accent);text-align:center}
-.grp button{font-family:Silkscreen,monospace;font-size:12px;color:var(--ink);background:#14120e;border:2px solid var(--line);padding:4px 6px;min-width:76px;min-height:44px;cursor:pointer;text-align:left}
-.grp button small{display:block;font-family:VT323,monospace;font-size:17px;color:var(--dim)}
-.grp button:hover,.grp button:focus-visible{border-color:var(--dim);outline:none}
-.grp button.on{border-color:var(--accent);color:var(--accent)}
-.grp button.poor small{color:#c0583a}
-#tip{position:fixed;z-index:5;background:#14120e;border:2px solid #c0583a;padding:2px 8px;font-size:18px;pointer-events:none}
+#legendIn i{position:absolute;top:10px;font-style:normal;white-space:nowrap}
+#legendIn i:nth-of-type(1){left:0}#legendIn i:nth-of-type(2){transform:translateX(-50%);color:#5ff0ff}#legendIn i:nth-of-type(3){right:0}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--panel);border-top:2px solid var(--line);padding:4px 8px 6px}
+#barName{max-width:100%;min-height:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:16px;text-align:center;color:var(--dim)}
+#barHint{max-width:100%;min-height:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:16px;text-align:center;color:var(--dim)}
+#barName.sel{color:var(--ink)}
+#barRow{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%}
+#slots{display:flex;justify-content:center;gap:12px} /* 12 px between the 2 rows = the 4 px gap and the 8 px group margin */
+.row{display:flex;gap:4px}
+.slot{--c:var(--c-rewet);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:none;width:64px;height:64px;box-sizing:border-box;padding:0;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:1;color:var(--ink);background:#14120e;border:2px solid var(--line);border-top:3px solid var(--c);cursor:pointer}
+.slot[data-r=reveg]{--c:var(--c-reveg)}.slot[data-r=revit]{--c:var(--c-revit)}.slot[data-r=defense]{--c:var(--c-defense)}
+.slot.first:not(:first-child){margin-left:8px}
+.slot small{font:inherit;color:var(--dim)}
+.slot:hover{border-color:var(--dim);border-top-color:var(--c)}
+.slot:focus-visible{outline:2px solid var(--dim);outline-offset:1px} /* an outline, so the ring also shows on the selected slot */
+.slot.on{border-color:var(--accent);border-top-color:var(--c);color:var(--accent)}
+.slot.poor small{color:#c0583a}
+/* 10 slots of 64 px need 700 px, so the 44 px slots go up to 719 px wide */
+@media (max-width:719px),(max-height:500px){.slot{width:44px;height:44px;gap:0}.slot svg{width:24px;height:24px}}
+#zoom{flex:none;position:fixed;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
+#zoom button{width:44px;height:44px;font-family:Silkscreen,monospace;font-size:var(--fs-label);white-space:nowrap;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:0;cursor:pointer}
+#zoom button:hover{border-color:var(--accent);color:var(--accent)}
+#tip{position:fixed;z-index:5;background:#14120e;border:2px solid #c0583a;padding:2px 8px;font-size:var(--fs-body);pointer-events:none}
 #report canvas,#debrief canvas{display:block;width:100%;image-rendering:pixelated;border:1px solid var(--line);margin:4px 0}
 #rpElNino{color:var(--accent)}
-#dbStars{font-size:34px;color:var(--accent);letter-spacing:4px}
+#dbStars{font-size:var(--fs-head);color:var(--accent);letter-spacing:4px}
 #dbThumbs{display:flex;gap:12px}#dbThumbs figure{margin:0;flex:1;text-align:center;color:var(--dim)}
 #dbThumbs canvas{aspect-ratio:1;max-width:140px;margin:4px auto}
-#debrief h3{font-family:Silkscreen,monospace;font-weight:400;font-size:16px;margin:12px 0 4px;color:var(--dim)}
+#debrief h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:12px 0 4px;color:var(--dim)}
 #dbHint{color:var(--accent)}
+/* journal: a book. 2 pages side by side, or 1 page on a phone (journalView.js adds .one) */
+#dJournal{width:min(920px,calc(100% - 24px));max-height:calc(100% - 24px);padding:12px}
+#jHead{display:flex;align-items:center;gap:4px 12px;margin-bottom:10px}
+#jHead h2{margin:0;flex:none}
+#jCount{flex:1;color:var(--accent);font-size:var(--fs-body)}
+.jb{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:4px 12px;min-width:44px;min-height:44px;cursor:pointer}
+.jb:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.jb:focus-visible,.jc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.jb:disabled{opacity:.4;cursor:default}
+#jBook{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--line);background:#1b1810;height:min(500px,calc(100dvh - 230px));min-height:240px} /* a fixed height, so the dialog does not jump between pages */
+#jBook.one{grid-template-columns:1fr}
+.jPage{display:flex;flex-direction:column;overflow:auto;padding:14px 16px}
+#jBook:not(.one) .jPage+.jPage{border-left:2px solid var(--line)}
+.jPage h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:0 0 10px;color:var(--accent)}
+.jPage p{margin:0 0 8px;color:var(--ink)}
+.jPage em{color:var(--dim)}
+.jPage .jSrc{margin-top:auto;padding-top:10px;font-size:var(--fs-body);color:var(--dim)}
+.jc{display:block;width:100%;min-height:44px;text-align:left;font:inherit;font-size:var(--fs-body);color:var(--ink);background:none;border:0;border-bottom:1px solid var(--line);padding:4px 6px;cursor:pointer}
+.jc:hover{color:var(--accent)}
+.jSprite{width:100px;height:100px;border:2px solid var(--line);background:#14120e;display:flex;align-items:center;justify-content:center;margin:0 0 10px;font-family:Silkscreen,monospace;font-size:var(--fs-head);color:var(--dim)}
+.jSprite canvas{width:96px;height:96px;image-rendering:pixelated}
+.jSt{display:inline-block;border:1px solid var(--accent);color:var(--accent);padding:0 6px;font-size:var(--fs-body)}
+#jNav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+#jPos{color:var(--dim);text-align:center}
+#jHint{display:block;margin-top:6px;color:var(--dim);font-size:var(--fs-body)}
+@media (pointer:coarse){#jHint{display:none}}
+@media (max-width:600px){.jb{grid-template-columns:24px 1fr;gap:4px;padding:4px 8px}.jb .tree{display:none}#jPos{min-width:0}#jHead{flex-wrap:wrap}#jHead h2{flex:1}#jCount{order:3;flex-basis:100%}}
 [hidden]{display:none!important}
-@media (max-width:600px){#menu{top:auto;bottom:16px;transform:none}.sub{margin-bottom:16px}#hud{left:8px;top:8px;padding:4px 8px;font-size:18px}#hudKeys{display:none!important}#report,#debrief{top:auto;bottom:8px;transform:none;max-height:calc(100% - 16px)}#report canvas,#debrief canvas:not(#dbThumbs canvas){height:80px}}
+#hudKeys{display:block;margin-top:4px;color:var(--dim);font-size:var(--fs-body)}
+@media (pointer:coarse),(max-width:600px),(max-height:500px){#hudKeys{display:none}}
+/* Narrow windows drop width in steps, so the HUD stays one row at the widest value (funds 123456). Measured with Silkscreen:
+   the row needs 1734 px with the labels and the button text, 1306 px with the labels only, and 834 px with neither.
+   Under 1760 px the button text hides (the name stays in aria-label) and the time value is short (src/ui.js uses the same query);
+   under 1340 px, and in short landscape, the labels hide too. */
+@media (max-width:1759px),(max-height:500px){.hb .t{display:none}}
+@media (max-width:1339px),(max-height:500px){.part .l{display:none}.part{padding:0 4px}.sep{margin-left:4px}}
+@media (max-height:500px){.part svg{width:12px;height:12px}} /* one row between the left edge and the zoom column at 844 px */
+/* the HUD is 2 rows (parts, then buttons) up to 860 px wide: one row needs 834 px. Short landscape keeps the 800 px limit, because its row is smaller. Under 480 px the parts wrap to 2 lines. */
+@media (max-width:860px) and (min-height:501px),(max-width:800px){#hud{grid-template-columns:auto;max-width:calc(100% - 8px);padding:4px 0}.sep{display:none}#hudBtns{justify-self:center}.part{gap:2px;padding:0 2px}.part svg{width:12px;height:12px}}
+/* the dividers go, so a wrapped part shows no divider at a line start */
+@media (max-width:480px){#hudRow{flex-wrap:wrap;justify-content:center;gap:4px 8px}.part{border-left:0}}
+@media (max-height:500px) and (min-width:601px){#hud{max-width:calc(100% - 80px);left:calc(50% - 32px)}}
+/* very short window: smaller HUD text, and the zoom buttons are a row, because a 144 px column does not fit between the HUD and the bar */
+@media (max-height:360px){#hud{max-width:calc(100% - 16px);left:50%}#zoom{flex-direction:row;gap:4px}}
+/* portrait phone (short landscape is excluded, its rules above win): the 2 slot rows stack, and the zoom column floats at the right edge just above the bar (the bar is its positioned parent); the find toast keeps clear of that column */
+@media (max-width:600px) and (min-height:501px){#slots{flex-direction:column;align-items:center;gap:4px}#barHint:empty{display:none}#findToast{left:calc(50% - 32px);max-width:calc(100% - 80px)}#zoom{position:absolute;top:auto;right:12px;bottom:100%;margin-bottom:10px;transform:none}}
+@media (max-width:600px){:root{--fs-body:14px}.sub{margin-bottom:16px}#report canvas,#debrief canvas:not(#dbThumbs canvas){height:80px}}
 </style>
 </head>
 <body>
 <canvas id="bg" aria-label="Pixel art peat swamp recovering from drought and fire"></canvas>
 
 <div id="intro"><div id="line" aria-live="polite"></div></div>
-<button id="skip">Skip ▸</button>
+<button id="skip"></button>
 
 <nav id="menu" aria-label="Main menu">
   <h1>REWET</h1>
-  <div class="sub">a peatland restoration game · prototype</div>
+  <div class="sub">a peatland restoration game&nbsp;·&nbsp;prototype</div>
   <button class="btn" id="bNew">New game</button>
   <button class="btn" id="bCont" disabled>Continue</button>
+  <button class="btn" id="bJrnMenu">Journal</button>
   <button class="btn" id="bSet">Settings</button>
   <button class="btn" id="bCred">Credits</button>
+  <div id="menuStats"></div>
 </nav>
+<div id="ver">v0.0.1</div>
 
 <dialog id="dSet">
   <h2>Settings</h2>
@@ -94,7 +188,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 <dialog id="dCred">
   <h2>Credits</h2>
   <p>Prototype. All art and sound generated in code.</p>
-  <p>Fonts: Silkscreen, VT323 (Google Fonts).</p>
+  <p>Font: Silkscreen (Google Fonts).</p>
   <form method="dialog"><button class="btn">Close</button></form>
 </dialog>
 <div id="levelSelect" hidden>
@@ -104,12 +198,16 @@ dialog p{margin:6px 0;color:var(--dim)}
   <button class="btn" id="lsBack"></button>
 </div>
 <div id="hud" hidden>
-  <div id="hudTime"></div><div id="hudStats"></div>
-  <button class="hb" id="bPause"></button><button class="hb" id="bX1"></button><button class="hb" id="bX2"></button><button class="hb" id="bData"></button>
-  <div id="legend"><div id="legendBar"><b id="legendMark"></b></div><i></i><i></i><i></i></div>
+  <div id="hudRow"><span class="part" data-id="time" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="funds" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="crew" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="goodwill" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="wet" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="score" role="group"><b class="l"></b><span class="v"></span></span><i class="sep"></i></div>
+  <div id="hudBtns"><button class="hb" id="bPause"></button><button class="hb" id="bX1"></button><button class="hb" id="bX2"></button><button class="hb" id="bData"></button><button class="hb" id="bJournal"></button></div>
+  <div id="legend"><div id="legendIn"><div id="legendBar"><b id="legendMark"></b></div><i></i><i></i><i></i></div></div>
+</div>
+<div id="bar" hidden>
+  <div id="barName"></div>
+  <div id="barHint"></div>
+  <div id="barRow"><div id="slots"></div><div id="zoom" role="group"><button id="bZoomIn"></button><button id="bZoomOut"></button><button id="bZoomFit"></button></div></div>
   <small id="hudKeys"></small>
 </div>
-<div id="bar" hidden><div id="barHint"></div><div id="barGroups"></div></div>
 <div id="tip" role="status" hidden></div>
 <div id="report" hidden><h2 id="rpTitle"></h2><small id="rpChartLabel"></small><canvas id="rpChart" role="img" width="312" height="110"></canvas><div id="rpBody"></div><p id="rpElNino" hidden></p><button class="btn" id="rpCont"></button></div>
 <div id="debrief" hidden>
@@ -119,8 +217,15 @@ dialog p{margin:6px 0;color:var(--dim)}
   <h3 id="dbDataTitle"></h3><canvas id="dbChart" role="img" width="312" height="110"></canvas><div id="dbData"></div>
   <button class="btn" id="dbMenu"></button>
 </div>
+<dialog id="dJournal" aria-labelledby="jTitle">
+  <div id="jHead"><h2 id="jTitle"></h2><span id="jCount"></span><button class="jb" id="jClose" autofocus></button></div>
+  <div id="jBook"></div>
+  <div id="jNav"><button class="jb" id="jPrev"></button><span id="jPos" aria-live="polite"></span><button class="jb" id="jNext"></button></div>
+  <small id="jHint"></small>
+</dialog>
 <dialog id="dQuit"><h2 id="qTitle"></h2><p id="qBody"></p><button class="btn" id="qYes"></button><button class="btn" id="qNo" autofocus></button></dialog>
 <div id="toast" role="status"></div>
+<div id="findToast" role="status" hidden><span id="findMsg"></span><button id="findOpen"></button></div>
 
 <script type="module" src="src/main.js"></script>
 </body>

@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluate, checkEarlyLoss, co2Estimate, seedlingSurvival } from '../src/sim/score.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
+import { LEVELS, buildLevelWorld } from '../src/levels.js';
+import { resolveLevel } from '../src/sim/mapgen.js';
+import { createGame } from '../src/sim/game.js';
 
 // Game-like stub: n peat tiles, `wet` of them with mean dry wt 0.3, rest 0.8.
 function mk({ n = 10, wet = 6, cover = 0.4, goodwill = 60, burnt = 0, funds = 1000, crews = [0], jobs = [], tick = 2 * 208 + 200, upgrades = {} } = {}) {
@@ -12,6 +15,7 @@ function mk({ n = 10, wet = 6, cover = 0.4, goodwill = 60, burnt = 0, funds = 10
     tick, funds, crews, jobs, goodwill,
     burnt: new Set(Array.from({ length: burnt }, (_, i) => i)),
     wt0: new Float32Array(n).fill(0.8),
+    cover0: new Float32Array(n),
     wetTicks: new Uint16Array(n),
     dryWtHistory: [wt],
   };
@@ -115,4 +119,33 @@ test('seedlingSurvival counts every seeded tile since a tick; alive = seedling o
   g.world.cover[3] = 1; g.world.cover[1] = 0.5; // 1 died (no seedling, cover < 1)
   assert.deepEqual(seedlingSurvival(g), { alive: 3, planted: 4 });
   assert.deepEqual(seedlingSurvival(g, 200), { alive: 2, planted: 2 });
+});
+
+const start = (l) => createGame(l, {}, buildLevelWorld(l));
+
+test('coverPct is 0 at the start of each level', () => {
+  for (const l of LEVELS.map(resolveLevel)) assert.equal(evaluate(start(l)).coverPct, 0, `L${l.id}`);
+});
+
+test('full growth gives 100', () => {
+  const g = start(resolveLevel(LEVELS[0])), { kind, cover } = g.world;
+  for (let i = 0; i < g.world.n; i++) if (kind[i] !== KIND.CANAL && kind[i] !== KIND.FARM) cover[i] = 1;
+  assert.equal(evaluate(g).coverPct, 100);
+});
+
+test('coverPct is the gain above the start cover', () => {
+  const g = mk({ n: 2, cover: 0.8 });
+  g.cover0.fill(0.6);
+  assert.ok(Math.abs(evaluate(g).coverPct - 50) < 1e-4);
+});
+
+test('evaluate returns speciesSeen and the same stars with and without fauna', () => {
+  const l = resolveLevel(LEVELS[0]);
+  const a = createGame(l, {}, buildLevelWorld(l)), b = createGame(l, {}, buildLevelWorld(l));
+  a.seen.add('otter');
+  const ra = evaluate(a), rb = evaluate(b);
+  assert.deepEqual(ra.speciesSeen, ['otter']);
+  assert.deepEqual(rb.speciesSeen, []);
+  assert.equal(ra.stars, rb.stars);
+  assert.equal(ra.passed, rb.passed);
 });

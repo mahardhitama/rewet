@@ -19,7 +19,7 @@
 ## Constraints impeccable does not know
 
 - The art is pixel art. The canvas is a 320×180 buffer with `image-rendering: pixelated`. Do not add smooth gradients, blur or vector art to the canvas.
-- No image or audio files. No npm dependencies. Fonts are Silkscreen and VT323 from Google Fonts (`index.html` head). Ask before you add or change a font.
+- No image or audio files. No npm dependencies. The font is Silkscreen from Google Fonts (`index.html` head), for all text. Ask before you add or change a font.
 - Use the CSS tokens on `:root` in `index.html`. Add a token only when no existing token fits.
 - Text goes in `src/strings.js`. Ask before you change factual copy. Ask before you remove the word "prototype".
 - Read `ui-ux.md` for the touch and input rules.
