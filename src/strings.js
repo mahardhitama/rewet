@@ -170,5 +170,5 @@ export const JOURNAL = {
   found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
   hidden: (k, n) => `Unknown species ${k} of ${n}, not found yet`,
   status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
-  statusLabel: 'IUCN status', sources: 'Sources', hint: 'Left and Right arrows turn pages. Esc closes.',
+  statusLabel: 'IUCN status', sources: 'Sources', openSource: 'Open source', hint: 'Left and Right arrows turn pages. Esc closes.',
 };

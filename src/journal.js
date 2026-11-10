@@ -57,3 +57,32 @@ export const SPECIES = [
   { id: 'snakehead', name: 'Striped snakehead', local: 'gabus', sci: 'Channa striata', status: 'LC',
     fact: 'The snakehead is an important food fish in its full native range.', sources: ['H18', 'WP'] },
 ];
+
+// The link for each source key: the URL in the "opened" cell of its row in docs/references/*.md.
+// WP has one page per species, and KMP has one list for mammals and one for birds.
+const WIKI = 'https://en.wikipedia.org/wiki/';
+export const SOURCE_URLS = {
+  W20: 'https://eprints.whiterose.ac.uk/157071/3/rec.13133.pdf',
+  TC20: 'https://theconversation.com/indonesias-peatland-restoration-agency-gets-an-extension-despite-failing-to-hit-its-target-what-are-the-hurdles-and-next-strategies-151989',
+  MB22: 'https://mongabay.co.id/2022/01/13/melihat-target-brgm-restorasi-gambut-dan-mangrove-pada-2022/',
+  R14: 'https://edepot.wur.nl/282926',
+  H18: 'https://mires-and-peat.scholasticahq.com/article/128947.pdf',
+  PP57: 'https://peraturan.go.id/files/pp57-2016bt.pdf',
+  C19: 'https://radar.brookes.ac.uk/radar/file/bb3992c9-738c-4ba0-9206-521ceb3a76cf/1/journal.pone.0217784.pdf',
+  IPCC13: 'https://www.ipcc.ch/site/assets/uploads/2018/03/Wetlands_Supplement_Entire_Report.pdf',
+  FAO16: 'https://update23.greifswaldmoor.de/files/dokumente/2016_05_Final%20workshop%20report-MOEF%20FAO%20peatland%20paludiculture%20workshop%20May%202016.pdf',
+  P24: 'https://atlantis-press.com/article/126000658.pdf',
+  PIN: 'https://primate.wisc.edu/primate-info-net/pin-factsheets/pin-factsheet-orang-utan/',
+  KMP: 'https://lestari.kompas.com/read/2023/06/19/180000686/daftar-satwa-mamalia-yang-dilindungi-di-indonesia',
+};
+const PER_SPECIES = {
+  KMP: { stork: 'https://lestari.kompas.com/read/2023/06/21/120000086/daftar-lengkap-562-jenis-burung-yang-dilindungi-di-indonesia' },
+  WP: {
+    orangutan: WIKI + 'Bornean_orangutan', gibbon: WIKI + 'Bornean_white-bearded_gibbon', langur: WIKI + 'Maroon_langur',
+    sunbear: WIKI + 'Sun_bear', hornbill: WIKI + 'Rhinoceros_hornbill', stork: WIKI + 'Storm%27s_stork',
+    fishowl: WIKI + 'Buffy_fish_owl', otter: WIKI + 'Asian_small-clawed_otter', gharial: WIKI + 'False_gharial',
+    monitor: WIKI + 'Asian_water_monitor', snakehead: WIKI + 'Channa_striata',
+  },
+};
+// e: a CONCEPTS or SPECIES entry. k: one of its source keys.
+export const sourceUrl = (e, k) => PER_SPECIES[k]?.[e.id] ?? SOURCE_URLS[k];

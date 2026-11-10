@@ -1,13 +1,18 @@
 // The journal: a book in a <dialog>. DOM only. It reads the save's found list and changes no game state.
-import { CONCEPTS, SPECIES } from './journal.js';
+import { CONCEPTS, SPECIES, sourceUrl } from './journal.js';
 import { JOURNAL as T } from './strings.js';
 import { animalSprite } from './render/iso.js';
-import { setText } from './icons.js';
+import { setText, sourceLink } from './icons.js';
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 // The art is 16 px: the box scales it up, and CSS keeps the pixels sharp.
 const art = (id, silhouette) => { const c = el('canvas'), s = animalSprite(id, silhouette); c.setAttribute('aria-hidden', 'true'); c.width = s.width; c.height = s.height; c.getContext('2d').drawImage(s, 0, 0); return c; };
-const sources = e => el('small', 'jSrc', `${T.sources}: ${e.sources.join(', ')}`);
+const sources = e => {
+  const s = el('small', 'jSrc', `${T.sources}: `);
+  // nowrap keeps each icon on the line of its key
+  e.sources.forEach((k, i) => { const one = el('span', 'nw', k); one.append(sourceLink(sourceUrl(e, k), `${T.openSource} ${k}`)); s.append(i ? ', ' : '', one); });
+  return s;
+};
 
 // found: species ids. page: a concept or species id, or null for the contents. onClose runs when the dialog closes, by any way.
 export function openJournal({ found = [], page = null, onClose } = {}) {

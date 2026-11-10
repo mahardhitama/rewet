@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { CONCEPTS, SPECIES } from '../src/journal.js';
+import { CONCEPTS, SPECIES, sourceUrl } from '../src/journal.js';
 
 const REFS = new URL('../docs/references/', import.meta.url);
 const files = readdirSync(REFS).filter(f => f.endsWith('.md'));
@@ -23,6 +23,10 @@ test('each entry has sources and each source key is in docs/references', () => {
     assert.ok(e.sources.length >= 1, `${e.id} has no source`);
     for (const k of e.sources) assert.ok(keys.has(k), `${e.id}: unknown source ${k}`);
   }
+});
+
+test('each source of each entry has an https link', () => {
+  for (const e of [...CONCEPTS, ...SPECIES]) for (const k of e.sources) assert.match(sourceUrl(e, k) ?? '', /^https:\/\//, `${e.id}: ${k}`);
 });
 
 test('ids are unique and lowercase words', () => {

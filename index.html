@@ -32,7 +32,7 @@ h1{display:flex;justify-content:center;white-space:nowrap;font-family:Silkscreen
 .btn:disabled{opacity:.4;cursor:default}
 dialog{position:fixed;inset:auto;left:50%;top:50%;margin:0;transform:translate(-50%,-50%);max-height:calc(100% - 32px);overflow:auto;background:#14120e;color:var(--ink);border:2px solid var(--line);padding:20px;width:min(380px,calc(100% - 32px));font:inherit}
 dialog::backdrop{background:#0008}
-dialog h2{font-family:Silkscreen,monospace;font-size:var(--fs-head);margin:0 0 14px}
+dialog h2{font-family:Silkscreen,monospace;font-size:var(--fs-head);margin:0 0 14px;text-align:center}
 dialog label{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
 dialog p{margin:6px 0;color:var(--dim)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14120e;border:2px solid var(--accent);padding:8px 14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px)}
@@ -56,6 +56,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 @media (max-height:500px){:root{--fs-title:clamp(40px,14vh,64px)}#menu{display:grid;grid-template-columns:repeat(2,minmax(0,360px));column-gap:8px;justify-content:center}#menu>h1,#menu>.sub,#menu>#menuStats{grid-column:1/-1;justify-self:center}#menu .sub{margin:4px 0 12px}#menu .btn{max-width:none}#menuStats{margin-top:8px}}
 #levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
 #levelSelect h2,#report h2,#debrief h2{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-head);margin:0 0 14px}
+#report h2,#debrief h2{text-align:center}
 #levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:14px 0 6px}
 #levelSelect #lsStars{color:var(--accent);font-family:Silkscreen,monospace;font-size:var(--fs-body);margin-bottom:6px}
 #levelSelect .lsBest{display:flex;justify-content:center;gap:4px;margin:6px 0 2px;color:var(--dim)}
@@ -118,9 +119,14 @@ dialog p{margin:6px 0;color:var(--dim)}
 #dbHint{color:var(--accent)}
 /* journal: a book. 2 pages side by side, or 1 page on a phone (journalView.js adds .one) */
 #dJournal{width:min(920px,calc(100% - 24px));max-height:calc(100% - 24px);padding:12px}
-#jHead{display:flex;align-items:center;gap:4px 12px;margin-bottom:10px}
-#jHead h2{margin:0;flex:none}
-#jCount{flex:1;color:var(--accent);font-size:var(--fs-body)}
+#jHead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:4px 12px;margin-bottom:10px}
+#jHead h2{margin:0;grid-column:2;grid-row:1}
+#jCount{grid-column:1;grid-row:1;color:var(--accent);font-size:var(--fs-body)}
+#jClose{grid-column:3;justify-self:end}
+.srcLink{display:inline-block;vertical-align:middle;margin-left:2px;color:var(--accent)}
+.srcLink:hover,.srcLink:focus-visible{color:var(--ink)}
+.srcLink svg{display:block}
+.jSrc .nw{white-space:nowrap}
 .jb{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:4px 12px;min-width:44px;min-height:44px;cursor:pointer}
 .jb:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .jb:focus-visible,.jc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -142,7 +148,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 #jPos{color:var(--dim);text-align:center}
 #jHint{display:block;margin-top:6px;color:var(--dim);font-size:var(--fs-body)}
 @media (pointer:coarse){#jHint{display:none}}
-@media (max-width:600px){.jb{grid-template-columns:24px 1fr;gap:4px;padding:4px 8px}.jb .tree{display:none}#jPos{min-width:0}#jHead{flex-wrap:wrap}#jHead h2{flex:1}#jCount{order:3;flex-basis:100%}}
+@media (max-width:600px){.jb{grid-template-columns:24px 1fr;gap:4px;padding:4px 8px}.jb .tree{display:none}#jPos{min-width:0}#jCount{grid-row:2;grid-column:1/-1}}
 [hidden]{display:none!important}
 #hudKeys{display:block;margin-top:4px;color:var(--dim);font-size:var(--fs-body)}
 @media (pointer:coarse),(max-width:600px),(max-height:500px){#hudKeys{display:none}}
@@ -173,7 +179,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 
 <nav id="menu" aria-label="Main menu">
   <h1>REWET</h1>
-  <div class="sub">a peatland restoration game&nbsp;·&nbsp;prototype</div>
+  <div class="sub">a peatland restoration game</div>
   <button class="btn" id="bNew">New game</button>
   <button class="btn" id="bCont" disabled>Continue</button>
   <button class="btn" id="bJrnMenu">Journal</button>
@@ -192,9 +198,9 @@ dialog p{margin:6px 0;color:var(--dim)}
 </dialog>
 <dialog id="dCred">
   <h2>Credits</h2>
-  <p>Prototype. Map art and sound generated in code.</p>
-  <p>Font: Silkscreen (Google Fonts).</p>
-  <p>Icons: pixelarticons by Gerrit Halfmann (MIT).</p>
+  <p>Map art and sound generated in code.</p>
+  <p>Font: Silkscreen (Google Fonts).<a class="srcLink" href="https://fonts.google.com/specimen/Silkscreen" aria-label="Open source Silkscreen"></a></p>
+  <p>Icons: pixelarticons by Gerrit Halfmann (MIT).<a class="srcLink" href="https://github.com/halfmage/pixelarticons" aria-label="Open source pixelarticons"></a></p>
   <form method="dialog"><button class="btn">Close</button></form>
 </dialog>
 <div id="levelSelect" hidden>
