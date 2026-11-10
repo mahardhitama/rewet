@@ -232,11 +232,11 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
    - C3 on level 4: best single block +89 tiles, best cascade +162 tiles (1.82×).
    - The pass of a level is sensitive to the fire rolls. A change to the sim or to the map can make a level fail again. Then do the seed search again.
    - Task 4 re-tune: canal depth now scales the drained depth (`eq × cDepth / 5`), so branches drain less. Level 6 with seed 610 then failed with a fire loss (rewet 61.9%). A seed search on seeds 610 to 649 gave 8 passing seeds: 622, 623, 624, 625, 626, 632, 640, 647. Level 6 now uses seed 622. The other levels kept their seeds. The `map` parameters did not change.
-   - Runs with `blockPlan()` after Task 4 (rewet %, then the run with no action):
+   - Runs with `blockPlan()` after Task 4 and its fix round (rewet %, then the run with no action). An illegal canal tile now gets the branch size (4 m wide, 2.5 m deep), so it drains less than before:
      - L1: 90.7%, passed. No action: 36.4%, fire loss.
      - L2: 100.0%, passed. No action: 41.7%, fire loss.
      - L3: 96.7%, passed. No action: 43.5%, fire loss.
-     - L4: 84.6%, passed. No action: 68.9%, goodwill loss.
-     - L5: 93.6%, passed. No action: 29.0%, goodwill loss.
-     - L6 (seed 622): 93.8%, passed. No action: 53.8%, goodwill loss.
+     - L4: 95.1%, passed. No action: 58.4%, goodwill loss.
+     - L5: 99.6%, passed. No action: 49.5%, fire loss.
+     - L6 (seed 622): 97.5%, passed. No action: 56.1%, goodwill loss.
 8. **Fixture `l1-reveg.json` (Task 3):** the `l1-cascade.json` plan, then a plant order on every third tile from tick 208. Each order waits for a free crew and for 170 funds (one plant plus one more action). The cascade has 12 blocks and uses most of the funds, so only 20 plants fit. The run gives rewet 90.7%, cover 15.3%, 1 star. The R27 test is a `todo` until Task 5 tunes `pass.reveg`. After Task 4 (canal depth), the same fixture gives rewet 90.7%, cover 15.9%, 1 star. The level 1 map did not change, so the fixtures stay the same.

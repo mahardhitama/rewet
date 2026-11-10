@@ -2,7 +2,7 @@ import { createWorld, mulberry32, idx } from './world.js';
 import { generateTerrain } from './terrain.js';
 
 const TRUNK = { w: 8, d: 5 }; // KFCP 2014 p.9
-const BRANCH = { w: 4, d: 2.5 }; // NOT SOURCED
+export const BRANCH = { w: 4, d: 2.5 }; // NOT SOURCED
 const GAP = 4; // tiles between trunks
 const TRIES = 20;
 const RIVER = 1, VILLAGE = 2, FARM = 3, CANAL0 = 10; // tag values; each canal gets its own tag from CANAL0, each illegal canal a negative tag

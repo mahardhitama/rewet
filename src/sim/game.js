@@ -4,6 +4,7 @@ import { DRAIN, computeStrength, computeDistance, walkUp } from './drainage.js';
 import { seasonAt, TICKS_PER_YEAR } from './season.js';
 import { hydroTick, canalTick, canalTarget } from './hydro.js';
 import { ignite, fireTick } from './fire.js';
+import { BRANCH } from './mapgen.js';
 
 const TPW = 4; // ticks per week
 const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
@@ -119,7 +120,7 @@ function finish(g, { id, i }) {
   const wd = g.world;
   if (id === 'tempBlock') { wd.block[i] = BLOCK.TEMP; redrain(g); }
   else if (id === 'permBlock') { wd.block[i] = BLOCK.PERM; redrain(g); }
-  else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; wd.cWater[i] = 0; redrain(g); }
+  else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; wd.cWidth[i] = wd.cDepth[i] = wd.cWater[i] = 0; redrain(g); }
   else if (id === 'well') g.wells.add(i);
   else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27); eligibility checked now, not at order time (R32)
     const can = plantable(wd, g);
@@ -192,16 +193,23 @@ export function step(g) {
     }
   }
   if (g.tick % 8 === 7) {
-    let changed = false;
+    const dug = [];
     g.illegal.forEach((p, c) => {
       const path = g.level.illegalCanals[c];
       if (p < 0 || p >= path.length) return;
       const i = idx(wd.w, path[p][0], path[p][1]);
       if (wd.block[i] !== BLOCK.NONE || kind[i] === KIND.VILLAGE || kind[i] === KIND.RIVER) { g.illegal[c] = -1; return; }
-      if (kind[i] !== KIND.CANAL) { kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]); changed = true; }
+      if (kind[i] !== KIND.CANAL) {
+        kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]);
+        wd.cWidth[i] = BRANCH.w; wd.cDepth[i] = BRANCH.d;
+        dug.push(i);
+      }
       g.illegal[c] = p + 1;
     });
-    if (changed) redrain(g);
+    if (dug.length) {
+      redrain(g);
+      for (const i of dug) wd.cWater[i] = canalTarget(wd, g.S, i, env.dry);
+    }
   }
   if (!dry && g.tick % TPW === 0) {
     let washed = false;

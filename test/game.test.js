@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, BLOCK, idx } from '../src/sim/world.js';
+import { seasonAt } from '../src/sim/season.js';
+import { canalTarget } from '../src/sim/hydro.js';
 import { createGame, applyAction, step, costOf, placeLevel, isWetSeason, freeCrews } from '../src/sim/game.js';
 
 const S = 12;
@@ -297,4 +299,17 @@ test('backfill sets cWater to 0', () => {
   applyAction(g, 'backfill', i);
   for (let t = 0; t < 24; t++) step(g);
   assert.equal(g.world.cWater[i], 0);
+  assert.equal(g.world.cDepth[i], 0);
+  assert.equal(g.world.cWidth[i], 0);
+});
+
+test('an illegal canal tile gets the branch size and the current water level', () => {
+  const g = createGame(lvl({ canals: [], illegalCanals: [[[0, 2], [1, 2]]] }));
+  for (let t = 0; t < 8; t++) step(g);
+  const i = at(0, 2), env = seasonAt(g.tick - 1);
+  assert.equal(g.world.kind[i], KIND.CANAL);
+  assert.equal(g.world.cWidth[i], 4);
+  assert.equal(g.world.cDepth[i], 2.5);
+  assert.ok(Math.abs(g.world.cWater[i] - canalTarget(g.world, g.S, i, env.dry)) < 1e-6, `${g.world.cWater[i]}`);
+  assert.ok(g.world.cWater[i] > 0);
 });
