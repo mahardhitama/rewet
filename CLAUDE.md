@@ -13,10 +13,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The game is inspired by penjagarimba.jilf.id but must not copy it.
 
+## Skill router
+
+- For each task in this repo, invoke the `rewet` skill first (`.claude/skills/rewet/`). Do this before other skills such as `impeccable`, `ponytail`, `ste100` or `superpowers:*`.
+- The router sends you to the area files that hold this repo's procedures. It covers code, docs, diagrams, research, sound, sprites, design, performance, written text and git workflow.
+
 ## Current state and source of truth
 
-- Today the repo has only the intro and main-menu prototype: `index.html`, one file with inline CSS and JS.
-- The gameplay is designed but not built yet. Read these before changing gameplay:
+- The gameplay is built: the sim is in `src/sim/`, rendering in `src/render/`, and the UI in `src/ui.js` and `src/main.js`. `index.html` holds the layout and the CSS.
+- Read these before you change gameplay:
   - Spec: `docs/superpowers/specs/2026-11-10-rewet-gameplay-design.md`
   - Plan: `docs/superpowers/plans/2026-11-10-rewet-gameplay.md` (13 TDD tasks; it fixes the file layout, function signatures and starting numbers)
   - Sourced values: `docs/references/peat-hydrology-and-emissions.md`
@@ -25,13 +30,13 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 ## Commands
 
 - **Run:** `python3 -m http.server 8765`, then open http://localhost:8765. ES modules don't load from `file://`.
-- **Tests:** `npm test` (= `node --test`, Node ≥ 20). They exist from plan Task 1 onwards.
+- **Tests:** `npm test` (= `node --test`, Node ≥ 20).
 - **Single test file:** `node --test test/hydro.test.js`
 - **Single test by name:** `node --test --test-name-pattern="C1" test/hydro.calibration.test.js`
-- **Headless level run** (plan Task 9): `node scripts/sim-run.js --level 1 --plan test/fixtures/l1-cascade.json`
+- **Headless level run:** `node scripts/sim-run.js --level 1 --plan test/fixtures/l1-cascade.json`
 - There is no build step, no linter and no npm dependencies. Don't add dependencies.
 
-## Architecture (planned, per spec section 6)
+## Architecture (per spec section 6)
 
 - **Simulation and rendering are kept fully separate.**
   - `src/sim/*` holds a pure, deterministic simulation over typed arrays: a seeded `mulberry32` RNG and a fixed tick, at 4 ticks per week and 208 ticks per year.
@@ -54,11 +59,11 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 - Every number about the real world (emission factors, water thresholds, subsidence rates) must come from a source opened in the session, with page or table cited, recorded in `docs/references/`.
 - Mark a value `NOT SOURCED` rather than giving it from memory. Still open: the PP 57/2016 Article 23 text for the 0.4 m rule.
 
-## Prototype notes (`index.html`)
+## Rendering and save notes
 
 - **Rendering:**
   - The canvas is a 320×180 buffer, upscaled with `image-rendering: pixelated` and `object-fit: cover`.
-  - All art is drawn every frame with `fillRect`. No image or audio assets.
-  - Sound is a tiny WebAudio `blip()`.
-- **`localStorage` keys:** `rewet_save` and `rewet_mute`. Plan Task 13 migrates them into the `rewet_v1` save key.
+  - All art is drawn with `fillRect`. The intro draws each frame. Map sprites are built once into a cache in `src/render/iso.js`. No image or audio assets.
+  - Sound is WebAudio synthesis in `src/audio.js`.
+- **`localStorage` key:** `rewet_v1`, read and written only through `src/save.js`. It migrates the old prototype keys `rewet_save` and `rewet_mute`.
 - **Gotcha:** a global click/keydown listener skips the intro. Any button that starts the intro must call `stopPropagation()`, as `#bReplay` does.
