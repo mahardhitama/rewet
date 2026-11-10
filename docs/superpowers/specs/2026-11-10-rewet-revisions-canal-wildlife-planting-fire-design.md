@@ -57,7 +57,7 @@ All values are game values, `NOT SOURCED`.
 - **Seasons:** the spawn chance for each species changes with the season. Each species gets a game value `wet` and `dry` spawn weight in the `FAUNA` table. The plan sets the weights so that each season shows a different mix of species. The weights are game values and claim no real-world behaviour.
 - **Arrival:** a new animal enters on a suitable map edge tile when one exists. If no edge tile is suitable, it appears on a suitable tile in a forest patch, and the render fades it in.
 - **Movement:** a move is to one 8-neighbour tile in a weekly step, or no move. Each animal stores `from` (the tile before the last move) and `moved` (the tick of the last move).
-- **Render:** the sprite is drawn between `from` and `i` with `t = (tick − moved + frac) / 4`, clamped to [0, 1], where `frac` is the part of the next tick that has passed. A new animal fades in over 1 week, and a leaving animal fades out over 1 week at the map edge.
+- **Render:** when the render first sees a new `moved` value for an animal, it records the time. It draws the sprite between `from` and `i` with `t = (now − seenAt) / 600 ms`, clamped to [0, 1]. A time-based slide is smooth at each speed and stops when the game pauses after the slide ends. A new animal fades in over 600 ms. A leaving animal fades out over 600 ms when it steps off the map edge.
 - The hit test uses the drawn position.
 - Determinism and the fauna RNG rule do not change. `faunaTick` never calls `world.rng`.
 
@@ -101,6 +101,7 @@ All values are game values, `NOT SOURCED`, and go in spec section 8 of the procg
   - `g.fauna.length <= 8` over full runs of all 6 levels;
   - each animal leaves at or after `leave`;
   - an animal moves at most 1 tile per weekly step, and a leaving animal reaches an edge;
+  - `from` and `moved` are set on each move;
   - the species mix in wet seasons differs from the mix in dry seasons over a 3-year run;
   - the restored-against-no-action balance test still passes;
   - determinism tests stay.
