@@ -88,7 +88,7 @@ f(d) = 0 when d > 400 m (8 tiles)   // shortcut: the effect is under 2% there; s
 | Open canal | 1.0 |
 | River (natural) | 0.6 |
 | Canal section above a temporary block | `S_block_temp`, about 0.35 |
-| Canal section above a permanent block | `S_block_perm`, about 0.2 |
+| Canal section above a permanent block | `S_block_perm`, 0.1 (set by C2, see section 8) |
 | Backfilled canal | 0, so it is no longer a drainage tile |
 
 - A block lowers `S` for the canal tiles **upstream** of it, up to the next block or the canal's high end.
@@ -158,7 +158,7 @@ These are automated tests in `test/hydro.calibration.test.js`.
 | Rewetting | Permanent block | medium / 3 weeks | Upgrades a temporary block. `S_block_perm`. |
 | Rewetting | Backfill | high / 6 weeks | Canal tile becomes peat. Removes drainage. |
 | Rewetting | Deep well | low / 1 week | Fire crews within 3 tiles put fires out 2× faster. |
-| Revegetation | Plant seedlings | low / 1 week | Survive only at 0–0.40 m. Grow to full cover in about 2 years. |
+| Revegetation | Plant seedlings | medium / 1 week | Seeds a 3×3 patch of peat around the tapped tile. Survive only at 0–0.40 m. Grow to full cover in about 2 years. |
 | Revegetation | Planting mound | low / 1 week | `z += 0.2` on one tile, which keeps seedlings out of floodwater. |
 | Revegetation | Natural regrowth | free | Cover spreads slowly into wet tiles next to cover ≥ 0.6. |
 | Revitalisation | Paludiculture | medium / 2 weeks | Needs a wet tile next to a village. +goodwill per year; income if the tile stays wet. |
@@ -274,3 +274,7 @@ scripts/sim-run.js  headless run of a level plus a plan file, printing 3R result
 3. **2019 Refinement:** check whether the 2019 Refinement changes wetlands organic-soil factors.
 4. **Initial tuning numbers:** costs, times, `S_block`, `maxHeadTiles`, `k_*`. Set them through calibration tests C1–C3 and play testing.
 5. **`S_block` perm = 0.1 (was 0.2):** set by C2 (Task 5). With 0.2 the Ritzema cascade case ends at 0.536 m mean, above the 0.30–0.45 m target. With 0.1 it ends at 0.407 m (start 1.127 m, dry-season max 0.547 m). The C2 degraded site uses a test-only override: `eqDry 2.5`, `eqWet 2.0` (deep canal), default far-field. `temp` stays 0.35 (not calibrated yet).
+6. **Plant action retuned (R27):** the L1 revegetation star (cover ≥ 40%) was out of reach. Old: `plant` seeded 1 tile for 60 (48 wet season); a greedy plant bot after the L1 cascade reached 8%. With 1 tile per crew-week, crews and funds both cap cover far below 40%, even at cost 20 with 1-year growth (34%). New: `plant` seeds a 3×3 patch (peat tiles without a seedling and cover < 1) for 120 (96 wet season); growth time, survival band and natural regrowth unchanged. A plan that blocks first and then plants on a 3-tile grid reaches 46% cover (fixture `test/fixtures/l1-reveg.json`, 2 stars); overlapping taps reach about 11%. Cost 100 gave 56%, 150 gave 36%.
+7. **Funds loss (R25):** "out of funds" ends the level only in the final year (no grant left to come), while play goes on, with idle crews and funds below the cheapest action at today's price (season- and upgrade-aware). Not at the level-end tick: the debrief judges the scores.
+8. **C2 transect (R9):** C2 uses a deep-canal override (`eqDry 2.5`, `eqWet 2.0`) on a 50 m-tile transect, so in-game water depths near a canal can differ from the paper's transect values.
+9. **Deferred (no plan task):** section 3 "bonus for each goal on track" funds, and section 4 score (hectares kept wet × years + a leftover-funds bonus). Not built.

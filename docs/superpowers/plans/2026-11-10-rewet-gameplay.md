@@ -17,7 +17,7 @@
 - Wet season = weeks 0–30, dry season = weeks 31–51. ×1 speed = 208 ticks per 75 s.
 - Wet/healthy threshold: `wt ≤ 0.40` m. Positive `wt` means the water is below the surface.
 - Distance decay: `L_dry = 100` m, `L_wet = 45` m, cutoff 400 m.
-- Drainage strength `S`: open canal 1.0; river 0.6; above a temporary block 0.35; above a permanent block 0.2; backfilled 0. `maxHeadTiles = 6`.
+- Drainage strength `S`: open canal 1.0; river 0.6; above a temporary block 0.35; above a permanent block 0.1 (was 0.2, set by C2); backfilled 0. `maxHeadTiles = 6`.
 - Subsidence: `dz (cm/yr) = 0.1 × wt (cm)` when `wt > 0`.
 - Clamp `wt` to [-0.3, 1.5]. Micro-relief amplitude ±0.3 m.
 - CO2: shown as **t C**. Drained cropland 14 t C/ha/yr; rewetted 0; fire 353 t d.m./ha × 0.464.
@@ -126,7 +126,7 @@ test('smoothed: neighbour diff small', () => { /* domeRise 0: mean |z[i]-z[i+1]|
 **Interfaces:**
 - Consumes: `World`, `KIND`, `BLOCK`
 - Produces:
-  - `DRAIN = {canal:1, river:0.6, temp:0.35, perm:0.2, maxHeadTiles:6, tileM:50}`
+  - `DRAIN = {canal:1, river:0.6, temp:0.35, perm:0.1, maxHeadTiles:6, tileM:50}`
   - `computeStrength(world) -> Float32Array S`:
     - Canal tiles start at 1.0 and river tiles at 0.6; every other tile is 0.
     - For each canal tile with `block` TEMP or PERM, walk **upstream** (to canal neighbours with higher `z`) for up to `maxHeadTiles` tiles, stopping at another block. Set S on the walked tiles, and on the block tile itself, to `min(current, temp|perm)`.
@@ -264,7 +264,7 @@ test('smouldering flares again only if dry', () => { /* set fire=2 timer 1: wt 0
 | `permBlock` | 250 | 3 | a canal tile that has a temporary block |
 | `backfill` | 600 | 6 | a canal tile |
 | `well` | 80 | 1 | any tile |
-| `plant` | 60 | 1 | a peat tile |
+| `plant` | 120 (was 60, spec §8 item 6) | 1 | a peat tile; seeds a 3×3 patch |
 | `mound` | 50 | 1 | a peat tile |
 | `palud` | 200 | 2 | a wet tile next to a village |
 | `pond` | 200 | 2 | a canal tile behind a block |
