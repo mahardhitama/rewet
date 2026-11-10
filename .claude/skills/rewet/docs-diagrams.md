@@ -43,6 +43,7 @@ mv "$TMP/<topic>-1.png" docs/diagrams/<topic>.png
 - `$TMP` is the scratch folder of the session, not the repo.
 - A markdown input gives one file per mermaid block, with `-1` added to the name.
 - The first run downloads a headless browser and can take 3 minutes. Run it in the background.
+- If labels wrap into tall narrow boxes, put `%%{init: {"flowchart": {"wrappingWidth": 320}}}%%` above the `flowchart` line.
 - `redux` is the light default of the redux themes. Do not use `redux-dark`, `redux-color` or the old `default` theme.
 
 ## Checking the diagram
