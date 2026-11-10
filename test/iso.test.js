@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS } from '../src/render/iso.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS, vegVariant } from '../src/render/iso.js';
 import { KIND } from '../src/sim/world.js';
 
 test('downstream picks the lowest lower canal or river neighbour', () => {
@@ -76,4 +76,10 @@ test('canalZone: each water step above 0 shows the wet bed, and full water shows
     for (let ws = 1; ws < 4; ws++) assert.ok(zones(ws)[2] > 0, `cs ${cs} ws ${ws} arms ${arms[0]}`);
     assert.ok(zones(1)[3] > zones(2)[3] && zones(2)[3] > zones(3)[3], `water shrinks, cs ${cs}`);
   }
+});
+
+test('vegVariant spreads over 4 variants', () => {
+  const n = [0, 0, 0, 0];
+  for (let i = 0; i < 1000; i++) { n[vegVariant(i)]++; assert.equal(vegVariant(i), vegVariant(i)); }
+  for (const c of n) assert.ok(c >= 150, `counts ${n}`);
 });

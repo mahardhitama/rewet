@@ -6,6 +6,7 @@ import { TICKS_PER_YEAR } from '../sim/season.js';
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255], BANK = mix(DRY, WHITE, .15);
 const HW = TW / 2, HH = TH / 2;
@@ -114,6 +115,33 @@ function tree(g, bx, by, tall, rad) { // (bx, by) = foot of the trunk
   blob(g, bx - 2, cy - 2, Math.max(1, rad - 3), '#5c9a45'); // light side
   g.fillStyle = '#7fb85a'; g.fillRect(bx - 3, cy - rad + 1, 2, 1);
 }
+function emergent(g, bx, by) { // tall thin trunk, high flat crown above the other trees
+  pool(g, bx + 2, by, 4, SHADOW);
+  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - 19, 2, 19);
+  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 19, 1, 19);
+  pool(g, bx, by - 21, 8, '#24552a'); // shadow side
+  pool(g, bx - 1, by - 22, 7, '#2f6b33');
+  pool(g, bx - 2, by - 23, 4, '#5c9a45'); // light side
+  g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 24, 2, 1);
+}
+function broadCrown(g, bx, by) { // short trunk, wide round crown of 3 blobs
+  pool(g, bx + 2, by, 7, SHADOW);
+  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - 6, 3, 6);
+  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 6, 1, 6);
+  blob(g, bx - 5, by - 9, 5, '#24552a'); blob(g, bx + 5, by - 8, 5, '#24552a'); blob(g, bx, by - 12, 6, '#24552a');
+  blob(g, bx - 6, by - 10, 4, '#2f6b33'); blob(g, bx + 4, by - 9, 4, '#2f6b33'); blob(g, bx - 1, by - 13, 5, '#2f6b33');
+  blob(g, bx - 2, by - 14, 3, '#5c9a45'); blob(g, bx - 7, by - 11, 2, '#5c9a45');
+  g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 16, 2, 1);
+}
+function pandan(g, bx, by, len) { // no trunk: long thin leaves fan up and out from one base, tips droop
+  pool(g, bx + 1, by, 5, SHADOW);
+  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 2, 1, 2); g.fillRect(bx + 1, by - 2, 1, 2); // stilt roots
+  for (const [sl, c, l] of [[-1, '#3d7a3a', 0], [1, '#7aa84a', 0], [-.5, '#4f7a34', 0], [.5, '#a7c95e', 0], [0, '#7aa84a', 2]])
+    for (let k = 1; k <= len - l; k++) { // slope sl: steps out by sl per rise, then the tip flattens
+      const up = k <= len >> 1 ? k : (len >> 1) + (k - (len >> 1)) / 3;
+      g.fillStyle = c; g.fillRect(bx + Math.round(sl * k), by - 2 - Math.round(up), 1, 1);
+    }
+}
 function shrub(g, bx, by, rad) {
   pool(g, bx + 1, by + 1, rad + 1, SHADOW);
   for (const [dx, dy, r, c] of [[0, 0, rad, '#2f6b33'], [-1, -1, rad - 1, '#3d7a3a'], [-2, -2, rad - 3, '#5c9a45']])
@@ -126,6 +154,22 @@ function seedling(g, bx, by, tall) {
 function fern(g, bx, by, len) { // a fan of fronds from one base
   for (const [ux, c] of [[-2, '#4f7a34'], [-1, '#7aa84a'], [0, '#7aa84a'], [1, '#7aa84a'], [2, '#4f7a34']])
     for (let k = 1; k <= len - Math.abs(ux); k++) { g.fillStyle = c; g.fillRect(bx + ux * k, by - k + (Math.abs(ux) > 1 ? k >> 1 : 0), 1, 1); }
+}
+function sapling(g, bx, by, tall) { // a thin stem with 2 tiers of leaves
+  g.fillStyle = '#6f9a3a'; g.fillRect(bx, by - tall, 1, tall);
+  g.fillStyle = '#a7c95e';
+  for (const t of [tall, tall >> 1]) { g.fillRect(bx - 2, by - t, 2, 1); g.fillRect(bx + 1, by - t - 1, 2, 1); }
+  g.fillRect(bx, by - tall - 1, 1, 1);
+}
+function tuft(g, bx, by) { // a sedge tuft: thin straight blades of different heights
+  for (const [dx, h, c] of [[-3, 3, '#4f7a34'], [-2, 5, '#7aa84a'], [-1, 4, '#7aa84a'], [0, 6, '#a7c95e'], [1, 4, '#7aa84a'], [2, 5, '#4f7a34'], [3, 3, '#4f7a34']]) {
+    g.fillStyle = c; g.fillRect(bx + dx, by - h, 1, h);
+  }
+}
+function lowShrub(g, bx, by, rx) { // a wide flat mound with pale flower specks
+  pool(g, bx + 1, by + 1, rx + 1, SHADOW);
+  pool(g, bx, by, rx, '#2f6b33'); pool(g, bx - 1, by - 1, rx - 2, '#3d7a3a');
+  g.fillStyle = '#e8d870'; g.fillRect(bx - 3, by - 2, 1, 1); g.fillRect(bx + 2, by - 1, 1, 1); g.fillRect(bx, by - 3, 1, 1);
 }
 const COVER_BINS = 5, HEAT_BINS = 16;
 // wt heatmap: 0 m blue -> WET_WT pale neutral -> 1.5 m brown, so the wet/dry split reads at a glance.
@@ -195,12 +239,19 @@ function buildCache() {
       block(g, x, y, [128, 100, 60], d);
       g.fillStyle = '#7fa842'; for (let r = 1; r < TH; r += 2) { const w = rowW(r); if (w > 4) g.fillRect(x - w + 4, y + r, w * 2 - 8, 1); }
     }),
-    veg: {
-      [VEG.FERN]: [sprite((g, x, y) => { fern(g, x - 5, y + 8, 4); fern(g, x + 5, y + 11, 3); }), sprite((g, x, y) => { fern(g, x + 1, y + 10, 5); fern(g, x - 7, y + 9, 3); })],
+    veg: { // 4 sprites for each type, picked by vegVariant(i)
+      [VEG.FERN]: [sprite((g, x, y) => { fern(g, x - 5, y + 8, 4); fern(g, x + 5, y + 11, 3); }), sprite((g, x, y) => { fern(g, x + 1, y + 10, 5); fern(g, x - 7, y + 9, 3); }),
+        sprite((g, x, y) => { tuft(g, x - 4, y + 9); tuft(g, x + 5, y + 12); }), sprite((g, x, y) => { fern(g, x - 2, y + 11, 6); fern(g, x + 7, y + 9, 2); fern(g, x - 8, y + 8, 2); })],
       [VEG.SEEDLING]: [sprite((g, x, y) => { seedling(g, x - 5, y + 8, 4); seedling(g, x + 3, y + 7, 3); seedling(g, x, y + 12, 4); }),
-        sprite((g, x, y) => { seedling(g, x - 3, y + 10, 4); seedling(g, x + 5, y + 9, 5); })],
-      [VEG.SHRUB]: [sprite((g, x, y) => { shrub(g, x - 4, y + 8, 5); shrub(g, x + 5, y + 11, 4); }), sprite((g, x, y) => { shrub(g, x + 1, y + 10, 6); shrub(g, x - 8, y + 9, 3); })],
-      [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 5, y + 9, 7, 5); tree(g, x + 5, y + 11, 9, 6); }), sprite((g, x, y) => { tree(g, x + 1, y + 9, 11, 6); tree(g, x - 7, y + 12, 6, 4); })],
+        sprite((g, x, y) => { seedling(g, x - 3, y + 10, 4); seedling(g, x + 5, y + 9, 5); }),
+        sprite((g, x, y) => { for (const [dx, dy, t] of [[-7, 8, 2], [-2, 7, 3], [4, 8, 2], [-4, 12, 3], [3, 12, 2]]) seedling(g, x + dx, y + dy, t); }),
+        sprite((g, x, y) => { sapling(g, x - 2, y + 11, 8); seedling(g, x + 6, y + 9, 3); })],
+      [VEG.SHRUB]: [sprite((g, x, y) => { shrub(g, x - 4, y + 8, 5); shrub(g, x + 5, y + 11, 4); }), sprite((g, x, y) => { shrub(g, x + 1, y + 10, 6); shrub(g, x - 8, y + 9, 3); }),
+        sprite((g, x, y) => { shrub(g, x - 7, y + 9, 3); shrub(g, x + 1, y + 8, 3); shrub(g, x + 7, y + 11, 3); shrub(g, x - 3, y + 13, 3); }), sprite((g, x, y) => { lowShrub(g, x - 1, y + 10, 9); })],
+      [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 5, y + 9, 5, 3); tree(g, x + 5, y + 12, 4, 3); }), // young trees
+        sprite((g, x, y) => { broadCrown(g, x + 1, y + 12); tree(g, x - 9, y + 9, 5, 3); }),
+        sprite((g, x, y) => { tree(g, x + 6, y + 8, 7, 4); emergent(g, x - 2, y + 12); }),
+        sprite((g, x, y) => { pandan(g, x - 5, y + 9, 8); pandan(g, x + 4, y + 12, 9); tree(g, x + 10, y + 8, 4, 3); })]
     },
   };
   return cache;
@@ -331,7 +382,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (ov) ctx.drawImage(ov[axis[i]] ?? ov[0], ax, ay);
     if (k === KIND.PEAT && !fire[i]) {
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
-      if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][hash(i) > .5 ? 1 : 0], ax, ay);
+      if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][vegVariant(i)], ax, ay);
     }
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
