@@ -79,7 +79,7 @@ function bind() {
   [...$('legend').querySelectorAll('i')].forEach((el, k) => { el.textContent = HUD.legend[k]; });
   $('legendMark').style.left = $('legend').querySelectorAll('i')[1].style.left = `${(WET_WT / 1.5 * 100).toFixed(1)}%`;
   $('hudKeys').textContent = HUD.keys;
-  short = matchMedia('(max-width:1599px), (max-height:500px)');
+  short = matchMedia('(max-width:1759px), (max-height:500px)');
   for (const id of ['rpChart', 'dbChart']) $(id).setAttribute('aria-label', REPORT.chartAria);
   // canvas-only listener: clicks on HUD/panels never reach it; drags are pans, not taps
   H.canvas.addEventListener('click', e => {
@@ -97,7 +97,7 @@ function bind() {
 export function initUI(game, handlers) {
   G = game; H = handlers; weeks = [];
   if (!bound) bind();
-  armed = null; arm(null); // clears the selection
+  armed = null; hover = null; arm(null); // clears the selection
 }
 
 // After every sim step: one mean-wt sample per week for the year-report chart.
@@ -123,7 +123,7 @@ export function renderUI(game, { paused, speed, data }) {
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
   const dt = data ? HUD.mapView : HUD.dataView;
   if ($('bData').lastChild.textContent !== dt) { setText($('bData'), dt); $('bData').setAttribute('aria-label', dt); $('bData').title = dt; }
-  $('legend').hidden = !data;
+  if ($('legend').hidden === data) $('legend').hidden = !data;
   for (const b of $('slots').querySelectorAll('button')) {
     const id = b.dataset.id, c = costOf(game, id), m = actionMeta(c, ACTIONS[id].weeks), a = BAR.slot(ACTION_TEXT[id][0], R_NAMES[b.dataset.r], m);
     if (b.lastChild.textContent !== String(c)) b.lastChild.textContent = c; // the weeks are in the aria-label

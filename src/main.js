@@ -144,7 +144,7 @@ function boot() {
       h = clamp((t - 5.6) / 4.5);
       const idx = LINES.reduce((n, l, i) => t >= l[0] ? i : n, 0);
       if (idx !== shown) { shown = idx; $('line').textContent = LINES[idx][1]; blip(220 + idx * 110, 0.12, 'triangle'); }
-      const p = clamp((t - ZOOM_START) / (INTRO_END - ZOOM_START)), e = p * p * (3 - 2 * p); // smoothstep
+      const p = clamp((t - ZOOM_START) / (INTRO_END - ZOOM_START)), e = reduce ? 0 : p * p * (3 - 2 * p); // smoothstep; with reduced motion the camera stays on the whole map
       shot.zoom = 1 + (SHOT_ZOOM - 1) * e; shot.pan = 0;
       if (t > INTRO_END) toMenu();
     } else {

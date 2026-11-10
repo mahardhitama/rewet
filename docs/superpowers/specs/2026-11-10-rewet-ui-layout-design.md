@@ -24,7 +24,7 @@ Mode (impeccable): the intro and the menu are Experience. The level screen is Op
 Success criteria:
 
 - At 390×844 and at 1280×800, the HUD and the action bar are centred horizontally.
-- The HUD is one line at 1280×800. At 390×844, the contexts are one line and the buttons are a second line.
+- The HUD is one line at 1280×800 (the labels are hidden there). At 390×844, the contexts are 2 lines and the buttons are a third line.
 - All 10 actions show as square slots: one row at 1280×800 and 844×390, and 2 rows of 5 on a portrait phone. Each slot is at least 44×44 CSS px.
 - The menu, the level select, the year report, the level report and the dialogs are centred on both axes.
 - No button moves its text on hover or focus.
@@ -76,11 +76,12 @@ Success criteria:
 - The water depth legend shows only in the data view. It goes under the HUD row, centred.
 - The keys hint (`#hudKeys`) moves under the bar on desktop and stays hidden on touch.
 - Short landscape (max-height 500px): one row, with labels hidden as on a phone.
-- Width steps, because the row needs 1576 px with all labels and the button text, and 760 px without them:
-  - Under 1600 px, the button text hides (the button keeps `aria-label` and `title`), and the time value is the short form ("1/5 · Wet · wk 2").
-  - Under 1280 px, the labels hide too.
-  - Up to 800 px wide, the HUD is 2 rows: the parts, then the buttons. A phone in landscape between 601 and 800 px wide also gets 2 rows.
-  - Under 380 px, the parts wrap to a second line and the dividers hide.
+- Width steps. The font is Silkscreen. With funds 123456, the row needs 1734 px with all labels and the button text, 1306 px with the labels only, and 834 px with neither:
+  - Under 1760 px, the button text hides (the button keeps `aria-label` and `title`), and the time value is the short form ("1/5 · Wet · wk 2").
+  - Under 1340 px, the labels hide too.
+  - Up to 860 px wide, the HUD is 2 rows: the parts, then the buttons. Short landscape (max-height 500px) keeps one row above 800 px, because its row is smaller.
+  - Under 480 px, the parts wrap to a second line and the dividers hide.
+- At every width from 320 to 1920 px, `#hud` has `scrollWidth <= clientWidth` and the Journal button is on the screen.
 - On a phone, the part icons are 12 px, and the gap and the padding are 2 px. This is an exception to the 4 px scale in section 2: the 6 parts need 366 px at 390 px.
 - `#hud` is a grid, so the legend can sit under the row.
 
@@ -88,7 +89,7 @@ Success criteria:
 
 - 10 square slots, centred, in group order: Rewetting (3), Revegetation (2), Revitalisation (3), Defence (2). There are no group tabs and no sideways scroll.
 - Desktop and short landscape: one row. Portrait phone (max-width 600px and min-height 501px): 2 rows of 5. Row 1 is Rewetting and Revegetation. Row 2 is Revitalisation and Defence.
-- Slot size: 64×64 CSS px on desktop, 44×44 CSS px at max-width 600px or max-height 500px. 5 slots of 44 px fit at 320 px.
+- Slot size: 64×64 CSS px on desktop, 44×44 CSS px at max-width 719px or max-height 500px (10 slots of 64 px need 700 px). 5 slots of 44 px fit at 320 px.
 - A slot shows the action icon at 2× (24 px) or 3× (36 px) and the cost under it in `--fs-label`. The slot has `aria-label` with the name, the cost and the weeks.
 - The 4 groups (Rewetting, Revegetation, Revitalisation, Defence) show as a thin colour line above their slots and a small group gap between groups. The group name is in each slot's accessible name.
 - A name line above the slots shows the name of the hovered, focused or selected action, in `--fs-label`. The how-to text of that action shows on a second line under it, in `--fs-label` and the dim colour. When no action is selected, the name line shows the existing hint text.
@@ -117,6 +118,7 @@ Success criteria:
 - The subtitle is centred under the title.
 - The buttons are a centred column, `min(360px, 100% - 32px)` wide.
 - The restored intro map is the background.
+- Short landscape (max-height 500px): `--fs-title` is `clamp(40px, 14vh, 64px)` and the buttons are 2 columns, so the whole menu fits with no inner scroll at 844×390 and 667×375.
 
 ### 7.2 Intro (`src/render/introStory.js`, new; `src/render/intro.js` is removed)
 
