@@ -42,7 +42,7 @@ export function evaluate(g) {
   return { rewetPct, coverPct, goodwill, passed, stars, hints, loss, speciesSeen: [...(g.seen ?? [])] };
 }
 
-const PAID = Object.keys(ACTIONS).filter((id) => ACTIONS[id].cost > 0);
+const PAID = Object.keys(ACTIONS).filter((id) => ACTIONS[id].cost > 0 && id !== 'plant'); // plant is priced per tile, so one tile never counts as an action
 export const cheapestCost = (g) => Math.min(...PAID.map((id) => costOf(g, id))); // season- and upgrade-aware
 
 export function checkEarlyLoss(g) {

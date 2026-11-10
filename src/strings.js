@@ -70,14 +70,14 @@ export const ACTION_TEXT = {
   permBlock: ['Perm block', 'Permanent block: tap a temporary block to make it permanent.'],
   backfill: ['Backfill', 'Backfill: tap a canal tile to fill it with peat. Removes the drainage.'],
   well: ['Deep well', 'Deep well: fire crews within 3 tiles put fires out 2× faster.'],
-  plant: ['Plant', 'Plant seedlings on a 3×3 patch around the tapped peat. They survive only at 0–40 cm water depth.'],
+  plant: ['Plant', 'Plant seedlings on a 5×5 patch around the tapped peat. You pay for each tile. They survive only at 0–40 cm water depth.'],
   mound: ['Mound', 'Planting mound: raises a peat tile 20 cm, out of floodwater.'],
   palud: ['Paludiculture', 'Paludiculture: tap a wet peat tile next to the village.'],
   pond: ['Fish pond', 'Fish pond: tap an open canal tile upstream of a block.'],
   fireGroup: ['Fire group', 'Fire-care group: tap a village tile. Spots fires, halves arson.'],
   fireCrew: ['Fire crew', 'Fire crew: tap a burning tile. The crew stays until the fire is out.'],
 };
-export const actionMeta = (cost, weeks) => weeks === Infinity ? 'until out' : `${cost} · ${weeks}w`;
+export const actionMeta = (cost, weeks, perTile = false) => weeks === Infinity ? 'until out' : perTile ? `${cost}/tile · 1–${weeks}w` : `${cost} · ${weeks}w`; // perTile: weeks is the longest job
 export const SELECT_HINT = 'Pick an action, then tap a tile. Tap the action again to cancel.';
 
 export const REASON = {

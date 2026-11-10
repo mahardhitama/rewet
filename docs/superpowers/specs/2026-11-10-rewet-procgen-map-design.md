@@ -304,3 +304,10 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
 
    - The balance test now compares the mean of the last year. A single end tick is too noisy when animals come and go. The test needs a forest mean above no action, and a total at least 1 above no action.
    - Level 6 shows a small gap, because its river and the cap of 8 keep the no-action map nearly full.
+10. **Planting (revisions Task 2):** all values are game values, `NOT SOURCED`. They are in `src/sim/game.js`.
+   - `PLANT_TILE` is 8. The price is per tile seeded, 6.4 in the wet season. The old price was 120 for a 3×3 patch, 13.3 per tile.
+   - `PLANT_R` is 2. The stamp is 5×5.
+   - A job lasts `max(1, ceil(n / 10))` weeks for `n` tiles, so 1 to 3 weeks.
+   - The seedling growth step is `1 / 312` per tick. It was `1 / 416`.
+   - The `cheapBlocks` upgrade does not change the plant price. `cheapestCost()` in `score.js` skips `plant`, so the funds loss rule is the same as before.
+   - Fixture `l1-reveg.json`: the cascade, then 10 plant orders on a 5-tile grid (2 in year 2, 8 in year 3). The run gives rewet 90.7%, cover 53.7%, 2 stars. No order is refused.

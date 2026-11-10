@@ -24,12 +24,30 @@ const ok = (cond) => cond || 'invalid';
 const isCanal = (wd, i) => wd.kind[i] === KIND.CANAL;
 const plantable = (wd, g) => (j) => wd.kind[j] === KIND.PEAT && !g.seedlings.has(j) && wd.cover[j] < 1;
 
+export const PLANT_TILE = 8; // price of one seedling tile in funds, game value, NOT SOURCED
+export const PLANT_R = 2; // stamp radius: 2 gives a 5x5 patch, game value, NOT SOURCED
+export const plantWeeks = (n) => Math.max(1, Math.ceil(n / 10)); // 10 tiles per crew-week, game value, NOT SOURCED
+const SEEDLING_GROWTH = 1 / 312; // cover gained per tick in the band, game value, NOT SOURCED
+
+// Plantable tiles in the stamp, nearest first. A tile that an open plant job will seed does not count.
+export function plantTiles(g, i) {
+  const wd = g.world, { w, h } = wd, x = i % w, y = (i / w) | 0, can = plantable(wd, g), taken = new Set();
+  for (const j of g.jobs) if (j.id === 'plant') for (const t of j.tiles) taken.add(t);
+  const out = [];
+  for (let yy = Math.max(0, y - PLANT_R); yy <= Math.min(h - 1, y + PLANT_R); yy++)
+    for (let xx = Math.max(0, x - PLANT_R); xx <= Math.min(w - 1, x + PLANT_R); xx++) {
+      const j = yy * w + xx;
+      if (can(j) && !taken.has(j)) out.push([Math.max(Math.abs(xx - x), Math.abs(yy - y)), j]);
+    }
+  return out.sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((e) => e[1]);
+}
+
 export const ACTIONS = {
   tempBlock: { cost: 100, weeks: 1, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.NONE) },
   permBlock: { cost: 250, weeks: 3, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.TEMP) },
   backfill: { cost: 600, weeks: 6, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i)) },
   well: { cost: 80, weeks: 1, r: 'defense', valid: (_wd, i, g) => ok(!g.wells.has(i)) },
-  plant: { cost: 120, weeks: 1, r: 'reveg', valid: (wd, i, g) => (wd.kind[i] !== KIND.PEAT ? 'invalid' : near(wd, i, 1, plantable(wd, g)) || 'nothingToPlant') },
+  plant: { cost: PLANT_TILE, weeks: 1, r: 'reveg', valid: (wd, i, g) => (wd.kind[i] !== KIND.PEAT ? 'invalid' : plantTiles(g, i).length > 0 || 'nothingToPlant') }, // cost is per tile, weeks is the minimum
   mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i, g) => (g.mounds.has(i) ? 'mounded' : ok(wd.kind[i] === KIND.PEAT)) }, // one per tile
   palud: {
     cost: 200, weeks: 2, r: 'revit',
@@ -90,6 +108,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
 export function costOf(g, id) {
   let c = ACTIONS[id].cost;
   if (isWetSeason(g)) c *= 0.8;
+  if (id === 'plant') return Math.round(c * 10) / 10; // price per tile, 1 decimal
   if (g.upgrades.cheapBlocks && BLOCKS.has(id)) c *= 0.75;
   return Math.round(c);
 }
@@ -106,24 +125,29 @@ export function applyAction(g, id, i) {
   } else if (k >= 0) return { ok: false, reason: 'busy' };
   const crew = g.crews.findIndex(crewFree(g));
   if (crew < 0) return { ok: false, reason: 'crew' };
-  const cost = costOf(g, id);
+  let cost = costOf(g, id), weeks = a.weeks, tiles;
+  if (id === 'plant') { // the stamp shrinks to the nearest tiles the funds can pay
+    const all = plantTiles(g, i), n = Math.min(all.length, Math.floor(g.funds / cost + 1e-9));
+    if (n === 0) return { ok: false, reason: 'funds' };
+    tiles = all.slice(0, n); weeks = plantWeeks(n); cost = Math.round(n * cost);
+  }
   if (cost > g.funds) return { ok: false, reason: 'funds' };
   g.funds -= cost;
-  const doneAt = g.tick + a.weeks * TPW;
+  const doneAt = g.tick + weeks * TPW;
   g.crews[crew] = doneAt;
-  g.jobs.push({ id, i, doneAt, crew });
+  g.jobs.push(tiles ? { id, i, doneAt, crew, tiles, weeks } : { id, i, doneAt, crew });
   return { ok: true };
 }
 
-function finish(g, { id, i }) {
+function finish(g, { id, i, tiles }) {
   const wd = g.world;
   if (id === 'tempBlock') { wd.block[i] = BLOCK.TEMP; redrain(g); }
   else if (id === 'permBlock') { wd.block[i] = BLOCK.PERM; redrain(g); }
   else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; wd.cWidth[i] = wd.cDepth[i] = wd.cWater[i] = 0; redrain(g); }
   else if (id === 'well') g.wells.add(i);
-  else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27); eligibility checked now, not at order time (R32)
+  else if (id === 'plant') { // the paid tiles of the 5x5 stamp (R27); eligibility checked now, not at order time (R32)
     const can = plantable(wd, g);
-    near(wd, i, 1, (j) => { if (can(j)) { g.seedlings.set(j, 0); g.planted.set(j, g.tick); } return false; });
+    for (const j of tiles) if (can(j)) { g.seedlings.set(j, 0); g.planted.set(j, g.tick); }
   }
   else if (id === 'mound') { g.mounds.add(i); wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
   else if (id === 'palud') g.paluds.add(i);
@@ -222,7 +246,7 @@ export function step(g) {
 
   // 6. growth: seedlings, then natural regrowth beside cover >= 0.6
   for (const [i, bad] of g.seedlings) {
-    if (inBand(wt[i])) { cover[i] = Math.min(1, cover[i] + 1 / 416); g.seedlings.set(i, 0); }
+    if (inBand(wt[i])) { cover[i] = Math.min(1, cover[i] + SEEDLING_GROWTH); g.seedlings.set(i, 0); }
     else if (bad + 1 >= 12) { cover[i] = 0; g.seedlings.delete(i); }
     else g.seedlings.set(i, bad + 1);
     if (cover[i] >= 1) g.seedlings.delete(i);

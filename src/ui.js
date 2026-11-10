@@ -1,5 +1,5 @@
 // Level HUD, 3R action bar, year report and debrief. DOM only: reads game state, changes it only via applyAction.
-import { ACTIONS, applyAction, costOf, isWetSeason, freeCrews } from './sim/game.js';
+import { ACTIONS, applyAction, costOf, isWetSeason, freeCrews, plantWeeks, PLANT_R } from './sim/game.js';
 import { evaluate, co2Estimate, dryWetPct, seedlingSurvival } from './sim/score.js';
 import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
@@ -28,10 +28,11 @@ function tip(msg, x, y) {
 
 // The name line shows the hovered or focused slot, else the selected action, else the idle hint.
 // The line under it shows the how-to text of that action.
+const metaOf = (id, c) => id === 'plant' ? actionMeta(c, plantWeeks((2 * PLANT_R + 1) ** 2), true) : actionMeta(c, ACTIONS[id].weeks);
 let hover = null;
 function showName() {
   const id = hover ?? armed, n = $('barName'), h = $('barHint');
-  const t = id ? BAR.name(ACTION_TEXT[id][0], actionMeta(costOf(G, id), ACTIONS[id].weeks)) : SELECT_HINT, how = id ? ACTION_TEXT[id][1] : '';
+  const t = id ? BAR.name(ACTION_TEXT[id][0], metaOf(id, costOf(G, id))) : SELECT_HINT, how = id ? ACTION_TEXT[id][1] : '';
   if (n.textContent !== t) n.textContent = t;
   if (h.textContent !== how) h.textContent = how;
   n.classList.toggle('sel', !!id);
@@ -125,7 +126,7 @@ export function renderUI(game, { paused, speed, data }) {
   if ($('bData').lastChild.textContent !== dt) { setText($('bData'), dt); $('bData').setAttribute('aria-label', dt); $('bData').title = dt; }
   if ($('legend').hidden === data) $('legend').hidden = !data;
   for (const b of $('slots').querySelectorAll('button')) {
-    const id = b.dataset.id, c = costOf(game, id), m = actionMeta(c, ACTIONS[id].weeks), a = BAR.slot(ACTION_TEXT[id][0], R_NAMES[b.dataset.r], m);
+    const id = b.dataset.id, c = costOf(game, id), m = metaOf(id, c), a = BAR.slot(ACTION_TEXT[id][0], R_NAMES[b.dataset.r], m);
     if (b.lastChild.textContent !== String(c)) b.lastChild.textContent = c; // the weeks are in the aria-label
     if (b.getAttribute('aria-label') !== a) b.setAttribute('aria-label', a);
     b.classList.toggle('poor', c > game.funds);
