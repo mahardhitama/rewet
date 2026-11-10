@@ -30,10 +30,14 @@ function noise(a, t, d, v, freq, q = 1, freq2 = freq) {
   gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(v, t + 0.005); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
   src.connect(bp).connect(gn).connect(a.destination); src.start(t, (t * 7.3) % 0.5); src.stop(t + d + 0.02);
 }
+let lastBlip = -1e9;
 export function blip(f, d = 0.07, type = 'square', v = 0.035) {
   if (muted) return;
+  lastBlip = performance.now();
   try { const a = ctx(); note(a, f, a.currentTime, d, type, v); } catch {}
 }
+// The default press sound of every button. A button with its own sound plays it first (onclick), so tap() then stays silent.
+export const tap = () => { if (performance.now() - lastBlip > 30) blip(880, 0.06); };
 // Cues for sim events, by event type. gap: the shortest time in ms between two plays, because one tick can push many events.
 export const CUES = {
   fireSpotted: { gap: 900, play: (a, t) => { for (const [dt, f] of [[0, 2600], [0.07, 1900], [0.16, 3100], [0.22, 2200], [0.33, 2800]]) noise(a, t + dt, 0.05, 0.03, f, 6); } }, // dry crackle

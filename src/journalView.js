@@ -32,13 +32,16 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
       const line = el('p'); if (e.local) line.append(`${e.local} · `); line.append(el('em', '', e.sci));
       p.append(box, line);
       const st = el('p'); st.append(`${T.statusLabel}: `, el('span', 'jSt', `${e.status} ${T.status[e.status]}`));
-      p.append(st, el('p', '', e.fact), sources(e));
+      const hab = el('p'); hab.append(`${T.habitatLabel}: `, e.habitat);
+      const notes = [e.protected && T.protectedNote, e.endemic && T.endemicNote].filter(Boolean).join(' ');
+      p.append(st, hab, el('p', '', e.fact)); if (notes) p.append(el('p', '', notes));
+      p.append(sources(e));
     }
     return p;
   }
   function contents(kind) {
     const p = el('section', 'jPage'), list = kind === 'cc' ? CONCEPTS : SPECIES;
-    p.append(el('h3', '', kind === 'cc' ? T.contentsConcepts : T.contentsWildlife));
+    p.append(el('h3', '', kind === 'cc' ? T.contentsConcepts : T.contentsWildlife(SPECIES.filter(s => has.has(s.id)).length, SPECIES.length)));
     list.forEach((e, k) => {
       const b = el('button', 'jc', SPECIES.includes(e) ? (has.has(e.id) ? e.name : `${T.unknown} ${T.notFound}`) : e.title);
       if (SPECIES.includes(e) && !has.has(e.id)) b.setAttribute('aria-label', T.hidden(k + 1, list.length)); // 11 buttons need 11 names
@@ -61,9 +64,10 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
   }
   const turn = d => { idx = Math.min(pages.length - 1, Math.max(0, idx + d * (mq.matches ? 1 : 2))); render(); };
 
-  $('jTitle').textContent = T.title; for (const [id, text] of [['jClose', T.close], ['jPrev', T.prev], ['jNext', T.next]]) setText($(id), text);
-  $('jCount').textContent = T.count(SPECIES.filter(s => has.has(s.id)).length, SPECIES.length); $('jHint').textContent = T.hint;
+  $('jTitle').textContent = T.title; for (const [id, text] of [['jClose', T.close], ['jHome', T.home], ['jPrev', T.prev], ['jNext', T.next]]) setText($(id), text);
+  $('jHint').textContent = T.hint;
   $('jClose').onclick = () => dlg.close();
+  $('jHome').onclick = () => { idx = 0; focusId = 'jNext'; render(); }; // home: the contents spread
   $('jPrev').onclick = () => { focusId = 'jNext'; turn(-1); };
   $('jNext').onclick = () => { focusId = 'jPrev'; turn(1); };
   $('jBook').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { idx = pages.indexOf(b.dataset.go); focusId = 'jNext'; render(); } };

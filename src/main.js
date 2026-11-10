@@ -3,7 +3,7 @@ import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
-import { blip, cue, setMuted, isMuted } from './audio.js';
+import { blip, tap, cue, setMuted, isMuted } from './audio.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
 import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
@@ -190,9 +190,10 @@ function boot() {
 
   // ---- menu actions
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
-  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
-  document.querySelectorAll('.btn').forEach(b => { b.addEventListener('mouseenter', () => !b.disabled && blip(660, 0.03)); b.addEventListener('click', () => blip(880, 0.06)); });
+  document.querySelectorAll('.btn').forEach(b => { b.addEventListener('mouseenter', () => !b.disabled && blip(660, 0.03)); });
+  document.addEventListener('click', e => { if (e.target.closest?.('button:not(:disabled)')) setTimeout(tap); }, true); // every button, also the ones made later. Capture: #bReplay stops the bubble. The timeout lets the button's own sound play first.
   $('bNew').onclick = toLevelSelect;
   $('bCont').onclick = () => hasProgress(save) ? toLevelSelect() : toast(TOAST.noSave);
   // The journal pauses a level. On close, the speed and the paused state come back. The intro hides both buttons, so no click can reach it.
@@ -216,9 +217,9 @@ function boot() {
     t.style.bottom = `${$('bar').offsetHeight + 8}px`; t.hidden = false;
     clearTimeout(findTimer); findTimer = setTimeout(() => { t.hidden = true; }, 8000);
   }
-  $('bSet').onclick = () => { $('snd').checked = !isMuted(); $('dSet').showModal(); };
+  $('bSet').onclick = () => { $('snd').ariaPressed = String(!isMuted()); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
-  $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
+  $('snd').onclick = () => { setMuted(!isMuted()); $('snd').ariaPressed = String(!isMuted()); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
   $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; menuStats(); toast(TOAST.saveDeleted); }; // keeps the mute setting
   $('lsTitle').textContent = SELECT.title; setText($('lsBack'), SELECT.back);

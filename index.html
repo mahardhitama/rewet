@@ -29,11 +29,11 @@ h1{display:flex;justify-content:center;white-space:nowrap;font-family:Silkscreen
 .tree svg,.pic svg{display:block}
 :is(.btn,.jb,#findOpen,#skip):hover:not(:disabled) .tree,:is(.btn,.jb,#findOpen,#skip):focus-visible .tree{visibility:visible}
 .btn:hover:not(:disabled),.btn:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+.btn[aria-pressed=true]{color:var(--accent)}
 .btn:disabled{opacity:.4;cursor:default}
 dialog{position:fixed;inset:auto;left:50%;top:50%;margin:0;transform:translate(-50%,-50%);max-height:calc(100% - 32px);overflow:auto;background:#14120e;color:var(--ink);border:2px solid var(--line);padding:20px;width:min(380px,calc(100% - 32px));font:inherit}
 dialog::backdrop{background:#0008}
 dialog h2{font-family:Silkscreen,monospace;font-size:var(--fs-head);margin:0 0 14px}
-dialog label{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
 dialog p{margin:6px 0;color:var(--dim)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14120e;border:2px solid var(--accent);padding:8px 14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px)}
 #toast.on{opacity:1}
@@ -55,6 +55,11 @@ dialog p{margin:6px 0;color:var(--dim)}
 /* short landscape: a smaller title and 2 button columns, so the menu fits with no scroll */
 @media (max-height:500px){:root{--fs-title:clamp(40px,14vh,64px)}#menu{display:grid;grid-template-columns:repeat(2,minmax(0,360px));column-gap:8px;justify-content:center}#menu>h1,#menu>.sub,#menu>#menuStats{grid-column:1/-1;justify-self:center}#menu .sub{margin:4px 0 12px}#menu .btn{max-width:none}#menuStats{margin-top:8px}}
 #levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
+/* 6px orange scrollbar, always shown when content overflows (WebKit replaces the macOS overlay bar) */
+:is(dialog,#menu,#levelSelect,#report,#debrief,.jPage)::-webkit-scrollbar{width:6px;height:6px}
+:is(dialog,#menu,#levelSelect,#report,#debrief,.jPage)::-webkit-scrollbar-track{background:#0e0d0b}
+:is(dialog,#menu,#levelSelect,#report,#debrief,.jPage)::-webkit-scrollbar-thumb{background:var(--accent)}
+@supports not selector(::-webkit-scrollbar){dialog,#menu,#levelSelect,#report,#debrief,.jPage{scrollbar-color:var(--accent) #0e0d0b;scrollbar-width:thin}}
 #levelSelect h2,#report h2,#debrief h2{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-head);margin:0 0 14px}
 #levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:14px 0 6px}
 #levelSelect #lsStars{color:var(--accent);font-family:Silkscreen,monospace;font-size:var(--fs-body);margin-bottom:6px}
@@ -119,8 +124,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 /* journal: a book. 2 pages side by side, or 1 page on a phone (journalView.js adds .one) */
 #dJournal{width:min(920px,calc(100% - 24px));max-height:calc(100% - 24px);padding:12px}
 #jHead{display:flex;align-items:center;gap:4px 12px;margin-bottom:10px}
-#jHead h2{margin:0;flex:none}
-#jCount{flex:1;color:var(--accent);font-size:var(--fs-body)}
+#jHead h2{margin:0;flex:1;text-align:center}
 .jb{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:4px 12px;min-width:44px;min-height:44px;cursor:pointer}
 .jb:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .jb:focus-visible,.jc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -135,14 +139,19 @@ dialog p{margin:6px 0;color:var(--dim)}
 .jPage .jSrc{margin-top:auto;padding-top:10px;font-size:var(--fs-body);color:var(--dim)}
 .jc{display:block;width:100%;min-height:44px;text-align:left;font:inherit;font-size:var(--fs-body);color:var(--ink);background:none;border:0;border-bottom:1px solid var(--line);padding:4px 6px;cursor:pointer}
 .jc:hover{color:var(--accent)}
-.jSprite{width:100px;height:100px;border:2px solid var(--line);background:#14120e;display:flex;align-items:center;justify-content:center;margin:0 0 10px;font-family:Silkscreen,monospace;font-size:var(--fs-head);color:var(--dim)}
+.jSprite{overflow:hidden;width:124px;height:100px;border:2px solid var(--line);background:#14120e;display:flex;align-items:center;justify-content:center;margin:0 0 10px;font-family:Silkscreen,monospace;font-size:var(--fs-head);color:var(--dim)}
 .jSprite canvas{width:96px;height:96px;image-rendering:pixelated}
+/* a found animal paces and hops in 1 art px (6 CSS px) steps, like the 1 px idle step on the map */
+.jSprite[data-id] canvas{animation:jWalk 6s steps(4) infinite,jHop .9s steps(1) infinite}
+@keyframes jWalk{0%{transform:translateX(-12px)}45%{transform:translateX(12px)}50%{transform:translateX(12px) scaleX(-1)}95%{transform:translateX(-12px) scaleX(-1)}100%{transform:translateX(-12px)}}
+@keyframes jHop{50%{translate:0 -6px}}
+@media (prefers-reduced-motion:reduce){.jSprite[data-id] canvas{animation:none}}
 .jSt{display:inline-block;border:1px solid var(--accent);color:var(--accent);padding:0 6px;font-size:var(--fs-body)}
 #jNav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
 #jPos{color:var(--dim);text-align:center}
 #jHint{display:block;margin-top:6px;color:var(--dim);font-size:var(--fs-body)}
 @media (pointer:coarse){#jHint{display:none}}
-@media (max-width:600px){.jb{grid-template-columns:24px 1fr;gap:4px;padding:4px 8px}.jb .tree{display:none}#jPos{min-width:0}#jHead{flex-wrap:wrap}#jHead h2{flex:1}#jCount{order:3;flex-basis:100%}}
+@media (max-width:600px){.jb{grid-template-columns:24px 1fr;gap:4px;padding:4px 8px}.jb .tree{display:none}#jPos{min-width:0}}
 [hidden]{display:none!important}
 #hudKeys{display:block;margin-top:4px;color:var(--dim);font-size:var(--fs-body)}
 @media (pointer:coarse),(max-width:600px),(max-height:500px){#hudKeys{display:none}}
@@ -185,7 +194,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 
 <dialog id="dSet">
   <h2>Settings</h2>
-  <label>Sound <input type="checkbox" id="snd"></label>
+  <button class="btn" id="snd" aria-pressed="false">Sound</button>
   <button class="btn" id="bReplay">Replay intro</button>
   <button class="btn" id="bReset">Delete save</button>
   <form method="dialog"><button class="btn">Close</button></form>
@@ -224,7 +233,7 @@ dialog p{margin:6px 0;color:var(--dim)}
   <button class="btn" id="dbMenu"></button>
 </div>
 <dialog id="dJournal" aria-labelledby="jTitle">
-  <div id="jHead"><h2 id="jTitle"></h2><span id="jCount"></span><button class="jb" id="jClose" autofocus></button></div>
+  <div id="jHead"><button class="jb" id="jHome"></button><h2 id="jTitle"></h2><button class="jb" id="jClose" autofocus></button></div>
   <div id="jBook"></div>
   <div id="jNav"><button class="jb" id="jPrev"></button><span id="jPos" aria-live="polite"></span><button class="jb" id="jNext"></button></div>
   <small id="jHint"></small>
