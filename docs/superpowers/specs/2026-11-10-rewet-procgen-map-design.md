@@ -59,7 +59,7 @@ map: { trunks: 3, branches: 0, meander: 0.2, rivers: 0, villages: 0, illegal: 0 
 
 `size`, `years`, `grant`, `arson`, `elNinoYear` and `pass` stay as they are now. The plan sets the final parameter values with headless runs (see 7).
 
-`generateMap(level, seed)` returns the same data that `placeLevel()` reads now: tile lists for each kind, plus the new per-tile canal and vegetation arrays. `placeLevel()` calls it. Level seeds stay fixed, so tests stay deterministic.
+`generateMap(level, seed)` returns the same data that `placeLevel()` reads now: tile lists for each kind, plus the new per-tile canal and vegetation arrays. `placeLevel()` calls it. Each level has a fixed `seed` for tests and a list `seeds` of 8 checked seeds. Each play of a level picks one seed from `seeds` at random (see 7, seed lists).
 
 The sandbox (base spec section 5) and a new "New map" button on the level card use a random seed. The save keeps the seed of the map in play.
 
@@ -311,3 +311,11 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
    - The seedling growth step is `1 / 312` per tick. It was `1 / 416`.
    - The `cheapBlocks` upgrade does not change the plant price. `cheapestCost()` in `score.js` skips `plant`, so the funds loss rule is the same as before.
    - Fixture `l1-reveg.json`: the cascade, then 10 plant orders on a 5-tile grid (2 in year 2, 8 in year 3). The run gives rewet 90.7%, cover 53.7%, 2 stars. No order is refused.
+   - Seed lists (random map per play): each level has `seeds`, 8 seeds that each meet these rules: `blockPlan()` passes with no refused order and no loss; a plan with no action fails; the level places `map.villages` villages and farms; the level opens drained. A search from the fixed seed upward gave:
+     - L1: 101, 105, 108, 109, 110, 111, 112, 113.
+     - L2: 203 to 210.
+     - L3: 305, 307, 308, 309, 310, 311, 313, 314.
+     - L4: 414 to 419, 421, 422.
+     - L5: 510, 511, 513, 514, 515, 516, 517, 519.
+     - L6: 622, 624, 641, 643, 644, 646, 647, 649.
+   - `test/levels.test.js` runs each rule on each seed in the list. When a sim change makes a seed fail, replace that seed by a new one from a seed search.

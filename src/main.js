@@ -73,7 +73,7 @@ function boot() {
       b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`;
       s.textContent = `${SELECT.best(save.stars[L.id] || 0)} · ${SELECT.years(L.years)} · ${L.teaches}`;
       b.append(s); withIcon(b, 'level');
-      b.onclick = () => { blip(880, 0.06); startLevel(L); };
+      b.onclick = () => { blip(880, 0.06); startLevel({ ...L, seed: L.seeds[Math.floor(Math.random() * L.seeds.length)] }); };
       return b;
     });
     if (save.unlocked > MAX_LEVEL) {

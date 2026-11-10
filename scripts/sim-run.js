@@ -9,10 +9,12 @@ import { idx } from '../src/sim/world.js';
 import { resolveLevel } from '../src/sim/mapgen.js';
 
 // Applies each plan entry at its tick, runs to level end or early loss. refused = [{...entry, reason}].
-export function runPlan(levelId, plan) {
+// plan may be a function of the resolved level (e.g. blockPlan). seed overrides the level seed.
+export function runPlan(levelId, plan, seed) {
   const found = LEVELS.find((l) => l.id === levelId);
   if (!found) throw new Error(`no level ${levelId}`);
-  const level = resolveLevel(found);
+  const level = resolveLevel(seed === undefined ? found : { ...found, seed });
+  if (typeof plan === 'function') plan = plan(level);
   const g = createGame(level, {}, buildLevelWorld(level));
   const todo = [...plan].sort((a, b) => a.tick - b.tick);
   const refused = [];

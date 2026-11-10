@@ -37,8 +37,18 @@ test('level 5 has an El Nino year; illegal canals only from level 4', () => {
   assert.ok(resolveLevel(LEVELS[3]).illegalCanals.length > 0);
 });
 
+// Every checked seed of each level, so the random pick in main.js gives a fair map.
+const SEEDED = LEVELS.flatMap((l) => l.seeds.map((seed) => ({ ...l, seed })));
+
+test('each level lists its fixed seed among 8 distinct checked seeds', () => {
+  for (const l of LEVELS) {
+    assert.ok(l.seeds.includes(l.seed), `L${l.id}`);
+    assert.equal(new Set(l.seeds).size, 8, `L${l.id}`);
+  }
+});
+
 test('each level places map.villages villages (3x3 tiles) and the same number of farms (4x3 tiles)', () => {
-  for (const l of LEVELS.map(resolveLevel)) {
+  for (const l of SEEDED.map(resolveLevel)) {
     assert.equal(l.villages.length, 9 * l.map.villages, `L${l.id} villages`);
     assert.equal(l.farms.length, 12 * l.map.villages, `L${l.id} farms`);
   }
@@ -62,7 +72,7 @@ test('every canal tile but the outlet has a downhill canal neighbour (block walk
 });
 
 test('every level builds and opens drained (rewetPct < pass.rewet)', () => {
-  for (const l of LEVELS.map(resolveLevel)) {
+  for (const l of SEEDED.map(resolveLevel)) {
     const g = createGame(l, {}, buildLevelWorld(l));
     // opening state: no dry history yet, so evaluate uses current wt (end of the warm-up year's dry season)
     const { rewetPct } = evaluate(g);
@@ -77,18 +87,18 @@ test('buildLevelWorld is deterministic', () => {
 });
 
 test('no-action run fails every level (early loss or below the pass line)', () => {
-  for (const l of LEVELS) {
-    const r = runPlan(l.id, []);
-    assert.ok(r.loss !== null || !r.evaluate.passed, `L${l.id} passes with no action`);
+  for (const l of SEEDED) {
+    const r = runPlan(l.id, [], l.seed);
+    assert.ok(r.loss !== null || !r.evaluate.passed, `L${l.id} seed ${l.seed} passes with no action`);
   }
 });
 
 test('each level passes with blockPlan and fails with no action', () => {
-  for (const l of LEVELS) {
-    const r = runPlan(l.id, blockPlan(resolveLevel(l)));
-    assert.deepEqual(r.refused, [], `L${l.id} refused`);
-    assert.equal(r.loss, null, `L${l.id} loss ${r.loss}`);
-    assert.equal(r.evaluate.passed, true, `L${l.id} rewet ${r.evaluate.rewetPct.toFixed(1)}%`);
+  for (const l of SEEDED) {
+    const r = runPlan(l.id, blockPlan, l.seed), at = `L${l.id} seed ${l.seed}`;
+    assert.deepEqual(r.refused, [], `${at} refused`);
+    assert.equal(r.loss, null, `${at} loss ${r.loss}`);
+    assert.equal(r.evaluate.passed, true, `${at} rewet ${r.evaluate.rewetPct.toFixed(1)}%`);
   }
 });
 

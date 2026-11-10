@@ -7,34 +7,35 @@ import { seedVegetation } from './sim/mapgen.js';
 const pass = (k) => ({ rewet: 60 + 3 * k, reveg: 40 + 3 * k, revit: 60 + 2 * k }); // R17
 
 // map: generateMap() parameters (src/sim/mapgen.js); branches are per trunk. The seed sets the shape.
+// seed: the fixed map for tests. seeds: checked maps (blockPlan passes, no action fails); each play picks one.
 export const LEVELS = [
   {
-    id: 1, name: 'Small drained plot', size: 22, years: 3, seed: 101, grant: 1800, arson: 0, elNinoYear: null,
+    id: 1, name: 'Small drained plot', size: 22, years: 3, seed: 101, seeds: [101, 105, 108, 109, 110, 111, 112, 113], grant: 1800, arson: 0, elNinoYear: null,
     pass: pass(0), teaches: 'Blocks, the 40 cm line, distance factor',
     map: { trunks: 3, branches: 0, meander: 0.15, river: false, villages: 0, illegal: 0 },
   },
   {
-    id: 2, name: 'Burnt former forest', size: 24, years: 3, seed: 203, grant: 2200, arson: 0, elNinoYear: null,
+    id: 2, name: 'Burnt former forest', size: 24, years: 3, seed: 203, seeds: [203, 204, 205, 206, 207, 208, 209, 210], grant: 2200, arson: 0, elNinoYear: null,
     pass: pass(1), teaches: 'Planting, drowning in dips, mounds',
     map: { trunks: 3, branches: 1, meander: 0.2, river: false, villages: 0, illegal: 0, treeShare: 0.3 },
   },
   {
-    id: 3, name: 'Village edge', size: 26, years: 4, seed: 305, grant: 2400, arson: 4, elNinoYear: null,
+    id: 3, name: 'Village edge', size: 26, years: 4, seed: 305, seeds: [305, 307, 308, 309, 310, 311, 313, 314], grant: 2400, arson: 4, elNinoYear: null,
     pass: pass(2), teaches: 'Goodwill, paludiculture, arson',
     map: { trunks: 3, branches: 1, meander: 0.2, river: true, villages: 1, illegal: 0, links: 1 },
   },
   {
-    id: 4, name: 'Canal network', size: 30, years: 4, seed: 414, grant: 2800, arson: 3, elNinoYear: null,
+    id: 4, name: 'Canal network', size: 30, years: 4, seed: 414, seeds: [414, 415, 416, 417, 418, 419, 421, 422], grant: 2800, arson: 3, elNinoYear: null,
     pass: pass(3), teaches: 'Cascades, backfill, illegal canals',
     map: { trunks: 3, branches: 2, meander: 0.25, river: false, villages: 1, illegal: 2, forks: 1 },
   },
   {
-    id: 5, name: 'El Nino year', size: 30, years: 4, seed: 510, grant: 2800, arson: 3, elNinoYear: 2,
+    id: 5, name: 'El Nino year', size: 30, years: 4, seed: 510, seeds: [510, 511, 513, 514, 515, 516, 517, 519], grant: 2800, arson: 3, elNinoYear: 2,
     pass: pass(4), teaches: 'Wells, fire crews, smouldering fire',
     map: { trunks: 4, branches: 1, meander: 0.25, river: false, villages: 1, illegal: 1, merges: 1 },
   },
   {
-    id: 6, name: 'Full peat dome', size: 40, years: 5, seed: 622, grant: 3600, arson: 5, elNinoYear: 3,
+    id: 6, name: 'Full peat dome', size: 40, years: 5, seed: 622, seeds: [622, 624, 641, 643, 644, 646, 647, 649], grant: 3600, arson: 5, elNinoYear: 3,
     pass: pass(5), teaches: 'Everything, with higher pass lines',
     map: { trunks: 4, branches: 1, meander: 0.3, river: true, villages: 2, illegal: 2, merges: 1, links: 1 },
   },
