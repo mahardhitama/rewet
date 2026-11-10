@@ -84,6 +84,7 @@ export const REPORT = {
   seedlings: (alive, planted) => planted ? `Seedling survival: ${alive}/${planted} planted this year` : 'Seedling survival: none planted this year',
   goodwill: g => `Village goodwill: ${g}`,
   grant: (grant, funds) => `Grant received: +${grant} · Funds now ${funds}`,
+  species: names => `Species seen: ${names.length}${names.length ? ` (${names.join(', ')})` : ''}`,
   elNino: 'Warning: El Niño next year. The dry season starts 10 weeks early. Get blocks and wells in place.',
   cont: 'Continue',
 };
@@ -135,7 +136,7 @@ export const JOURNAL = {
   count: (x, n) => `Wildlife found ${x} of ${n}`,
   pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
   contentsConcepts: 'Contents: ideas', contentsWildlife: 'Contents: wildlife',
-  notFound: 'Not found yet', unknown: '?',
+  found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
   status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
   statusLabel: 'IUCN status', sources: 'Sources', hint: 'Left and Right arrows turn pages. Esc closes.',
 };

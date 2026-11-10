@@ -1,6 +1,6 @@
 // Level-screen view state (camera pan, data mode, hover). Lives outside the game; render-only.
 import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom, openStep } from './isoMath.js';
-import { drawWorld } from './iso.js';
+import { drawWorld, nearestHit } from './iso.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
 const PINCH = 0.25; // a pinch zooms one step each time the finger distance changes by 25%
@@ -8,7 +8,7 @@ const WHEEL_MS = 150; // a trackpad sends many wheel events for one gesture: at 
 
 export function createMapView(cv) {
   const ctx = cv.getContext('2d');
-  let ptr = null, down = null; // last pointer client pos; drag start
+  let ptr = null, down = null, hits = []; // animal hit list of the last frame; last pointer client pos; drag start
   const touches = new Map(); let pinch = 0, lastWheel = -Infinity, world = null; // active pointers; pinch distance at the last zoom step
   const gap = () => { const [a, b] = touches.values(); return Math.hypot(a.x - b.x, a.y - b.y); };
   // CSS px that the HUD, the action bar and the zoom buttons cover. A hidden element has a 0 px box.
@@ -39,6 +39,12 @@ export function createMapView(cv) {
       const t = screenToTile(...toBuffer(evt.clientX, evt.clientY), v.cam);
       return t && t[1] * v.cam.w + t[0];
     },
+    // The animal under a pointer/mouse event, or null. The radius is 22 CSS px: half of a 44 px touch target.
+    pickAnimal(evt) {
+      if (!v.cam) return null;
+      const [bx, by] = toBuffer(evt.clientX, evt.clientY);
+      return nearestHit(hits, bx, by, 22 / v.scale);
+    },
     // dir +1 zooms in, -1 zooms out, 0 goes back to the fit scale. The map point under (clientX, clientY) stays in place.
     // With no point, the zoom keeps the centre of the band between the insets in place.
     zoom(dir, clientX = innerWidth / 2, clientY = (innerHeight + ins.top - ins.bottom) / 2) {
@@ -55,7 +61,7 @@ export function createMapView(cv) {
       v.fit(game.world);
       v.hover = ptr ? v.pickTile(ptr) : null; // re-picked every frame, so pan/resize keep it accurate
       ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, cv.width, cv.height);
-      drawWorld(ctx, game, v.cam, v.mode, v.hover, now);
+      hits = drawWorld(ctx, game, v.cam, v.mode, v.hover, now);
     },
     leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; touches.clear(); pinch = 0; },
     // Arrow keys pan; returns true when the key was used.

@@ -5,6 +5,7 @@ import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { blip } from './audio.js';
+import { SPECIES } from './journal.js';
 import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
 
 const $ = id => document.getElementById(id);
@@ -74,7 +75,8 @@ function bind() {
   for (const id of ['rpChart', 'dbChart']) $(id).setAttribute('aria-label', REPORT.chartAria);
   // canvas-only listener: clicks on HUD/panels never reach it; drags are pans, not taps
   H.canvas.addEventListener('click', e => {
-    if (!G || !armed || H.map.wasDrag || !H.isLevel()) return;
+    if (!G || H.map.wasDrag || !H.isLevel()) return;
+    if (!armed) { const a = H.map.pickAnimal(e); if (a) H.onFind(a.species); return; } // no action selected: a tap on an animal marks it found
     const i = H.map.pickTile(e);
     if (i == null) return;
     const r = applyAction(G, armed, i);
@@ -132,6 +134,11 @@ function lines(el, list) {
   el.replaceChildren(...list.map(t => Object.assign(document.createElement('p'), { textContent: t })));
 }
 
+const seenNames = game => {
+  const ids = evaluate(game).speciesSeen;
+  return ids.map(id => SPECIES.find(s => s.id === id)?.name ?? id);
+};
+
 export function showYearReport(game, year, elNino) {
   $('rpTitle').textContent = REPORT.title(year + 1);
   $('rpChartLabel').textContent = REPORT.chart;
@@ -142,6 +149,7 @@ export function showYearReport(game, year, elNino) {
     REPORT.seedlings(sv.alive, sv.planted),
     REPORT.goodwill(Math.round(game.goodwill)),
     REPORT.grant(game.level.grant, game.funds),
+    REPORT.species(seenNames(game)),
   ]);
   $('rpElNino').textContent = REPORT.elNino; $('rpElNino').hidden = !elNino;
   $('rpCont').textContent = REPORT.cont;
@@ -166,7 +174,7 @@ export function showDebrief(game) {
   lines($('dbGoals'), loss ? [DEBRIEF.loss[loss]] : sb ? DEBRIEF.figures(r) : DEBRIEF.goals(r, p)); // no ✓ lines on a loss
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
-  lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(sv.alive, sv.planted)]);
+  lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(sv.alive, sv.planted), REPORT.species(seenNames(game))]);
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
   $('dbMenu').textContent = DEBRIEF.menu;

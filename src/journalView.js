@@ -1,8 +1,11 @@
 // The journal: a book in a <dialog>. DOM only. It reads the save's found list and changes no game state.
 import { CONCEPTS, SPECIES } from './journal.js';
 import { JOURNAL as T } from './strings.js';
+import { animalSprite } from './render/iso.js';
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+// The art is 16 px: the box scales it up, and CSS keeps the pixels sharp.
+const art = (id, silhouette) => { const c = el('canvas'), s = animalSprite(id, silhouette); c.setAttribute('aria-hidden', 'true'); c.width = s.width; c.height = s.height; c.getContext('2d').drawImage(s, 0, 0); return c; };
 const sources = e => el('small', 'jSrc', `${T.sources}: ${e.sources.join(', ')}`);
 
 // found: species ids. page: a concept or species id, or null for the contents. onClose runs when the dialog closes, by any way.
@@ -21,10 +24,10 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
     p.append(el('h3', '', SPECIES.includes(e) ? (has.has(id) ? e.name : T.unknown) : e.title));
     if (CONCEPTS.includes(e)) p.append(el('p', '', e.body), sources(e));
     else if (!has.has(id)) {
-      const box = el('div', 'jSprite', T.unknown); box.setAttribute('aria-hidden', 'true');
+      const box = el('div', 'jSprite'); box.setAttribute('aria-hidden', 'true'); box.append(art(id, true));
       p.append(box, el('p', '', T.notFound));
     } else {
-      const box = el('div', 'jSprite'); box.dataset.id = id; // Task 17 draws the sprite here
+      const box = el('div', 'jSprite'); box.dataset.id = id; box.append(art(id, false)); // the alt text is the name in the heading above
       const line = el('p'); if (e.local) line.append(`${e.local} · `); line.append(el('em', '', e.sci));
       p.append(box, line);
       const st = el('p'); st.append(`${T.statusLabel}: `, el('span', 'jSt', `${e.status} ${T.status[e.status]}`));

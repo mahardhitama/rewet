@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS, vegVariant } from '../src/render/iso.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS, vegVariant, nearestHit } from '../src/render/iso.js';
 import { KIND } from '../src/sim/world.js';
 
 test('downstream picks the lowest lower canal or river neighbour', () => {
@@ -82,4 +82,15 @@ test('vegVariant spreads over 4 variants', () => {
   const n = [0, 0, 0, 0];
   for (let i = 0; i < 1000; i++) { n[vegVariant(i)]++; assert.equal(vegVariant(i), vegVariant(i)); }
   for (const c of n) assert.ok(c >= 150, `counts ${n}`);
+});
+
+test('nearestHit picks the closest animal inside the radius', () => {
+  const hits = [{ species: 'otter', bx: 10, by: 10 }, { species: 'stork', bx: 14, by: 10 }];
+  assert.equal(nearestHit(hits, 100, 100, 22), null);
+  assert.equal(nearestHit([], 0, 0, 22), null);
+  assert.equal(nearestHit(hits, 13, 10, 22).species, 'stork');
+  assert.equal(nearestHit(hits, 11, 10, 22).species, 'otter');
+  assert.equal(nearestHit(hits, 30, 10, 22).species, 'stork'); // 16 from stork, 20 from otter
+  assert.equal(nearestHit(hits, 37, 10, 22), null); // 23 from stork
+  assert.equal(nearestHit(hits, 14, 40, 22), null);
 });

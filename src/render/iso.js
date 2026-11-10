@@ -261,6 +261,147 @@ function buildCache() {
   return cache;
 }
 
+// ---- wildlife: one 16x16 sprite per species, drawn once from a character grid (one letter per pixel, '.' is empty).
+// The art sits at the bottom centre of the canvas, so the feet are at the tile centre. The silhouette is the same shape in one dark colour.
+const AS = 16, SILHOUETTE = '#4a4338';
+const ANIMALS = {
+  orangutan: { pal: { o: '#c8622a', O: '#e8863c', f: '#dca468', m: '#a8754a', k: '#1c120c' }, rows: [
+    '...oooooo...',
+    '..oOOoooOo..',
+    '..offffffo..',
+    '..ofkffkfo..',
+    '..offmmffo..',
+    '...offffo...',
+    '.oooooooooo.',
+    'oooOoooooOoo',
+    'ooo.oooo.ooo',
+    'oo..oooo..oo',
+    'oo..oooo..oo',
+    '....oo.oo...'] },
+  gibbon: { pal: { d: '#3a2e28', w: '#e6dcc8', k: '#241a16' }, rows: [
+    '...dddd...',
+    '..dwwwwd..',
+    '..wkwwkw..',
+    '..dwwwwd..',
+    '...dddd...',
+    '.dddddddd.',
+    'dd.dddd.dd',
+    'dd.dddd.dd',
+    'd..dddd..d',
+    'd...dd...d',
+    'd..d..d..d'] },
+  langur: { pal: { r: '#8a3a28', e: '#5a241a', k: '#1c120c' }, rows: [
+    '..rrrr',
+    '.rrrrrr',
+    '.rkrrkr',
+    '.rrrrrr.....r',
+    '..rrrr.....rr',
+    '..rrrrrr..rr',
+    '.rrrrrrrrrr',
+    '.rrrrrrrrr',
+    '.rrrrrrr',
+    '.rr..rr',
+    '.ee..ee'] },
+  sunbear: { pal: { d: '#2c2420', t: '#c8a060', y: '#e0b050', k: '#0e0a08' }, rows: [
+    '..dd',
+    '.dddd',
+    'dtttddddddd',
+    'dtktdddddddd',
+    'tttddddddddddd',
+    '.ddyyyddddddddd',
+    '.dddyydddddddd',
+    '.dddddddddddddd',
+    '.dd.dd...dd.dd',
+    '.dd.dd...dd.dd',
+    '.tt.tt...tt.tt'] },
+  hornbill: { pal: { y: '#e8c040', o: '#d8802c', b: '#1c1a22', w: '#f0ece0', k: '#f0ece0', l: '#8a6a3a' }, rows: [
+    '..yyyy',
+    '.yyyyyy',
+    'oooyyyb',
+    'ooooykbb',
+    '.oooobbbbb',
+    '....bbbbbbbbb',
+    '....bbwwbbbbbb',
+    '.....bwwwbbbbbb',
+    '.....bbbbbbwwww',
+    '......b.b..wwww',
+    '......l.l..bbbb'] },
+  stork: { pal: { b: '#1c1a22', w: '#f0ece0', r: '#d04a3a', k: '#f0ece0' }, rows: [
+    '...bbb',
+    '..bbkb',
+    'rrrbbb',
+    '...bbw',
+    '....ww',
+    '....ww',
+    '...bbbbbb',
+    '..bbbbbbbbb',
+    '..bbbbbbbbbb',
+    '...wwbbbbbb',
+    '....bbbbb',
+    '.....r.r',
+    '.....r.r',
+    '.....r.r',
+    '.....r.r',
+    '....rr.rr'] },
+  fishowl: { pal: { b: '#b08a50', d: '#6a4a2a', y: '#f0d040', k: '#1c120c', o: '#d8802c' }, rows: [
+    '..d......d..',
+    '..dd....dd..',
+    '..bbbbbbbb..',
+    '.bbykbbkybb.',
+    '.bbyybbyybb.',
+    '.bbbbooobbb.',
+    '..bbbbbbbb..',
+    '..bdbdbdbb..',
+    '..bbdbdbdb..',
+    '..bdbdbdbb..',
+    '...bbbbbb...',
+    '...oo..oo...'] },
+  snakehead: { pal: { n: '#1f2e26', l: '#bfe6f2' }, rows: [
+    '.....n......',
+    '....nnn.....',
+    '...nnnnn....',
+    '.llllllllll.',
+    'l..l....l..l'] },
+  otter: { pal: { b: '#7a5030', t: '#d8c4a0', k: '#1c120c', l: '#bfe6f2' }, rows: [
+    '..bb',
+    '.bbbb',
+    '.bkbbbbb',
+    '.tttbbbbbb',
+    '.ttbbbbbbbb',
+    'lll.llll.lll',
+    '.l..l..l..l.'] },
+  gharial: { pal: { g: '#6a7a3a', d: '#3e4a24', k: '#f0d040', b: '#a8b070' }, rows: [
+    '.......dd.d.d.d.',
+    '....gggggggggggg',
+    'ggggggkgggggggdd',
+    'bbbbbbbbbbbbbb..',
+    '......g.g..g.g..'] },
+  monitor: { pal: { m: '#4a5238', l: '#8a9460', k: '#e8d860', t: '#c04a3a' }, rows: [
+    '..mm............',
+    't.mmkmmmm.......',
+    '..mmmlmlmmmmmm..',
+    '..mmmmmmmmmmmmmm',
+    '..mm.mm..mm.mm..'] },
+};
+const animals = new Map();
+export function animalSprite(id, silhouette = false) {
+  const key = silhouette ? '!' + id : id;
+  let c = animals.get(key);
+  if (c) return c;
+  const { pal, rows } = ANIMALS[id], ox = AS - Math.max(...rows.map(r => r.length)) >> 1, oy = AS - rows.length;
+  c = document.createElement('canvas'); c.width = c.height = AS;
+  const g = c.getContext('2d');
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillStyle = silhouette ? SILHOUETTE : pal[ch]; g.fillRect(ox + x, oy + y, 1, 1); } }));
+  animals.set(key, c);
+  return c;
+}
+// Pure. The hit nearest to (bx, by) within maxD, or null.
+export function nearestHit(hits, bx, by, maxD) {
+  let best = null, bd = maxD;
+  for (const h of hits) { const d = Math.hypot(h.bx - bx, h.by - by); if (d <= bd) { best = h; bd = d; } }
+  return best;
+}
+
 // Channel axes (ground directions) and the screen point at ground distance s across the channel from the tile centre.
 const AXES = [[1, 0], [0, 1], [1, 1], [1, -1]];
 const axisOf = k => k < 4 ? k & 1 : k === 4 || k === 6 ? 2 : 3; // DIRS index to AXES index
@@ -356,7 +497,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       }
     }
   }
-  const jobs = new Set(game.jobs.map(j => j.i));
+  const jobs = new Set(game.jobs.map(j => j.i)), hits = [], at = new Map();
+  if (!data) for (const a of game.fauna ?? []) { const l = at.get(a.i); if (l) l.push(a); else at.set(a.i, [a]); }
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
     const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
@@ -387,6 +529,11 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (k === KIND.PEAT && !fire[i]) {
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
       if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][vegVariant(i)], ax, ay);
+    }
+    for (const a of at.get(i) ?? []) { // animals: 1 px idle step, slow; the feet are at the tile centre
+      const by = sy + HH + 3, up = Math.sin(now / 700 + hash(a.id) * 6.28) > .7 ? 1 : 0;
+      ctx.drawImage(animalSprite(a.species), sx - AS / 2, by - AS - up);
+      hits.push({ species: a.species, bx: sx, by: by - AS / 2 });
     }
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
@@ -428,4 +575,5 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     }
   }
   if (hover != null) { ctx.fillStyle = '#ffffff'; edges(ctx, pos[2 * hover], pos[2 * hover + 1], ['tl', 'tr', 'br', 'bl']); }
+  return hits;
 }

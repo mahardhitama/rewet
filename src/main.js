@@ -7,8 +7,9 @@ import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
 import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL } from './strings.js';
-import { browserStorage, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
+import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
+import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
@@ -47,12 +48,14 @@ function boot() {
     $('bar').hidden = p !== 'level'; // the zoom buttons are inside the bar
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
+    $('findToast').hidden = true;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; smoke.length = 0; show('intro'); }
   function toMenu() {
     if (phase === 'menu') return;
     show('menu'); game = null;
     $('bCont').disabled = !hasProgress(save);
+    $('menuFound').textContent = JOURNAL.count(save.found.length, SPECIES.length);
     (hasProgress(save) ? $('bCont') : $('bNew')).focus({ preventScroll: true });
   }
 
@@ -104,7 +107,7 @@ function boot() {
     game = createGame(level, save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave();
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
-    initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode() });
+    initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
   }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
@@ -180,17 +183,29 @@ function boot() {
   // The journal pauses a level. On close, the speed and the paused state come back. The intro hides both buttons, so no click can reach it.
   $('bJrnMenu').onclick = () => openJournal({ found: save.found });
   $('bJournal').textContent = JOURNAL.open;
-  $('bJournal').onclick = e => {
-    e.currentTarget.blur();
+  function openBook(page) {
     const was = { paused, speed };
     paused = true;
-    openJournal({ found: save.found, onClose: () => { ({ paused, speed } = was); } });
-  };
+    openJournal({ found: save.found, page, onClose: () => { ({ paused, speed } = was); } });
+  }
+  $('bJournal').onclick = e => { e.currentTarget.blur(); openBook(); };
+  // A tap on an animal. The toast shows even when the save cannot be written: persist keeps the save in memory.
+  let findTimer;
+  function onFind(id) {
+    const r = recordFind(save, id);
+    if (!r.isNew) return;
+    persist(r.save); blip(1320, 0.08);
+    const t = $('findToast'); $('findMsg').textContent = JOURNAL.found(SPECIES.find(s => s.id === id).name);
+    $('findOpen').textContent = JOURNAL.openEntry;
+    $('findOpen').onclick = () => { t.hidden = true; openBook(id); };
+    t.style.bottom = `${$('bar').offsetHeight + 8}px`; t.hidden = false;
+    clearTimeout(findTimer); findTimer = setTimeout(() => { t.hidden = true; }, 8000);
+  }
   $('bSet').onclick = () => { $('snd').checked = !isMuted(); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
   $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
-  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; toast(TOAST.saveDeleted); }; // keeps the mute setting
+  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; $('menuFound').textContent = JOURNAL.count(0, SPECIES.length); toast(TOAST.saveDeleted); }; // keeps the mute setting
   $('lsTitle').textContent = SELECT.title; $('lsBack').textContent = SELECT.back;
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };
