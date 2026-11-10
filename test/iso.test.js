@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS } from '../src/render/iso.js';
-import { KIND } from '../src/sim/world.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS } from '../src/render/iso.js';
+import { KIND, WET_WT } from '../src/sim/world.js';
 import { SPECIES } from '../src/journal.js';
 
 test('downstream picks the lowest lower canal or river neighbour', () => {
@@ -104,4 +104,76 @@ test('hitRadius never falls below the sprite reach', () => {
 
 test('ANIMALS has one sprite for each journal species', () => {
   assert.deepEqual(Object.keys(ANIMALS).sort(), SPECIES.map(s => s.id).sort());
+});
+
+// bankStep: a 3x3 map with the canal tile in the middle. Its 4 side neighbours are peat with the given wt and cover.
+const bankWorld = (wt, cover, kinds = [P, P, P, P]) => {
+  const kind = Uint8Array.from([P, kinds[0], P, kinds[1], KIND.CANAL, kinds[2], P, kinds[3], P]);
+  const arr = v => Float32Array.from([0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => [1, 3, 5, 7].includes(i) ? v : 9));
+  return { w: 3, h: 3, kind, wt: arr(wt), cover: arr(cover) };
+};
+const P = KIND.PEAT;
+
+test('bankStep: dry, damp, wet and green steps', () => {
+  assert.equal(bankStep(bankWorld(1.2, 0.1), 4), 0);
+  assert.equal(bankStep(bankWorld(0.6, 0.1), 4), 1);
+  assert.equal(bankStep(bankWorld(0.8, 0.1), 4), 1);
+  assert.equal(bankStep(bankWorld(WET_WT, 0.1), 4), 2);
+  assert.equal(bankStep(bankWorld(-0.1, 0.1), 4), 2);
+  assert.equal(bankStep(bankWorld(1.2, 0.6), 4), 3); // green wins, also on dry peat
+  assert.equal(bankStep(bankWorld(0.2, 0.59), 4), 2);
+});
+
+test('bankStep: only peat sides count, and no peat side gives 0', () => {
+  const C = KIND.CANAL;
+  const w = bankWorld(0.2, 0.1, [C, P, C, C]); // one peat side left
+  w.wt[3] = 1.5; // the left side is dry, the canal sides hold wt 9 and must not count
+  assert.equal(bankStep(w, 4), 0);
+  assert.equal(bankStep(bankWorld(0.2, 0.9, [C, C, C, KIND.RIVER]), 4), 0);
+});
+
+test('canal key: the bank step and the patch index decode back from the sprite id', () => {
+  const key = 0x2a5 | 2 << 18 | 1 << 20 | 3 << 24;
+  const id = canalId(key, 2); // patch 2 stores (2 + 1) in bits 21-23
+  assert.equal(id >> 21 & 7, 3);
+  assert.equal(id >> 24 & 3, 3);
+  assert.equal(id & 0xfffff, 0x2a5 | 2 << 18);
+  assert.equal(canalId(key, -1) >> 21 & 7, 0);
+});
+
+// A canvas stub that keeps the last colour of each pixel, so a test can read a sprite.
+const SPRITE_W = 32, SPRITE_H = 67;
+function stubDocument() {
+  globalThis.document = { createElement: () => {
+    const px = new Array(SPRITE_W * SPRITE_H).fill(null);
+    const g = { fillStyle: '', fillRect(x, y, w, h) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (x + i >= 0 && x + i < SPRITE_W && y + j >= 0 && y + j < SPRITE_H) px[(y + j) * SPRITE_W + x + i] = this.fillStyle; } };
+    return { px, getContext: () => g };
+  } };
+}
+const lum = c => { const [r, g, b] = c.match(/\d+/g).map(Number); return .3 * r + .59 * g + .11 * b; };
+// Edge canal along y: arms +y and -y, width step 0. Key bits: arm k at 2k, width step at 16, water step at 18, edge flag at 20, bank step at 24.
+const edgeKey = (ws, bank) => 1 << 2 | 1 << 6 | ws << 18 | 1 << 20 | bank << 24;
+
+test('canal end on the map edge: the notch wall is not much darker than the face beside it (the black bar)', () => {
+  stubDocument();
+  for (let bank = 0; bank < 4; bank++) for (const ws of [1, 2, 3]) {
+    const px = canalSprite(edgeKey(ws, bank)).px;
+    const face = lum(px[(28 + 8 + 8) * SPRITE_W + 0]); // the face colour at the left edge of the sprite
+    for (let dx = 4; dx <= 11; dx++) for (let r = 1; r < ws * 2; r++) { // the notch columns, the wall rows (row 0 is the last row of the top, which the channel paints)
+      const c = px[(28 + 8 + (dx >> 1) + r) * SPRITE_W + dx];
+      assert.ok(lum(c) >= face * .5, `bank ${bank} ws ${ws} dx ${dx} row ${r}: ${c} against face ${face}`);
+    }
+  }
+});
+
+test('canal sprite: the top takes the bank colour of its step', () => {
+  stubDocument();
+  const count = (px, c) => px.slice(28 * SPRITE_W, 44 * SPRITE_W).filter(v => v === `rgb(${c})`).length;
+  const seen = new Set();
+  for (let bank = 0; bank < 4; bank++) {
+    const px = canalSprite(edgeKey(0, bank)).px, top = count(px, BANK_TOP[bank]);
+    assert.ok(top > 100, `bank ${bank}: ${top} pixels of the bank colour`);
+    seen.add(BANK_TOP[bank].join());
+  }
+  assert.equal(seen.size, 4);
 });

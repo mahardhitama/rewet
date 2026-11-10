@@ -8,7 +8,7 @@ const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
-const BLACK = [0, 0, 0], WHITE = [255, 255, 255], BANK = mix(DRY, WHITE, .15);
+const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
 const HW = TW / 2, HH = TH / 2;
 const D = 10, EDGE = D + 12, HEAD = 28, SW = TW, SH = HEAD + TH + EDGE + 1; // sprite: anchor (SW/2, HEAD) = tile top vertex
 // Half-width of row r in a 2:1 diamond that is 2*hh rows high.
@@ -179,12 +179,28 @@ const COVER_BINS = 5, HEAT_BINS = 16;
 // wt heatmap: 0 m blue -> WET_WT pale neutral -> 1.5 m brown, so the wet/dry split reads at a glance.
 export const heatColor = wt => wt <= WET_WT ? mix([40, 90, 170], [176, 170, 148], Math.max(0, wt) / WET_WT)
   : mix([176, 170, 148], [120, 76, 36], Math.min(1, (wt - WET_WT) / (1.5 - WET_WT)));
+const GROUND_BASE = [mix(WET, WATER, .55), WET, DRY]; // [flooded, wet, dry]
+const groundTop = (s, b) => mix(GROUND_BASE[s], b > 2 ? FOREST : GREEN, b / (COVER_BINS - 1) * 0.8);
+// Canal bank top for each bank step: dry, damp, wet, green. Each one is a ground colour of the peat sprites.
+export const BANK_TOP = [groundTop(2, 0), mix(groundTop(2, 0), groundTop(1, 0), .5), groundTop(1, 0), groundTop(1, 3)];
+// Bank step of canal tile i from its 4 side neighbours that are peat: 3 green (mean cover 0.6 or more), 2 wet, 1 damp (mean wt 0.8 m or less), 0 dry or no peat side.
+const GREEN_COVER = Math.fround(.6), DAMP_WT = Math.fround(.8); // Float32 like the stored arrays, so a stored 0.8 counts as damp
+export function bankStep(wd, i) {
+  const { w, h, kind, wt, cover } = wd, x = i % w, y = (i - x) / w;
+  let n = 0, c = 0, t = 0;
+  for (let k = 0; k < 4; k++) {
+    const [dx, dy] = DIRS[k];
+    if (x + dx < 0 || y + dy < 0 || x + dx >= w || y + dy >= h) continue;
+    const j = i + dy * w + dx;
+    if (kind[j] === KIND.PEAT) { n++; c += cover[j]; t += wt[j]; }
+  }
+  return !n ? 0 : c / n >= GREEN_COVER ? 3 : t / n <= WET_WT ? 2 : t / n <= DAMP_WT ? 1 : 0;
+}
 function buildCache() {
   const both = f => [sprite((g, x, y) => f(g, x, y, D)), sprite((g, x, y) => f(g, x, y, EDGE))]; // [inner, map-edge]
   const ground = [[], [], []]; // [flooded, wet, dry][cover bin]
-  const base = [mix(WET, WATER, .55), WET, DRY];
   for (let s = 0; s < 3; s++) for (let b = 0; b < COVER_BINS; b++) ground[s][b] = both((g, x, y, d) => {
-    const top = mix(base[s], b > 2 ? FOREST : GREEN, b / (COVER_BINS - 1) * 0.8);
+    const top = groundTop(s, b);
     block(g, x, y, top, d); texture(g, x, y, top, s * COVER_BINS + b);
     if (s === 0) { // water patches with sheen
       pool(g, x - 6, y + 6, 4, rgb(mix(WATER, top, .3))); pool(g, x + 6, y + 10, 3, rgb(mix(WATER, top, .3)));
@@ -414,33 +430,36 @@ function across(ax, s, x, y) {
 // A canal that runs off the map edge cuts its cross-section into the front wall. k = 0: the right face (x + 1 side). k = 1: the left face (y + 1 side).
 // Rows from the top of the wall: the cut wall above the water, the water, then the bed row. The water step sets where the water starts.
 const NOTCH = 8;
-function notch(g, sx, sy, k, spec) {
+// The wall above the water is the face colour of the bank, a little darker. It was near black (WALL) and made a black bar.
+function notch(g, sx, sy, k, spec, bank) {
   const W = CW[spec.cs], ww = waterW(W, spec.ws), wl = spec.ws * 2, t = k ? .15 : .3; // t: the shade of this face
-  const col = c => rgb(mix(c, BLACK, t));
+  const col = c => rgb(mix(c, BLACK, t)), wall = rgb(mix(mix(bank, BLACK, k ? .35 : .55), BLACK, .15)); // the block() face colour, a little darker
   for (let dx = 0; dx < HW; dx++) {
     const u = (k ? dx : 15 - dx) + .5 - 8, top = k ? sy + HH + (dx >> 1) : sy + TH - ((dx + 1) >> 1); // u: ground distance from the channel axis
     if (Math.abs(u) > W) continue;
     for (let r = 0; r < NOTCH; r++) {
-      g.fillStyle = col(r < wl ? WALL : r < NOTCH - 1 && Math.abs(u) <= ww ? WATER : MUD);
+      g.fillStyle = r < wl ? wall : col(r < NOTCH - 1 && Math.abs(u) <= ww ? WATER : MUD);
       g.fillRect(k ? sx - HW + dx : sx + dx, top + r, 1, 1);
     }
   }
 }
 // Canal sprite key: 2 bits per direction (0 = no arm, else 1 + the neighbour width step), then the width step, water step and map-edge flag.
+// Bits 24-25 hold the bank step. The sprite id adds the patch index (o + 1) in bits 21-23.
 // A patch (o >= 0) draws only the channel pixels that fall in the side tile DIRS[o] of the canal tile, where a corner join crosses it.
 const canalSprites = new Map();
-function canalSprite(key, o = -1) {
-  const id = key + (o + 1) * (1 << 21);
+export const canalId = (key, o = -1) => key + (o + 1) * (1 << 21);
+export function canalSprite(key, o = -1) {
+  const id = canalId(key, o);
   let c = canalSprites.get(id);
   if (c) return c;
   const arms = [];
   DIRS.forEach(([dx, dy], k) => { const v = (key >> 2 * k) & 3; if (v) arms.push([dx, dy, v - 1]); });
-  const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD);
+  const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD), bank = BANK_TOP[(key >> 24) & 3], edge = (key >> 20) & 1;
   const [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
   c = sprite((g, x, y) => {
     if (o < 0) {
-      block(g, x, y, BANK, key >> 20 ? EDGE : D); texture(g, x, y, BANK, 40);
-      if (key >> 20) for (const k of [0, 1]) if ((key >> 2 * k) & 3) notch(g, x, y, k, spec);
+      block(g, x, y, bank, edge ? EDGE : D); texture(g, x, y, bank, 40);
+      if (edge) for (const k of [0, 1]) if ((key >> 2 * k) & 3) notch(g, x, y, k, spec, bank);
     }
     for (let r = fy; r < fy + TH; r++) for (let dx = fx - rowW(r - fy); dx < fx + rowW(r - fy); dx++) {
       const zn = canalZone(dx, r, spec), v = hash(r * 61 + dx + 7);
@@ -475,7 +494,9 @@ function edges(ctx, sx, sy, which) {
 
 // The sim makes a new drainage strength array (game.S) at each drainage change. Then drawWorld finds the downstream tiles again.
 // shortcut: subsidence changes z inside a year without a new game.S, so the flow can be up to 1 year out of date. Rebuild on a z change if that shows.
-let flow = null, flowS = null, flowYear = -1, canalBase = null, axis = null, patches = null;
+let flow = null, flowS = null, flowYear = -1, canalBase = null, axis = null, patches = null, bankWeek = -1;
+// Put the bank step of each canal tile in bits 24-25 of its base key.
+const setBanks = wd => { for (let i = 0; i < wd.w * wd.h; i++) if (wd.kind[i] === KIND.CANAL) canalBase[i] = canalBase[i] & 0xffffff | bankStep(wd, i) << 24; };
 export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 0) {
   cache ??= buildCache();
   const wd = game.world, { w, h, z, wt, cover, kind, block: blk, fire, cWidth, cDepth, cWater } = wd, data = mode === 'data';
@@ -498,7 +519,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
         patches.get(f).push([i, o]);
       }
     }
-  }
+    setBanks(wd); bankWeek = game.tick >> 2;
+  } else if (game.tick >> 2 !== bankWeek) { setBanks(wd); bankWeek = game.tick >> 2; } // the peat changes slowly: one update each week, so the banks do not flicker
   const jobs = new Set(game.jobs.map(j => j.i)), hits = [], at = new Map();
   if (!data) for (const a of game.fauna ?? []) { const l = at.get(a.i); if (l) l.push(a); else at.set(a.i, [a]); }
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
