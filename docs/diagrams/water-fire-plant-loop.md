@@ -22,3 +22,5 @@ flowchart TD
   L --> M
   M -- "more cover, more wildlife and stars" --> A
 ```
+
+Render: [water-fire-plant-loop.png](water-fire-plant-loop.png)
