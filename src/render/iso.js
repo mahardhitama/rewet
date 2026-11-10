@@ -133,14 +133,18 @@ function broadCrown(g, bx, by) { // short trunk, wide round crown of 3 blobs
   blob(g, bx - 2, by - 14, 3, '#5c9a45'); blob(g, bx - 7, by - 11, 2, '#5c9a45');
   g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 16, 2, 1);
 }
-function pandan(g, bx, by, len) { // no trunk: long thin leaves fan up and out from one base, tips droop
+function pandan(g, bx, by, h) { // no trunk: stilt roots, then stiff 2 px strap leaves that arch out and down at the tips
   pool(g, bx + 1, by, 5, SHADOW);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 2, 1, 2); g.fillRect(bx + 1, by - 2, 1, 2); // stilt roots
-  for (const [sl, c, l] of [[-1, '#3d7a3a', 0], [1, '#7aa84a', 0], [-.5, '#4f7a34', 0], [.5, '#a7c95e', 0], [0, '#7aa84a', 2]])
-    for (let k = 1; k <= len - l; k++) { // slope sl: steps out by sl per rise, then the tip flattens
-      const up = k <= len >> 1 ? k : (len >> 1) + (k - (len >> 1)) / 3;
-      g.fillStyle = c; g.fillRect(bx + Math.round(sl * k), by - 2 - Math.round(up), 1, 1);
-    }
+  g.fillStyle = '#6a4a32'; g.fillRect(bx, by - 4, 1, 4); // centre root
+  for (const d of [-1, 1]) for (let k = 0; k < 3; k++) g.fillRect(bx + d * (k + 1), by - 3 + k, 1, 1); // 2 diagonal stilt roots
+  g.fillStyle = '#1f5a48'; g.fillRect(bx - 1, by - 5, 3, 2); // leaf base
+  // [x per rise, rise, droop, colour]: each leaf goes up its slope, then its last steps bend out and down
+  for (const [ax, rise, droop, c] of [[-.25, 13, 2, '#1f5a48'], [.25, 12, 2, '#1f5a48'], [-.6, 10, 3, '#2a6c54'], [.6, 9, 3, '#2a6c54'], [-1, 6, 4, '#2f7a5e'], [1, 6, 4, '#2f7a5e']]) {
+    const d = ax < 0 ? -1 : 1; g.fillStyle = c;
+    for (let k = 1; k <= rise; k++) g.fillRect(bx + Math.round(ax * k) - 1, by - 4 - k * h / 12 | 0, 2, 1);
+    const x0 = bx + Math.round(ax * rise), y0 = by - 4 - (rise * h / 12 | 0);
+    for (let k = 1; k <= droop; k++) g.fillRect(x0 + d * k - 1, y0 + (k > 1 ? k - 1 : 0), 2, 1);
+  }
 }
 function shrub(g, bx, by, rad) {
   pool(g, bx + 1, by + 1, rad + 1, SHADOW);
@@ -251,7 +255,7 @@ function buildCache() {
       [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 5, y + 9, 5, 3); tree(g, x + 5, y + 12, 4, 3); }), // young trees
         sprite((g, x, y) => { broadCrown(g, x + 1, y + 12); tree(g, x - 9, y + 9, 5, 3); }),
         sprite((g, x, y) => { tree(g, x + 6, y + 8, 7, 4); emergent(g, x - 2, y + 12); }),
-        sprite((g, x, y) => { pandan(g, x - 5, y + 9, 8); pandan(g, x + 4, y + 12, 9); tree(g, x + 10, y + 8, 4, 3); })]
+        sprite((g, x, y) => { pandan(g, x - 5, y + 9, 12); pandan(g, x + 4, y + 12, 13); tree(g, x + 9, y + 8, 4, 3); })]
     },
   };
   return cache;

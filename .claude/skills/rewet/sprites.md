@@ -6,7 +6,7 @@
 - `src/render/iso.js` builds a sprite cache once (`buildCache()`). Each sprite is an offscreen canvas made with `sprite(draw)`. The anchor is the top vertex of the tile: `(SW/2, HEAD)`.
 - Helpers: `block` (tile side faces), `texture` (peat shades and specks), `blob`, `pool` (flat ellipse), `tree`, `shrub`, `seedling` and `fern`.
 - Plant forms: `cache.veg[VEG.X]` holds 4 sprites for each plant type. `drawWorld()` picks one with `vegVariant(i)`. Each type has these forms:
-  - Tree: young trees, `broadCrown` (short trunk, wide crown), `emergent` (tall thin trunk, high flat crown) and `pandan` (leaves only, no trunk).
+  - Tree: young trees, `broadCrown` (short trunk, wide crown), `emergent` (tall thin trunk, high flat crown) and `pandan` (stilt roots and stiff blue-green strap leaves, no trunk).
   - Shrub: 2 original forms, a group of 4 small shrubs and `lowShrub` (flat mound with flower specks).
   - Seedling: 2 original forms, a group of 5 tiny seedlings and `sapling` (taller stem with 2 leaf tiers).
   - Fern: 2 original forms, `tuft` (sedge blades) and one large fern with 2 small ones.
