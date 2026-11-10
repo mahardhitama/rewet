@@ -2,6 +2,7 @@
 import { CONCEPTS, SPECIES } from './journal.js';
 import { JOURNAL as T } from './strings.js';
 import { animalSprite } from './render/iso.js';
+import { setText } from './icons.js';
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 // The art is 16 px: the box scales it up, and CSS keeps the pixels sharp.
@@ -60,7 +61,7 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
   }
   const turn = d => { idx = Math.min(pages.length - 1, Math.max(0, idx + d * (mq.matches ? 1 : 2))); render(); };
 
-  $('jTitle').textContent = T.title; for (const [id, text] of [['jClose', T.close], ['jPrev', T.prev], ['jNext', T.next]]) $(id).querySelector('.t').textContent = text;
+  $('jTitle').textContent = T.title; for (const [id, text] of [['jClose', T.close], ['jPrev', T.prev], ['jNext', T.next]]) setText($(id), text);
   $('jCount').textContent = T.count(SPECIES.filter(s => has.has(s.id)).length, SPECIES.length); $('jHint').textContent = T.hint;
   $('jClose').onclick = () => dlg.close();
   $('jPrev').onclick = () => { focusId = 'jNext'; turn(-1); };

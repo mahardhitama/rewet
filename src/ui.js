@@ -5,6 +5,7 @@ import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { blip } from './audio.js';
+import { setText } from './icons.js';
 import { SPECIES } from './journal.js';
 import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
 
@@ -152,7 +153,7 @@ export function showYearReport(game, year, elNino) {
     REPORT.species(seenNames(game)),
   ]);
   $('rpElNino').textContent = REPORT.elNino; $('rpElNino').hidden = !elNino;
-  $('rpCont').querySelector('.t').textContent = REPORT.cont;
+  setText($('rpCont'), REPORT.cont);
 }
 
 function thumb(cv, w, h, wt) {
@@ -177,5 +178,5 @@ export function showDebrief(game) {
   lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(sv.alive, sv.planted), REPORT.species(seenNames(game))]);
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
-  $('dbMenu').querySelector('.t').textContent = DEBRIEF.menu;
+  setText($('dbMenu'), DEBRIEF.menu);
 }

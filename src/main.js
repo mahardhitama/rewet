@@ -9,7 +9,7 @@ import { createMapView } from './render/view.js';
 import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
-import { withIcon } from './icons.js';
+import { withIcon, setText } from './icons.js';
 import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
@@ -32,7 +32,6 @@ function boot() {
   const storage = browserStorage;
   let save = loadSave(storage);
   setMuted(save.settings.mute);
-  const setT = (el, text) => { el.querySelector('.t').textContent = text; };
   const persist = next => { save = next; writeSave(storage, save); };
 
   const INTRO_END = 10.5;
@@ -197,7 +196,7 @@ function boot() {
     if (!r.isNew) return;
     persist(r.save); blip(1320, 0.08);
     const t = $('findToast'); $('findMsg').textContent = JOURNAL.found(SPECIES.find(s => s.id === id).name);
-    setT($('findOpen'), JOURNAL.openEntry);
+    setText($('findOpen'), JOURNAL.openEntry);
     $('findOpen').onclick = () => { t.hidden = true; openBook(id); };
     t.style.bottom = `${$('bar').offsetHeight + 8}px`; t.hidden = false;
     clearTimeout(findTimer); findTimer = setTimeout(() => { t.hidden = true; }, 8000);
@@ -207,11 +206,11 @@ function boot() {
   $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
   $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; $('menuFound').textContent = JOURNAL.count(0, SPECIES.length); toast(TOAST.saveDeleted); }; // keeps the mute setting
-  $('lsTitle').textContent = SELECT.title; setT($('lsBack'), SELECT.back);
+  $('lsTitle').textContent = SELECT.title; setText($('lsBack'), SELECT.back);
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };
   $('dbMenu').onclick = toMenu;
-  $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; setT($('qYes'), QUIT.yes); setT($('qNo'), QUIT.no);
+  $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; setText($('qYes'), QUIT.yes); setText($('qNo'), QUIT.no);
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
   $('zoom').setAttribute('aria-label', ZOOM.group);
