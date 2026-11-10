@@ -1,11 +1,12 @@
 import { createGame, step } from './sim/game.js';
-import { TICKS_PER_YEAR, seasonAt } from './sim/season.js';
-import { evaluate, checkEarlyLoss } from './sim/score.js';
+import { TICKS_PER_YEAR } from './sim/season.js';
+import { checkEarlyLoss } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
-import { LINES, TOAST, SELECT, HUD, REPORT, DEBRIEF } from './strings.js';
+import { LINES, TOAST, SELECT, QUIT } from './strings.js';
+import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
 const TICKS_PER_MS = TICKS_PER_YEAR / 75000;
@@ -41,9 +42,9 @@ function boot() {
     $('menu').classList.toggle('on', p === 'menu');
     $('levelSelect').hidden = p !== 'levelSelect';
     $('hud').hidden = p !== 'level' && p !== 'yearReport';
+    $('bar').hidden = p !== 'level';
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
-    $('bData').textContent = map.mode === 'data' ? HUD.mapView : HUD.dataView;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; smoke.length = 0; show('intro'); }
   function toMenu() {
@@ -66,24 +67,16 @@ function boot() {
     $('lsList').firstChild.focus({ preventScroll: true });
   }
 
-  // ---- level (temporary text readout until Tasks 11-12)
+  // ---- level
   function startLevel(level) {
     game = createGame(level, {}, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave();
-    $('hudKeys').textContent = HUD.keys;
+    initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode() });
     show('level');
   }
-  function readout() {
-    const { week } = seasonAt(game.tick);
-    $('hudLine').textContent = HUD.line(Math.floor(game.tick / TICKS_PER_YEAR) + 1, game.level.years, week + 1, game.funds)
-      + (paused ? ` · ${HUD.paused}` : ` · ${HUD.speed(speed)}`);
-  }
+  function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
   function toDebrief(loss) {
-    const r = evaluate(game);
-    $('dbTitle').textContent = DEBRIEF.title;
-    $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
-    $('dbStats').textContent = `${DEBRIEF.stars(r.stars)} · ${DEBRIEF.stats(r)}`;
-    $('dbMenu').textContent = DEBRIEF.menu;
+    showDebrief(game, loss);
     show('debrief'); $('dbMenu').focus({ preventScroll: true });
   }
   function tickLevel(dt) {
@@ -91,18 +84,17 @@ function boot() {
     carry = r.carry;
     for (let k = 0; k < r.ticks; k++) {
       step(game);
+      afterStep(game);
       if (game.events.some(e => e.type === 'yearEnd')) break; // never run past a year report
     }
-    const ev = game.events.splice(0); // drain (yearEnd.year is 0-based); Tasks 11-12 will use the other event types
+    const ev = game.events.splice(0); // drain (yearEnd.year is 0-based)
     if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief(null);
     const loss = checkEarlyLoss(game);
     if (loss) return toDebrief(loss);
     const ye = ev.find(e => e.type === 'yearEnd');
     if (ye) {
       paused = true;
-      $('rpTitle').textContent = REPORT.title(ye.year + 1);
-      $('rpBody').textContent = REPORT.funds(game.funds);
-      $('rpCont').textContent = REPORT.cont;
+      showYearReport(game, ye.year, ev.some(e => e.type === 'elNinoWarning'));
       show('yearReport'); $('rpCont').focus({ preventScroll: true });
     }
   }
@@ -116,8 +108,8 @@ function boot() {
       if (idx !== shown) { shown = idx; $('line').textContent = LINES[idx][1]; blip(220 + idx * 110, 0.12, 'triangle'); }
       if (t > INTRO_END) toMenu();
     } else h += (1 - h) * 0.04;
-    if (phase === 'level') tickLevel(dt);
-    if (game) readout();
+    if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
+    if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     shift += ((phase === 'menu' && innerWidth > 600 ? 1 : 0) - shift) * 0.05;
     // Level screens resize the canvas to the window (view.js); everything else keeps the intro's 320x180 buffer.
     if (game && ['level', 'yearReport', 'debrief'].includes(phase)) map.draw(game, now);
@@ -130,16 +122,16 @@ function boot() {
 
   ['click', 'keydown'].forEach(ev => addEventListener(ev, e => { if (phase === 'intro' && !e.target.closest?.('#skip')) toMenu(); }));
   addEventListener('keydown', e => {
-    if (e.key === 'Escape' && ['levelSelect', 'level', 'yearReport', 'debrief'].includes(phase)) return toMenu();
+    if (document.querySelector('dialog[open]')) return; // Esc there closes the dialog itself
+    if (e.key === 'Escape' && (phase === 'level' || phase === 'yearReport')) { e.preventDefault(); return $('dQuit').showModal(); } // preventDefault: this Esc would also cancel the new dialog
+    if (e.key === 'Escape' && ['levelSelect', 'debrief'].includes(phase)) return toMenu();
     if (phase !== 'level') return;
     if (map.key(e)) return;
-    if (e.key === 'p' || e.key === 'P' || e.key === ' ') { e.preventDefault(); paused = !paused; }
-    else if (e.key === '1' || e.key === '2') { speed = +e.key; paused = false; }
-    else if (e.key === 'd' || e.key === 'D') toggleData();
+    if (e.key === 'p' || e.key === 'P' || e.key === ' ') { e.preventDefault(); setSpeed(0); }
+    else if (e.key === '1' || e.key === '2') setSpeed(+e.key);
+    else if (e.key === 'd' || e.key === 'D') map.toggleMode();
   });
   $('skip').onclick = toMenu;
-  function toggleData() { map.toggleMode(); $('bData').textContent = map.mode === 'data' ? HUD.mapView : HUD.dataView; }
-  $('bData').onclick = e => { toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
   reduce ? (phase = 'intro', toMenu(), h = 1) : startIntro();
   requestAnimationFrame(frame);
 
@@ -157,6 +149,10 @@ function boot() {
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };
   $('dbMenu').onclick = toMenu;
+  $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; $('qYes').textContent = QUIT.yes; $('qNo').textContent = QUIT.no;
+  $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
+  $('qNo').onclick = () => $('dQuit').close();
+  globalThis.rewet = { get game() { return game; } }; // console access for manual checks (e.g. replaying a sim-run plan)
 }
 
 if (typeof document !== 'undefined') boot();
