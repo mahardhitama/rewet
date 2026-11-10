@@ -25,7 +25,7 @@ Success criteria:
 
 - At 390×844 and at 1280×800, the HUD and the action bar are centred horizontally.
 - The HUD is one line at 1280×800. At 390×844, the contexts are one line and the buttons are a second line.
-- All 8 actions show as square slots in one row at both sizes. Each slot is at least 44×44 CSS px.
+- All 10 actions show as square slots: one row at 1280×800 and 844×390, and 2 rows of 5 on a portrait phone. Each slot is at least 44×44 CSS px.
 - The menu, the level select, the year report, the level report and the dialogs are centred on both axes.
 - No button moves its text on hover or focus.
 - The intro map fills the viewport with no crop of the map, and a new seed gives a different map.
@@ -61,7 +61,7 @@ Success criteria:
 
 - Each icon is a 12×12 pixel grid, stored as data: a list of strings, one string per row, with one character per pixel. A space is clear; other characters are colours (the text colour, or a fixed colour).
 - `icon(name, size)` returns an inline `<svg>` element with `shape-rendering="crispEdges"`, `aria-hidden="true"` and one `<rect>` for each run of pixels in a row. The fill is `currentColor` unless the icon fixes a colour.
-- Icons: `time`, `funds`, `crew`, `goodwill`, `wet`, `score`, `pause`, `play`, `fast`, `data`, `journal`, the 8 actions (`tempBlock`, `permBlock`, `backfill`, `well`, `plant`, `mound`, `pond`, `fireGroup`), `zoomIn`, `zoomOut`, `fit`, `new`, `continue`, `settings`, `credits`, `back`, `close`, `sound`, `replay`, `delete`, `level`, `sandbox`, `upgrade`, `menu` and `tree`.
+- Icons: `time`, `funds`, `crew`, `goodwill`, `wet`, `score`, `pause`, `play`, `fast`, `data`, `journal`, the 10 actions (`tempBlock`, `permBlock`, `backfill`, `well`, `plant`, `mound`, `palud`, `pond`, `fireGroup`, `fireCrew`), `zoomIn`, `zoomOut`, `fit`, `new`, `continue`, `settings`, `credits`, `back`, `close`, `sound`, `replay`, `delete`, `level`, `sandbox`, `upgrade`, `menu` and `tree`.
 - Icons are art. They need no source.
 - No image files. No new dependencies.
 
@@ -79,8 +79,9 @@ Success criteria:
 
 ## 5. Action bar (`#bar`, `src/ui.js`)
 
-- One centred row of 8 square slots, in the order of `ACTIONS`. There are no group tabs and no sideways scroll.
-- Slot size: 64×64 CSS px on desktop, 44×44 CSS px at max-width 600px. At max-width 359px, 8 slots of 44 px do not fit, so the slot is 36×36 CSS px. This is above the 24 px minimum of WCAG 2.2 SC 2.5.8.
+- 10 square slots, centred, in group order: Rewetting (3), Revegetation (2), Revitalisation (3), Defence (2). There are no group tabs and no sideways scroll.
+- Desktop and short landscape: one row. Portrait phone (max-width 600px and min-height 501px): 2 rows of 5. Row 1 is Rewetting and Revegetation. Row 2 is Revitalisation and Defence.
+- Slot size: 64×64 CSS px on desktop, 44×44 CSS px at max-width 600px or max-height 500px. 5 slots of 44 px fit at 320 px.
 - A slot shows the action icon at 2× (24 px) or 3× (36 px) and the cost under it in `--fs-label`. The slot has `aria-label` with the name, the cost and the weeks.
 - The 4 groups (Rewetting, Revegetation, Revitalisation, Defence) show as a thin colour line above their slots and a small group gap between groups. The group name is in each slot's accessible name.
 - A name line above the slots shows the name of the hovered, focused or selected action, in `--fs-label`. When no action is selected, it shows the existing hint text.
@@ -152,7 +153,7 @@ The sim (`src/sim/*`) does not change.
 - Browser at 390×844, 1280×800 and 844×390:
   - the HUD and the bar are centred;
   - the HUD is one row on desktop;
-  - the 8 slots fit with no scroll;
+  - the 10 slots fit with no scroll;
   - the menu, reports and dialogs are centred;
   - hover and focus show the tree with no text shift;
   - the intro fills the viewport and the story line is centred;
