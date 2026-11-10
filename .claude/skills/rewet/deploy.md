@@ -2,12 +2,16 @@
 
 `netlify.toml` sets the deploy. Netlify serves the repo root as a static site, with no build command. The game needs no build step.
 
+Site: https://vermillion-pastelito-08f6e2.netlify.app (admin: https://app.netlify.com/projects/vermillion-pastelito-08f6e2). The CLI link is in `.netlify/state.json`.
+
 ## Ways to deploy
 
 | Way | When | What it does |
 |---|---|---|
 | Git deploy (preferred) | The site is linked to `github.com:mahardhitama/rewet` in the Netlify UI | A push to `main` makes a production deploy. A pull request gets a deploy preview. |
 | CLI deploy | No Git link, or a quick preview of a branch | `npx netlify-cli deploy --dir .` makes a draft URL. `--prod` makes a production deploy. |
+
+A CLI deploy uploads the working tree, not a commit. Deploy only from a clean tree (`git status` shows nothing), or uncommitted work goes live.
 
 ## First-time setup (the user does this)
 
