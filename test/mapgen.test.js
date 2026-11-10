@@ -130,15 +130,20 @@ test('villages and farms sit on the low half of the map; each farm touches a vil
 });
 
 test('illegal canals start on a map edge and touch no existing canal', () => {
-  for (const [l, m] of maps) {
+  let placed = 0, asked = 0;
+  for (const seed of Array.from({ length: 40 }, (_, i) => i + 1)) {
+    const l = { ...L, seed }, m = generateMap(l);
     const canal = new Set(m.canals.map(key)), n = l.size;
+    asked += l.map.illegal; placed += m.illegalCanals.length;
     for (const p of m.illegalCanals) {
       assert.ok(p.length >= 6 && p.length <= 10, `seed ${l.seed} length ${p.length}`);
       const [x, y] = p[0];
       assert.ok(x === 0 || y === 0 || x === n - 1 || y === n - 1, 'starts on an edge');
+      assert.notEqual(dOut(n, m.terrain.outlet)(p[0]), 0, 'not on the outlet edge');
       assert.ok(p.every((t) => !near8(t, canal)));
     }
   }
+  assert.ok(placed >= 0.9 * asked, `placed ${placed} of ${asked}`);
 });
 
 test('crowded map', () => {

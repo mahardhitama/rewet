@@ -117,21 +117,28 @@ export function generateMap(level) {
     }
   }
 
-  // Illegal canals: from a side edge in the upper half toward the dome centre, ordered from the edge inward.
+  // Illegal canals: from a side edge (upper half) or the high edge toward the dome centre, ordered from the edge inward.
+  // When the inward step is blocked, the path bends along the other axis, first away from the high edge.
   const illegalCanals = [], cx = (n - 1) / 2;
   for (let c = 0; c < (m.illegal || 0); c++) {
-    for (let k = 0; k < TRIES; k++) {
-      const x0 = rng() < 0.5 ? 0 : n - 1, y0 = 1 + Math.floor(rng() * (Math.floor(n / 2) - 1)), len = ri(6, 10);
-      const step = Math.max(Math.abs(cx - x0), y0) || 1, ux = (cx - x0) / step, uy = -y0 / step;
+    const own = (t) => t === -1 - c;
+    const free = (x, y) => inMap(x, y) && y < n - 1 && !tagAt(x, y) && clear(x, y, own);
+    for (let k = 0; k < 2 * TRIES; k++) {
+      const e = Math.floor(rng() * 3), len = ri(6, 10);
+      let x = e === 2 ? Math.floor(rng() * n) : e * (n - 1), y = e === 2 ? 0 : 1 + Math.floor(rng() * (Math.floor(n / 2) - 1));
+      const sx = Math.sign(cx - x) || 1;
+      // Step order: inward first, then the two bends.
+      const steps = e === 2 ? [[0, 1], [sx, 0], [-sx, 0]] : [[sx, 0], [0, 1], [0, -1]];
       const path = [];
-      for (let s = 0; s < len; s++) {
-        const x = Math.round(x0 + s * ux), y = Math.round(y0 + s * uy);
-        if (!inMap(x, y) || !clear(x, y, (t) => t === -1 - c)) break;
+      while (path.length < len && free(x, y)) {
         path.push([x, y]);
         tag[idx(n, x, y)] = -1 - c;
+        const next = steps.map(([dx, dy]) => [x + dx, y + dy]).find(([nx, ny]) => free(nx, ny) && (e === 2 || ny >= 1));
+        if (!next) break;
+        [x, y] = next;
       }
       if (path.length >= 6) { illegalCanals.push(path); break; }
-      for (const [x, y] of path) tag[idx(n, x, y)] = 0;
+      for (const [px, py] of path) tag[idx(n, px, py)] = 0;
     }
   }
 
