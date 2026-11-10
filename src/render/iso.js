@@ -178,9 +178,9 @@ function lowShrub(g, bx, by, rx) { // a wide flat mound with pale flower specks
   g.fillStyle = '#e8d870'; g.fillRect(bx - 3, by - 2, 1, 1); g.fillRect(bx + 2, by - 1, 1, 1); g.fillRect(bx, by - 3, 1, 1);
 }
 const COVER_BINS = 5, HEAT_BINS = 16;
-// wt heatmap: 0 m blue -> WET_WT pale neutral -> 1.5 m brown, so the wet/dry split reads at a glance.
-export const heatColor = wt => wt <= WET_WT ? mix([40, 90, 170], [176, 170, 148], Math.max(0, wt) / WET_WT)
-  : mix([176, 170, 148], [120, 76, 36], Math.min(1, (wt - WET_WT) / (1.5 - WET_WT)));
+// wt heatmap: 0 m deep blue -> WET_WT bright blue, then a hard step to amber -> 1.5 m dark red. The step makes the wet/dry split read at a glance.
+export const heatColor = wt => wt <= WET_WT ? mix([20, 60, 200], [70, 150, 240], Math.max(0, wt) / WET_WT)
+  : mix([245, 185, 40], [150, 30, 20], Math.min(1, (wt - WET_WT) / (1.5 - WET_WT)));
 const GROUND_BASE = [mix(WET, WATER, .55), WET, DRY]; // [flooded, wet, dry]
 const groundTop = (s, b) => mix(GROUND_BASE[s], b > 2 ? FOREST : GREEN, b / (COVER_BINS - 1) * 0.8);
 // Canal bank top for each bank step: dry, damp, wet, green. Each one is a ground colour of the peat sprites.

@@ -75,8 +75,8 @@ function bind() {
     b.replaceChildren(icon(name), t); b.setAttribute('aria-label', t.textContent); b.title = t.textContent; // the title is the tooltip when the text is hidden
   }
   for (const p of document.querySelectorAll('#hudRow .part')) p.prepend(icon(p.dataset.id));
-  const [c0, c40, c150] = [0, WET_WT, 1.5].map(v => rgb(heatColor(v)));
-  $('legendBar').style.background = `linear-gradient(90deg,${c0},${c40} ${(WET_WT / 1.5 * 100).toFixed(1)}%,${c150})`;
+  const [c0, c40, cDry, c150] = [0, WET_WT, WET_WT + 1e-3, 1.5].map(v => rgb(heatColor(v))), at = `${(WET_WT / 1.5 * 100).toFixed(1)}%`;
+  $('legendBar').style.background = `linear-gradient(90deg,${c0},${c40} ${at},${cDry} ${at},${c150})`; // hard step at WET_WT, as on the map
   $('legend').title = HUD.legendTitle;
   [...$('legend').querySelectorAll('i')].forEach((el, k) => { el.textContent = HUD.legend[k]; });
   $('legendMark').style.left = $('legend').querySelectorAll('i')[1].style.left = `${(WET_WT / 1.5 * 100).toFixed(1)}%`;
