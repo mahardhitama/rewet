@@ -199,7 +199,24 @@ test('fadeAlpha fades in, and fades out when leaving', async () => {
   assert.equal(fadeAlpha(100, 300), Math.min(100 / 600, 0.5));
 });
 
-test('resetSlides empties the slide map', async () => {
-  const { resetSlides, slideCount } = await import('../src/render/iso.js');
-  resetSlides(); assert.equal(slideCount(), 0);
+test('slideState: spawn fades in, an old move is settled, a new move restarts the slide', async () => {
+  const { slideState } = await import('../src/render/iso.js');
+  const m = new Map(), st = (a, tick, now, f = 1) => slideState(a, tick, now, 8, 8, f, m);
+  const spawn = st({ id: 1, i: 5, from: 5, moved: 10, born: 10 }, 10, 1000);
+  assert.deepEqual([spawn.seenAt, spawn.shownAt], [1000, 1000]); // fade in
+  const old = st({ id: 2, i: 5, from: 4, moved: 3, born: 0 }, 20, 1000);
+  assert.deepEqual([old.seenAt, old.shownAt], [400, 400]); // settled: no slide, no fade
+  assert.equal(st({ id: 3, i: 5, from: 4, moved: 19, born: 0 }, 20, 1000).seenAt, 1000); // a move in this week step slides
+  assert.equal(st({ id: 1, i: 6, from: 5, moved: 14, born: 10 }, 14, 1700, 2).seenAt, 1700); // a new move restarts the slide
+  assert.equal(st({ id: 4, i: 0, from: 1, moved: 5, born: 0, leaving: true }, 5, 2000).leaveAt, 2000); // leaving on an edge tile
+  assert.equal(st({ id: 5, i: 27, from: 27, moved: 5, born: 0, leaving: true }, 5, 2000).leaveAt, -1); // not on an edge tile
+});
+
+test('resetSlides empties the module slide map', async () => {
+  const { slideState, resetSlides, slideCount } = await import('../src/render/iso.js');
+  resetSlides();
+  slideState({ id: 9, i: 5, from: 5, moved: 0, born: 0 }, 0, 0, 8, 8, 1);
+  assert.equal(slideCount(), 1);
+  resetSlides();
+  assert.equal(slideCount(), 0);
 });

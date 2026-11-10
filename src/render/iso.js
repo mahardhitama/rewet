@@ -422,6 +422,19 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 export const slidePos = (a, b, t, out = [0, 0]) => { out[0] = a[0] + (b[0] - a[0]) * t; out[1] = a[1] + (b[1] - a[1]) * t; return out; };
 // Pure. Alpha of an animal. age: ms since it first showed (fade in). leavingAge: ms since it left on an edge tile, or -1 (fade out).
 export const fadeAlpha = (age, leavingAge = -1) => Math.min(clamp01(age / SLIDE_MS), leavingAge < 0 ? 1 : 1 - clamp01(leavingAge / SLIDE_MS));
+// Finds or makes the slide entry of animal a, and starts a new slide when it moved. w, h: map size, for the edge test. frame: draw frame number.
+export function slideState(a, tick, now, w, h, frame, map = slides) {
+  const moved = a.moved ?? a.born ?? 0, born = a.born ?? 0;
+  let s = map.get(a.id);
+  if (!s) { // first sight: a new animal fades in. An old move is already settled; a move in this week step slides.
+    const settled = moved !== born && tick - moved >= 4;
+    s = { moved, seenAt: settled ? now - SLIDE_MS : now, shownAt: moved === born ? now : now - SLIDE_MS, leaveAt: -1, f: 0 };
+    map.set(a.id, s);
+  } else if (s.moved !== moved) { s.moved = moved; s.seenAt = now; }
+  s.f = frame;
+  if (a.leaving && s.leaveAt < 0 && Math.min(a.i % w, (a.i / w) | 0, w - 1 - a.i % w, h - 1 - ((a.i / w) | 0)) === 0) s.leaveAt = now; // the sim removes it at the next weekly step
+  return s;
+}
 // Pure. Hit radius in buffer px: 22 CSS px (half of a 44 px target), but at least the reach of the sprite from its centre.
 export const hitRadius = scale => Math.max(22 / scale, AS / 2 + 1);
 // Pure. The hit nearest to (bx, by) within maxD, or null.
@@ -601,15 +614,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     slideFrame++; if (dbg) dbg.slides = slides;
     const fauna = game.fauna ?? []; let n = 0;
     for (const a of fauna) {
-      const moved = a.moved ?? a.born ?? 0, born = a.born ?? 0, from = a.from ?? a.i;
-      let s = slides.get(a.id);
-      if (!s) { // first sight: a new animal fades in. An old move is already settled; a move in this week step slides.
-        const settled = moved !== born && game.tick - moved >= 4;
-        s = { moved, seenAt: settled ? now - SLIDE_MS : now, shownAt: moved === born ? now : now - SLIDE_MS, leaveAt: -1, f: 0 };
-        slides.set(a.id, s);
-      } else if (s.moved !== moved) { s.moved = moved; s.seenAt = now; }
-      s.f = slideFrame;
-      if (a.leaving && s.leaveAt < 0 && Math.min(a.i % w, (a.i / w) | 0, w - 1 - a.i % w, h - 1 - ((a.i / w) | 0)) === 0) s.leaveAt = now; // the sim removes it at the next weekly step
+      const from = a.from ?? a.i;
+      const s = slideState(a, game.tick, now, w, h, slideFrame);
       const d = drawList[n] ??= { x: 0, y: 0, al: 1, a: null, xy: [0, 0] };
       pa[0] = pos[2 * from]; pa[1] = pos[2 * from + 1]; pb[0] = pos[2 * a.i]; pb[1] = pos[2 * a.i + 1];
       slidePos(pa, pb, clamp01((now - s.seenAt) / SLIDE_MS), d.xy);
@@ -623,7 +629,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       if (d.al < 1) ctx.globalAlpha = d.al;
       ctx.drawImage(animalSprite(a.species), d.x - AS / 2, d.y - AS - up);
       ctx.globalAlpha = 1;
-      hits.push({ species: a.species, bx: d.x, by: d.y - AS / 2 });
+      if (d.al > 0.2) hits.push({ species: a.species, bx: d.x, by: d.y - AS / 2 }); // a faded animal is not tappable
       if (dbg) (dbg.drawn ??= new Map()).set(a.id, { x: d.x, y: d.y, al: d.al, i: a.i, rx: pos[0], ry: pos[1] });
     }
   }
