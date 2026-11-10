@@ -127,7 +127,7 @@ export function renderUI(game, { paused, speed, data }) {
   for (const b of $('slots').querySelectorAll('button')) {
     const id = b.dataset.id, c = costOf(game, id), m = actionMeta(c, ACTIONS[id].weeks), a = BAR.slot(ACTION_TEXT[id][0], R_NAMES[b.dataset.r], m);
     if (b.lastChild.textContent !== String(c)) b.lastChild.textContent = c; // the weeks are in the aria-label
-    if (b.ariaLabel !== a) b.ariaLabel = a;
+    if (b.getAttribute('aria-label') !== a) b.setAttribute('aria-label', a);
     b.classList.toggle('poor', c > game.funds);
   }
   showName();
