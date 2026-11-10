@@ -66,3 +66,36 @@ test('game holds every field drawWorld reads', () => {
 test('different seeds give different maps', () => {
   assert.notDeepEqual(buildStory(1).game.world.kind, buildStory(2).game.world.kind);
 });
+
+test('water rises near the blocks first', () => {
+  const s = buildStory(42); storyAt(s, 1);
+  const wd = s.game.world, { w } = wd;
+  const blocks = [...wd.block.keys()].filter((i) => wd.block[i] === BLOCK.PERM);
+  const d = (i) => Math.min(...blocks.map((b) => Math.max(Math.abs((i % w) - (b % w)), Math.abs(((i / w) | 0) - ((b / w) | 0)))));
+  const near = [], far = [];
+  for (const i of peat(wd)) { const k = d(i); if (k <= 3) near.push(s.at[i]); else if (k > 10) far.push(s.at[i]); }
+  assert.ok(near.length > 0 && far.length > 0);
+  assert.ok(mean(near) < mean(far));
+});
+
+test('canal water rises behind the blocks', () => {
+  const s = buildStory(42), wd = s.game.world;
+  const canals = [...wd.kind.keys()].filter((i) => wd.kind[i] === KIND.CANAL && wd.cDepth[i] > 0);
+  storyAt(s, 0); const c0 = mean(canals.map((i) => wd.cWater[i]));
+  storyAt(s, 1); const c1 = mean(canals.map((i) => wd.cWater[i]));
+  assert.ok(c1 < c0);
+});
+
+test('animals: at most 2 per species, at most 12, and none leave as h grows', () => {
+  const s = buildStory(42); let last = 0;
+  assert.ok(s.animals.length <= 12);
+  const per = {};
+  for (const a of s.animals) per[a.species] = (per[a.species] ?? 0) + 1;
+  assert.ok(Object.values(per).every((c) => c <= 2));
+  for (let k = 0; k <= 20; k++) {
+    storyAt(s, k / 20);
+    assert.ok(s.game.fauna.length >= last);
+    last = s.game.fauna.length;
+  }
+  assert.equal(last, s.animals.length);
+});

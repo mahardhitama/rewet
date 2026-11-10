@@ -18,13 +18,13 @@ const MAX_ANIMALS = 12, PER_SPECIES = 2, WATER_SPAN = 0.25, COVER_LAG = 0.1;
 
 export function buildStory(seed) {
   const world = buildLevelWorld(resolveLevel(INTRO_LEVEL(seed)));
-  const { n, kind, wt, cover, z, cDepth } = world;
+  const { n, w, h, kind, wt, cover, z, cDepth, cWater } = world;
   const game = { world, S: computeStrength(world), tick: 0, jobs: [], fauna: [], ponds: new Set(), seedlings: new Set(), wells: new Set(), paluds: new Set(), fireGroups: new Set() };
-  const start = { wt: wt.slice(), cover: cover.slice() }, end = { wt: wt.slice(), cover: cover.slice() };
-  const at = new Float32Array(n), fire0 = new Uint8Array(n), blockAt = new Float32Array(n).fill(2);
+  const start = { wt: wt.slice(), cover: cover.slice(), cWater: cWater.slice() }, end = { wt: wt.slice(), cover: cover.slice(), cWater: cWater.slice() };
+  const at = new Float32Array(n), cAt = new Float32Array(n).fill(2), fire0 = new Uint8Array(n), blockAt = new Float32Array(n).fill(2);
   let firstPeat = -1;
   for (let i = 0; i < n; i++) {
-    at[i] = 0.2 + 0.4 * hash(i + 11);
+    if (kind[i] === KIND.CANAL) end.cWater[i] = cWater[i] * 0.3; // water rises behind the blocks (cWater is depth below the bank)
     if (kind[i] !== KIND.PEAT) continue;
     firstPeat = firstPeat < 0 ? i : firstPeat;
     start.wt[i] = Math.max(wt[i], 0.6); start.cover[i] = cover[i] * 0.15;
@@ -37,7 +37,23 @@ export function buildStory(seed) {
   for (let i = 0; i < n; i++) if (kind[i] === KIND.CANAL) canals.push(i);
   canals.sort((a, b) => (z[a] - cDepth[a]) - (z[b] - cDepth[b]));
   canals.forEach((i, r) => { if (hash(i + 3) < 0.12) blockAt[i] = 0.05 + 0.25 * (1 - (canals.length > 1 ? r / (canals.length - 1) : 1)); });
-  const story = { game, start, end, at, fire0, blockAt, animals: [] };
+  // water order: near the blocks first. Multi-source BFS (8 neighbours) gives the tile distance and the nearest block.
+  const dist = new Int32Array(n).fill(-1), src = new Int32Array(n), queue = new Int32Array(n);
+  let qh = 0, qt = 0, maxDist = 0;
+  for (let i = 0; i < n; i++) if (blockAt[i] < 2) { dist[i] = 0; src[i] = i; queue[qt++] = i; }
+  while (qh < qt) {
+    const i = queue[qh++], x = i % w, y = (i / w) | 0;
+    for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++)
+      for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
+        const j = yy * w + xx;
+        if (dist[j] < 0) { dist[j] = dist[i] + 1; src[j] = src[i]; maxDist = Math.max(maxDist, dist[j]); queue[qt++] = j; }
+      }
+  }
+  for (let i = 0; i < n; i++) {
+    at[i] = Math.min(0.75, 0.2 + 0.3 * (maxDist && dist[i] > 0 ? dist[i] / maxDist : 0) + 0.1 * hash(i + 11));
+    if (kind[i] === KIND.CANAL && dist[i] >= 0) cAt[i] = blockAt[src[i]];
+  }
+  const story = { game, start, end, at, cAt, fire0, blockAt, animals: [] };
   // animals: test each rule on the end state, then return to the start state
   storyAt(story, 1);
   const rng = mulberry32(seed + 1), pool = [];
@@ -54,11 +70,12 @@ export function buildStory(seed) {
 
 export function storyAt(story, h) {
   h = clamp01(h);
-  const { world: wd } = story.game, { start, end, at, fire0, blockAt } = story;
+  const { world: wd } = story.game, { start, end, at, cAt, fire0, blockAt } = story;
   for (let i = 0; i < wd.n; i++) {
     const tw = clamp01((h - at[i]) / WATER_SPAN), tc = clamp01((h - at[i] - COVER_LAG) / WATER_SPAN);
     wd.wt[i] = start.wt[i] + (end.wt[i] - start.wt[i]) * tw;
     wd.cover[i] = start.cover[i] + (end.cover[i] - start.cover[i]) * tc;
+    wd.cWater[i] = start.cWater[i] + (end.cWater[i] - start.cWater[i]) * clamp01((h - cAt[i]) / WATER_SPAN);
     wd.fire[i] = h < at[i] ? fire0[i] : 0;
     wd.block[i] = h >= blockAt[i] ? BLOCK.PERM : BLOCK.NONE;
   }
