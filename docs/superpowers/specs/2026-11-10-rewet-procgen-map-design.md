@@ -67,7 +67,7 @@ The sandbox (base spec section 5) and a new "New map" button on the level card u
 
 `generateTerrain()` gets a `tilt` option (metres of fall across the map) and an `outlet` edge (`N`, `E`, `S` or `W`, chosen from the seed).
 
-`z = domeRise × (1 − r²) + tilt × u + micro`, where `u` goes from 0 at the outlet edge to 1 at the opposite edge. The dome centre moves toward the high edge by `tilt / (2 × domeRise)` of the half-width. The default is `tilt = 1.0` m. This is a game value, not sourced.
+`z = domeRise × (1 − r²) + tilt × u + micro`, where `u` goes from 0 at the outlet edge to 1 at the opposite edge. The dome centre is the midpoint of the high edge. Thus the smooth surface falls along each straight path from the high edge to the outlet edge. The default is `tilt = 1.0` m. This is a game value, not sourced.
 
 If a river is in the level, it runs along the outlet edge.
 
@@ -101,12 +101,12 @@ New per-tile arrays in `world`. They hold 0 on tiles that are not canal tiles.
 
 ### 2.5 Starting vegetation
 
-New per-tile array `veg` (`Uint8`): `NONE`, `FERN`, `SEEDLING`, `SHRUB`, `TREE`.
+Vegetation types: `NONE`, `FERN`, `SEEDLING`, `SHRUB`, `TREE`. The type is not stored. `vegOf(cover)` gives it from the cover of the tile.
 
-- **Placement:** after the pre-drain year (`buildLevelWorld()`), roll a vegetation type per peat tile. The chance of each type depends on the water-table depth and the distance to a canal: more trees on wet tiles far from canals, more ferns and bare peat near canals. Use blurred noise, so vegetation forms patches. Level 2 ("Burnt former forest") gets a lower tree share.
+- **Placement:** after the pre-drain year (`buildLevelWorld()`), roll a vegetation type per peat tile and set its start cover. The chance of each type depends on the water-table depth and the distance to a canal: more trees on wet tiles far from canals, more ferns and bare peat near canals. Use blurred noise, so vegetation forms patches. Level 2 ("Burnt former forest") gets a lower tree share.
 - **Start cover:** `TREE` 1.0, `SHRUB` 0.6, `SEEDLING` 0.3, `FERN` 0.15, `NONE` 0. Game values, `NOT SOURCED`.
-- **Growth:** `veg` follows `cover`: below 0.2 is `FERN` or `NONE`, 0.2 to 0.5 is `SEEDLING`, 0.5 to 0.85 is `SHRUB`, 0.85 and up is `TREE`. Fire sets `veg = NONE`, as it sets `cover = 0` now.
-- **Determinism:** the vegetation roll uses its own RNG, `mulberry32(seed ^ VEG_SALT)`. Thus the hydrology and fire rolls stay the same for a given seed.
+- **Growth:** `vegOf(cover)`: below 0.1 is `NONE`, 0.1 to 0.2 is `FERN`, 0.2 to 0.5 is `SEEDLING`, 0.5 to 0.85 is `SHRUB`, 0.85 and up is `TREE`. Fire sets `cover = 0` as now, so the tile shows `NONE`.
+- **Determinism:** the vegetation roll uses its own RNG, `mulberry32(seed ^ VEG_SALT)`. Thus the vegetation roll does not change the sequence of `world.rng`.
 
 ### 2.6 Revegetation goal
 
@@ -120,7 +120,7 @@ New per-tile array `veg` (`Uint8`): `NONE`, `FERN`, `SEEDLING`, `SHRUB`, `TREE`.
 
 ### 3.2 Camera: fit plus zoom
 
-- The canvas buffer equals the window size divided by the zoom scale, as now. `object-fit: cover` changes to `object-fit: fill` with a buffer that has the window aspect ratio, so no part of the map is cut off.
+- The canvas buffer equals the window size divided by the zoom scale, as now. The buffer has the window aspect ratio, so `object-fit: cover` cuts off less than 1 buffer pixel. `object-fit` stays.
 - `fitScale(innerW, innerH, w, h)` returns the scale at which the full map box (plus `PAD`) fits in the window, below the HUD and above the action bar. The scale can be a fraction below 1. The pixel art then loses pixels at fit. This is accepted. At a whole-number scale, the art stays sharp.
 - Zoom steps: the fit scale, then 1, 2, 3 and 4. The level opens at the fit scale.
 - **Input:**
@@ -135,12 +135,12 @@ New per-tile array `veg` (`Uint8`): `NONE`, `FERN`, `SEEDLING`, `SHRUB`, `TREE`.
 With 32×16 tiles, each sprite has four times the pixels. The sprite cache stays (`buildCache()`). New and changed sprites:
 
 - **Ground:** peat texture with 2 or 3 shades and small specks. Flooded ground shows water patches.
-- **Vegetation:** one sprite set for each `veg` type, with 2 variants per type (picked by tile hash).
+- **Vegetation:** one sprite set for each vegetation type (`vegOf(cover)`), with 2 variants per type (picked by tile hash).
   - `TREE`: a trunk, a crown with light and shadow sides, and a shadow on the ground.
   - `SHRUB`: a low round bush.
   - `SEEDLING`: 2 or 3 small stems with leaves.
   - `FERN`: a low fan of fronds.
-- **Canal:** banks of a lighter peat colour, a channel with a width in pixels from `cWidth`, and a water surface that sits `cWater` below the bank. Draw the exposed wet bed between the bank and the water. Cache the canal sprites in 4 water-level steps × 3 width steps × the 6 directions of neighbouring canal tiles.
+- **Canal:** banks of a lighter peat colour, a channel with a width in pixels from `cWidth`, and a water surface that sits `cWater` below the bank. Draw the exposed wet bed between the bank and the water. Cache the canal sprites in 4 water-level steps × 3 width steps. The flow markers show the direction, so the sprites do not join to their neighbours.
 - **Flow:** small light pixels move along each canal in the flow direction (from higher bed to lower bed). Draw them each frame. They are markers, so the data view (`D` key) does not show them.
 - **Blocks:** a temporary block shows sandbags. A permanent block shows a plank wall with posts. Each one has a shape that differs from a pond and a backfill.
 
@@ -178,9 +178,9 @@ Write `docs/research/wildlife-and-activities.md`. It lists options with their co
 |---|---|
 | `src/sim/mapgen.js` | new: `generateMap(level, seed)` |
 | `src/sim/terrain.js` | `tilt` and `outlet` options |
-| `src/sim/world.js` | new arrays `cWidth`, `cDepth`, `cWater`, `veg` |
+| `src/sim/world.js` | new arrays `cWidth`, `cDepth`, `cWater`; `VEG` and `vegOf()` |
 | `src/sim/hydro.js` | per-source `eq` from `cWater`; canal water level step |
-| `src/sim/game.js` | `placeLevel()` uses `generateMap()`; `cover0`; `veg` follows `cover` |
+| `src/sim/game.js` | `placeLevel()` writes the canal arrays; `cover0`; canal water step |
 | `src/sim/score.js` | `coverPct` = gain above `cover0` |
 | `src/levels.js` | `map` parameters in place of tile lists |
 | `src/render/isoMath.js` | `TW = 32`, `TH = 16`, `fitScale()`, zoom in `cameraFor()` |
@@ -196,7 +196,7 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
 - `mapgen`: same seed gives the same map. Each trunk touches two opposite edges. The bed falls at each step along the flow. Branches join a trunk. Canals do not touch villages.
 - Canal water: an open canal tile in the dry season has `cWater` near `0.7 × cDepth`. A tile behind a block has a smaller `cWater`. A 5 m deep canal gives the same `wt` as the old global `eq`.
 - C1, C2, C3: pass with no change to the tolerances.
-- Vegetation: same seed gives the same `veg`. Hydrology results with and without the vegetation roll are equal for the same `cover`.
+- Vegetation: same seed gives the same cover. The vegetation roll does not change the next value of `world.rng`.
 - Score: `coverPct` is 0 at the start of each level.
 - Camera: `screenToTile(tileToScreen(x, y))` gives `(x, y)` at each zoom step and after a resize. The full map box fits at the fit scale for 390×844, 844×390 and 1280×800.
 - Balance: for each level, save a block plan and a no-block plan as fixtures. Run `node scripts/sim-run.js`. The block plan passes. The no-block plan fails.
