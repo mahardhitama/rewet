@@ -75,6 +75,10 @@ If a river is in the level, it runs along the outlet edge.
 
 - **Trunk:** starts on the high edge and ends on the outlet edge. The path is a random walk with a bias toward the outlet. Each step moves one tile toward the outlet, plus a sideways step with probability `meander`. Trunks keep at least 4 tiles between them.
 - **Branch:** starts on a trunk tile and runs at about 45° to the trunk, uphill, for 5 to 10 tiles. It does not touch another canal. Water flows down the branch into the trunk.
+- **Merge** (`map.merges`): take 2 neighbouring trunks. Pick a join row in the lower 40% of the map. Above the join, the second trunk moves one column per row toward the first trunk. It joins the first trunk at the join row and has no tiles below it. Its bed is at least 0.01 m per step above the bed of the first trunk at the join, so the bed falls into the join.
+- **Fork** (`map.forks`): an arm leaves a trunk at a row in its middle 60%. It runs diagonally away from the nearest trunk for at least 3 columns. Then it runs straight to the outlet edge, at least 3 tiles from each other canal. Its bed starts at the trunk bed of the split row and follows the trunk rule. It has the trunk size.
+- **Link** (`map.links`): a straight canal on one row between 2 neighbouring trunks, 3 to 8 tiles long. Its bed falls in a straight line from 0.01 m below the higher trunk bed to 0.01 m above the lower trunk bed. It has the branch size.
+- A level with no merges, forks or links gets the same map as before. The generator makes no RNG call for a field that is 0.
 - **Illegal canal:** a path from a map edge toward the dome centre. It is cut tile by tile during play, as now (base spec section 3).
 - **Canal bed:** walk each trunk from the inlet to the outlet. Set `bed[k] = min(bed[k−1] − 0.01, surface[k])`. `generateMap()` returns this value as `canalZ`. `placeLevel()` sets the `z` of each canal tile to `canalZ`, and `walkUp()` reads this `z`. Each branch bed ends above the trunk bed where it joins. The bed then falls at each step in the flow direction, so `walkUp()` finds upstream tiles as it does now. The canal depth is in `cDepth`. It does not change `z`.
 - **Villages and farms:** on the low side of the map, next to a trunk or the river. A farm touches its village.
@@ -259,4 +263,12 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
      - L4: 95.1%, passed. No action: 58.4%, goodwill loss.
      - L5: 99.6%, passed. No action: 49.5%, fire loss.
      - L6 (seed 622): 97.5%, passed. No action: 56.1%, goodwill loss.
+   - Task 13 (canal network): L3 `links: 1`, L4 `forks: 1`, L5 `merges: 1`, L6 `merges: 1, links: 1`. Each level passed with its old seed, so no seed changed. Each feature is on its map: a 5-tile link on L3, an 8-tile link on L6, a fork on L4 and a merge on L5 and L6. Runs with `blockPlan()` (rewet %, cover gain %, then the run with no action):
+     - L1 (no change): 90.7%, 34.6%, passed. No action: 37.6%, fire loss.
+     - L2 (no change): 100.0%, 43.8%, passed. No action: 43.3%, fire loss.
+     - L3 (seed 305): 94.0%, 42.7%, passed. No action: 44.8%, goodwill loss.
+     - L4 (seed 405): 95.8%, 37.9%, passed. No action: 48.8%, fire loss.
+     - L5 (seed 510): 99.3%, 51.3%, passed. No action: 46.6%, goodwill loss.
+     - L6 (seed 622): 97.9%, 68.2%, passed. No action: 64.0%, goodwill loss.
+   - C3 on level 4 after Task 13: best single block +42 tiles, best cascade +95 tiles (2.26×).
 8. **Fixture `l1-reveg.json` (Task 3):** the `l1-cascade.json` plan, then a plant order on every third tile from tick 208. Each order waits for a free crew and for 170 funds (one plant plus one more action). The cascade has 12 blocks and uses most of the funds, so only 20 plants fit. The run gives rewet 90.7%, cover 15.3%, 1 star. The R27 test is a `todo` until Task 5 tunes `pass.reveg`. After Task 4 (canal depth), the same fixture gives rewet 90.7%, cover 15.9%, 1 star. The level 1 map did not change, so the fixtures stay the same.

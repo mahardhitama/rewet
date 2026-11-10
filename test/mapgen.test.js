@@ -182,3 +182,54 @@ test('more trees far from canals', () => {
   const mean = (f) => { let s = 0, c = 0; for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT && f(wd.dist[i])) { s += wd.cover[i]; c++; } return s / c; };
   assert.ok(mean((d) => d > 200) > mean((d) => d <= 50));
 });
+
+// Task 13: canal merges, forks and links. A 24x24 level with 3 trunks and no river, so the outlet edge is d = 0.
+const NET = { size: 24, seed: 1, map: { trunks: 3, branches: 0, meander: 0.2, river: false, villages: 0, illegal: 0 } };
+const net = (f) => { const l = { ...NET, map: { ...NET.map, ...f } }; return [l, generateMap(l)]; };
+const outletGroups = (l, m) => { const d = dOut(l.size, m.terrain.outlet); return groups(m.canals.filter((t) => d(t) === 0)); };
+// Each canal tile has a lower canal neighbour or a river neighbour, or is on the outlet edge.
+function assertFalls(l, m) {
+  const d = dOut(l.size, m.terrain.outlet), river = new Set(m.rivers.map(key));
+  const z = new Map(m.canals.map((t, i) => [key(t), m.canalZ[i]]));
+  m.canals.forEach(([x, y], i) => {
+    if (d([x, y]) === 0 || near8([x, y], river)) return;
+    let lower = false;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (z.get(key([x + dx, y + dy])) < m.canalZ[i]) lower = true;
+    assert.ok(lower, `seed ${l.seed} tile ${x},${y}`);
+  });
+}
+
+test('merge: the trunks that reach the outlet edge are one fewer', () => {
+  const [l, m] = net({ merges: 1 });
+  assert.equal(outletGroups(l, m).length, l.map.trunks - 1);
+});
+
+test('fork: the trunks that reach the outlet edge are one more', () => {
+  const [l, m] = net({ forks: 1 });
+  const g = outletGroups(l, m);
+  assert.equal(g.length, l.map.trunks + 1);
+  // Each group is at least 3 tiles from the next (Chebyshev).
+  for (let a = 0; a < g.length; a++) for (let b = a + 1; b < g.length; b++)
+    for (const [x1, y1] of g[a]) for (const [x2, y2] of g[b]) assert.ok(Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2)) >= 3);
+});
+
+test('link: a link canal touches two different trunks', () => {
+  const [, m] = net({ links: 1 });
+  const trunks = groups(trunkTiles(m)).map((g) => new Set(g.map(key)));
+  const links = groups(branchTiles(m)).filter((g) => g.length >= 3 && g.length <= 8 && (g.every((t) => t[0] === g[0][0]) || g.every((t) => t[1] === g[0][1])));
+  assert.ok(links.some((g) => {
+    const s = [...g].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const ta = trunks.findIndex((t) => near8(s[0], t)), tb = trunks.findIndex((t) => near8(s[s.length - 1], t));
+    return ta >= 0 && tb >= 0 && ta !== tb;
+  }));
+});
+
+test('every canal tile has a lower canal or river neighbour, or is on the outlet edge', () => {
+  for (const f of [{ merges: 1 }, { forks: 1 }, { links: 1 }]) assertFalls(...net(f));
+  for (const l of LEVELS) assertFalls(l, generateMap(l));
+});
+
+test('the same seed gives the same map with merges, forks and links', () => {
+  const [l, m] = net({ merges: 1, forks: 1, links: 1 });
+  assert.deepEqual(generateMap(l), m);
+});

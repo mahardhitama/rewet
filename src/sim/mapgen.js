@@ -71,6 +71,94 @@ export function generateMap(level) {
     for (const [x, y] of tiles) tag[idx(n, x, y)] = tr.id;
     canals.push({ tiles, bed, size: sized(tiles, TRUNK) });
   }
+  const byX = () => [...trunks].sort((a, b) => a.xs[0] - b.xs[0]);
+  const canalOf = (tr) => canals[tr.id - CANAL0];
+
+  // Merges: in the lower 40%, the second of 2 neighbouring trunks turns one column per row into the first and joins it at row yj.
+  for (let c = 0; c < (m.merges || 0) && trunks.length > 1; c++) {
+    for (let k = 0; k < TRIES; k++) {
+      const s = byX(), i = Math.floor(rng() * (s.length - 1)), a = s[i], b = s[i + 1];
+      const yj = ri(Math.floor(0.6 * end), Math.floor(0.8 * end));
+      if (a.xs[yj] === undefined || b.xs[yj] === undefined) continue;
+      // Walk up from the join: one column per row toward the old path of b, until it meets that path.
+      const arm = [[a.xs[yj] + Math.sign(b.xs[yj] - a.xs[yj]), yj]];
+      while (arm[0][1] > 0 && arm[0][0] !== b.xs[arm[0][1]]) {
+        const [x, y] = arm[0];
+        arm.unshift([x + Math.sign(b.xs[y - 1] - x), y - 1]);
+      }
+      if (arm[0][0] !== b.xs[arm[0][1]]) continue;
+      // The arm touches a only at the join row; it may touch its own old path.
+      const ok = arm.every(([x, y]) => [0, b.id].includes(tagAt(x, y)) && clear(x, y, (t) => t === b.id || (y >= yj - 1 && t === a.id)));
+      if (!ok) continue;
+      const y0 = arm[0][1];
+      for (let y = y0; y <= end; y++) tag[idx(n, b.xs[y], y)] = 0;
+      for (const [x, y] of arm) tag[idx(n, x, y)] = b.id;
+      b.xs = [...b.xs.slice(0, y0), ...arm.map(([x]) => x)];
+      const cb = canalOf(b), bedJ = canalOf(a).bed[yj];
+      cb.tiles = b.xs.map((x, y) => [x, y]);
+      cb.size = cb.size.slice(0, cb.tiles.length);
+      cb.bed = [];
+      // Trunk rule, then at least 0.01 m per step above the join bed of a, so the arm bed falls into the join.
+      cb.tiles.forEach((p, y) => cb.bed.push(y ? Math.min(cb.bed[y - 1] - 0.01, zAt(p)) : zAt(p)));
+      cb.bed = cb.bed.map((v, y) => Math.max(v, bedJ + 0.01 * (yj - y + 1)));
+      break;
+    }
+  }
+
+  // Forks: an arm leaves a trunk in its middle 60%, runs diagonally away from the nearest trunk, then straight to the outlet edge.
+  for (let c = 0; c < (m.forks || 0) && trunks.length; c++) {
+    const id = CANAL0 + canals.length;
+    for (let k = 0; k < TRIES; k++) {
+      const tr = trunks[Math.floor(rng() * trunks.length)], ys = ri(Math.floor(0.2 * end), Math.floor(0.8 * end));
+      const x0 = tr.xs[ys];
+      if (x0 === undefined) continue;
+      const near = trunks.filter((o) => o !== tr && o.xs[ys] !== undefined).sort((p, q) => Math.abs(p.xs[ys] - x0) - Math.abs(q.xs[ys] - x0))[0];
+      const dir = near ? Math.sign(x0 - near.xs[ys]) : x0 < n / 2 ? 1 : -1;
+      // True if no other canal is within 2 tiles of (x, y), so the arm keeps at least 3 tiles from it.
+      const far = (x, y) => {
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (tagAt(x + dx, y + dy) >= CANAL0) return false;
+        return true;
+      };
+      const straight = (x, y) => { for (let yy = y; yy <= end; yy++) if (!far(x, yy)) return false; return true; };
+      const tiles = [];
+      let d = 1;
+      for (; ys + d <= end; d++) {
+        const x = x0 + dir * d, y = ys + d;
+        if (!inMap(x, y) || tagAt(x, y) || !clear(x, y, (t) => t === tr.id || t < CANAL0)) break;
+        tiles.push([x, y]);
+        if (d >= 3 && straight(x, y + 1)) break;
+      }
+      const [lx, ly] = tiles[tiles.length - 1] || [];
+      if (tiles.length < 3 || ly >= end || !straight(lx, ly + 1)) continue;
+      for (let y = ly + 1; y <= end; y++) tiles.push([lx, y]);
+      const bed = [];
+      tiles.forEach((p, s) => bed.push(Math.min((s ? bed[s - 1] : canalOf(tr).bed[ys]) - 0.01, zAt(p))));
+      for (const [x, y] of tiles) tag[idx(n, x, y)] = id;
+      canals.push({ tiles, bed, size: sized(tiles, TRUNK) });
+      break;
+    }
+  }
+
+  // Links: a straight canal on one row between 2 neighbouring trunks, 3 to 8 tiles. Its bed falls toward the lower trunk.
+  for (let c = 0; c < (m.links || 0) && trunks.length > 1; c++) {
+    const id = CANAL0 + canals.length;
+    for (let k = 0; k < TRIES; k++) {
+      const s = byX(), i = Math.floor(rng() * (s.length - 1)), a = s[i], b = s[i + 1];
+      const y = ri(Math.floor(0.2 * end), Math.floor(0.8 * end));
+      const xa = a.xs[y], xb = b.xs[y], len = xb - xa - 1;
+      if (!(len >= 3 && len <= 8)) continue;
+      const tiles = Array.from({ length: len }, (_, t) => [xa + 1 + t, y]);
+      if (!tiles.every(([x, yy]) => !tagAt(x, yy) && clear(x, yy, (t) => t === a.id || t === b.id))) continue;
+      const za = canalOf(a).bed[y], zb = canalOf(b).bed[y];
+      const hi = Math.max(za, zb) - 0.01, lo = Math.min(za, zb) + 0.01;
+      if (hi <= lo) continue;
+      // Linear from hi at the higher trunk to lo at the lower trunk.
+      const bed = tiles.map((_, t) => (za > zb ? hi + ((lo - hi) * t) / (len - 1) : lo + ((hi - lo) * t) / (len - 1)));
+      for (const [x, yy] of tiles) tag[idx(n, x, yy)] = id;
+      canals.push({ tiles, bed, size: sized(tiles, BRANCH) });
+      break;
+    }
+  }
 
   // Villages: a 3x3 block next to a trunk, then a 4x3 farm on the far side of the village.
   const villages = [], farms = [];
@@ -85,6 +173,7 @@ export function generateMap(level) {
     for (let k = 0; k < TRIES; k++) {
       const tr = trunks[Math.floor(rng() * trunks.length)], dir = rng() < 0.5 ? -1 : 1, y0 = ri(n - 5, n - 4);
       const rows = tr.xs.slice(y0, y0 + 3);
+      if (rows.length < 3) continue; // a merged trunk has no rows below its join
       const vx = dir > 0 ? Math.max(...rows) + 1 : Math.min(...rows) - 3;
       const fx = dir > 0 ? vx + 3 : vx - 4;
       if (!free(vx, y0, 3, 3, () => true)) continue;
@@ -100,6 +189,7 @@ export function generateMap(level) {
     const id = CANAL0 + canals.length;
     for (let k = 0; k < TRIES; k++) {
       const j = ri(Math.floor(0.2 * end), Math.floor(0.8 * end)), dir = rng() < 0.5 ? -1 : 1, len = ri(5, 10);
+      if (tr.xs[j] === undefined) continue; // below the join of a merged trunk
       const tiles = [];
       for (let s = 1; s <= len; s++) {
         const x = tr.xs[j] + dir * s, y = j - s;

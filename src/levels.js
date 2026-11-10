@@ -21,22 +21,22 @@ export const LEVELS = [
   {
     id: 3, name: 'Village edge', size: 26, years: 4, seed: 305, grant: 2400, arson: 4, elNinoYear: null,
     pass: pass(2), teaches: 'Goodwill, paludiculture, arson',
-    map: { trunks: 3, branches: 1, meander: 0.2, river: true, villages: 1, illegal: 0 },
+    map: { trunks: 3, branches: 1, meander: 0.2, river: true, villages: 1, illegal: 0, links: 1 },
   },
   {
     id: 4, name: 'Canal network', size: 30, years: 4, seed: 405, grant: 2800, arson: 3, elNinoYear: null,
     pass: pass(3), teaches: 'Cascades, backfill, illegal canals',
-    map: { trunks: 3, branches: 2, meander: 0.25, river: false, villages: 1, illegal: 2 },
+    map: { trunks: 3, branches: 2, meander: 0.25, river: false, villages: 1, illegal: 2, forks: 1 },
   },
   {
     id: 5, name: 'El Nino year', size: 30, years: 4, seed: 510, grant: 2800, arson: 3, elNinoYear: 2,
     pass: pass(4), teaches: 'Wells, fire crews, smouldering fire',
-    map: { trunks: 4, branches: 1, meander: 0.25, river: false, villages: 1, illegal: 1 },
+    map: { trunks: 4, branches: 1, meander: 0.25, river: false, villages: 1, illegal: 1, merges: 1 },
   },
   {
     id: 6, name: 'Full peat dome', size: 40, years: 5, seed: 622, grant: 3600, arson: 5, elNinoYear: 3,
     pass: pass(5), teaches: 'Everything, with higher pass lines',
-    map: { trunks: 4, branches: 1, meander: 0.3, river: true, villages: 2, illegal: 2 },
+    map: { trunks: 4, branches: 1, meander: 0.3, river: true, villages: 2, illegal: 2, merges: 1, links: 1 },
   },
 ];
 
