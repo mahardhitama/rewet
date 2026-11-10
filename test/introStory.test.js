@@ -73,7 +73,7 @@ test('water rises near the blocks first', () => {
   const blocks = [...wd.block.keys()].filter((i) => wd.block[i] === BLOCK.PERM);
   const d = (i) => Math.min(...blocks.map((b) => Math.max(Math.abs((i % w) - (b % w)), Math.abs(((i / w) | 0) - ((b / w) | 0)))));
   const near = [], far = [];
-  for (const i of peat(wd)) { const k = d(i); if (k <= 3) near.push(s.at[i]); else if (k > 10) far.push(s.at[i]); }
+  for (const i of peat(wd)) { const k = d(i); if (k <= 1) near.push(s.at[i]); else if (k > 5) far.push(s.at[i]); }
   assert.ok(near.length > 0 && far.length > 0);
   assert.ok(mean(near) < mean(far));
 });
@@ -86,9 +86,9 @@ test('canal water rises behind the blocks', () => {
   assert.ok(c1 < c0);
 });
 
-test('animals: at most 2 per species, at most 12, and none leave as h grows', () => {
+test('animals: at most 2 per species, at most 6, and none leave as h grows', () => {
   const s = buildStory(42); let last = 0;
-  assert.ok(s.animals.length <= 12);
+  assert.ok(s.animals.length <= 6);
   const per = {};
   for (const a of s.animals) per[a.species] = (per[a.species] ?? 0) + 1;
   assert.ok(Object.values(per).every((c) => c <= 2));

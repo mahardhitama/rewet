@@ -6,7 +6,7 @@ import { computeStrength } from '../sim/drainage.js';
 import { FAUNA } from '../sim/fauna.js';
 import { KIND, BLOCK, mulberry32 } from '../sim/world.js';
 
-export const INTRO_LEVEL = (seed) => ({ ...LEVELS[5], size: 30, seed, sandbox: true });
+export const INTRO_LEVEL = (seed) => ({ ...LEVELS[5], size: 15, seed, sandbox: true });
 
 const hash = (i) => {
   let x = Math.imul(i ^ 0x9e3779b9, 0x85ebca6b);
@@ -14,7 +14,7 @@ const hash = (i) => {
   return (x >>> 0) / 4294967296;
 };
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
-const MAX_ANIMALS = 12, PER_SPECIES = 2, WATER_SPAN = 0.25, COVER_LAG = 0.1;
+const MAX_ANIMALS = 6, PER_SPECIES = 2, WATER_SPAN = 0.25, COVER_LAG = 0.1;
 
 export function buildStory(seed) {
   const world = buildLevelWorld(resolveLevel(INTRO_LEVEL(seed)));
