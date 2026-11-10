@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, BLOCK, idx } from '../src/sim/world.js';
-import { createGame, applyAction, step, costOf } from '../src/sim/game.js';
+import { createGame, applyAction, step, costOf, placeLevel } from '../src/sim/game.js';
 
 const S = 12;
 const canal = [[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6]]; // edge toward dome centre
@@ -93,7 +93,8 @@ test('Review: illegal canal stops at block / village / filled tile', () => {
   const block = run((w, i) => { w.kind[i] = KIND.CANAL; w.block[i] = BLOCK.TEMP; });
   const village = run((w, i) => { w.kind[i] = KIND.VILLAGE; });
   const filled = run((w, i) => { w.block[i] = BLOCK.FILLED; });
-  for (const w of [block, village, filled]) {
+  const river = run((w, i) => { w.kind[i] = KIND.RIVER; });
+  for (const w of [block, village, filled, river]) {
     for (const x of [0, 1, 2]) assert.equal(w.kind[at(x, 2)], KIND.CANAL);
     for (const x of [4, 5, 6]) assert.equal(w.kind[at(x, 2)], KIND.PEAT);
   }
@@ -101,6 +102,7 @@ test('Review: illegal canal stops at block / village / filled tile', () => {
   assert.equal(village.kind[at(3, 2)], KIND.VILLAGE);
   assert.equal(filled.kind[at(3, 2)], KIND.PEAT);
   assert.equal(filled.block[at(3, 2)], BLOCK.FILLED);
+  assert.equal(river.kind[at(3, 2)], KIND.RIVER);
   const open = run(() => {});
   for (const x of [0, 1, 2, 3, 4, 5, 6]) assert.equal(open.kind[at(x, 2)], KIND.CANAL);
 });
@@ -142,4 +144,72 @@ test('T5 determinism: same seed + action list -> identical wt and z arrays after
   assert.equal(a.funds, b.funds);
   assert.equal(a.events.filter((e) => e.type === 'yearEnd').length, 2);
   assert.ok(a.events.some((e) => e.type === 'elNinoWarning'));
+});
+
+test('mound lifts the tile above the water without adding water', () => {
+  const i = at(8, 8);
+  const mk = () => { const g = createGame(lvl()); g.world.wt[i] = -0.1; return g; };
+  const a = mk(), b = mk();
+  assert.equal(applyAction(a, 'mound', i).ok, true);
+  for (let t = 0; t < 3; t++) { step(a); step(b); }
+  const wt0 = a.world.wt[i];
+  step(a); step(b); // mound completes in this step, then one hydro tick
+  const head = (g) => g.world.z.reduce((s, z, k) => s + z - g.world.wt[k], 0);
+  assert.ok(Math.abs(a.world.z[i] - b.world.z[i] - 0.2) < 1e-3); // minus one tick of subsidence
+  assert.ok(Math.abs(a.world.wt[i] - b.world.wt[i] - 0.2) < 0.02, `wt diff ${a.world.wt[i] - b.world.wt[i]}`);
+  assert.ok(a.world.wt[i] > wt0 + 0.15);
+  assert.ok(Math.abs(head(a) - head(b)) < 0.02, `head diff ${head(a) - head(b)}`);
+});
+
+test('crewed fire re-lit by a neighbour is capped and put out', () => {
+  const g = createGame(lvl());
+  const i = at(8, 8);
+  g.world.wt[i] = 0.8; // only this tile can burn
+  g.world.fire[i] = 1; g.world.fireT[i] = 8;
+  assert.equal(applyAction(g, 'fireCrew', i).ok, true);
+  step(g);
+  assert.equal(g.world.fire[i], 0);
+  g.world.fire[i] = 1; g.world.fireT[i] = 8; // re-lit while the crew job still runs
+  assert.equal(g.jobs.length, 1);
+  step(g); // job sees fire, stays; cap 1 -> out
+  assert.equal(g.world.fire[i], 0);
+  step(g);
+  assert.equal(g.jobs.length, 0);
+  assert.equal(g.crews.filter((t) => t > g.tick).length, 0);
+});
+
+test('arson ignition runs fire side effects (village goodwill, spotting, seedling loss)', () => {
+  const villages = [];
+  for (let y = 0; y < S; y += 2) for (let x = 0; x < S; x += 2) villages.push([x, y]); // every other tile is next to a village
+  const g = createGame(lvl({ arson: 147 * 1000, canals: [], villages }));
+  for (const [x, y] of villages) g.fireGroups.add(at(x, y));
+  for (let i = 0; i < g.world.n; i++) g.seedlings.set(i, 0);
+  g.goodwill = 99; // p = arson*0.01/147 >> 1: every dry tick tries
+  g.tick = 31 * 4;
+  let k = -1;
+  for (let t = 0; t < 84 && k < 0; t++) {
+    g.world.wt.fill(1.2); // keep every tile ignitable
+    step(g);
+    k = g.events.findIndex((e) => e.type === 'arson' && e.lit);
+  }
+  assert.ok(k >= 2, 'arson lit');
+  const { i } = g.events[k];
+  assert.deepEqual(g.events.slice(k - 2, k), [{ type: 'fireSpotted', i }, { type: 'villageFire', i }]);
+  assert.ok(!g.seedlings.has(i));
+  assert.ok(g.burnt.has(i));
+  assert.ok(g.goodwill < 99);
+});
+
+test('placeLevel canal z is the dome term of the default terrain', () => {
+  const w = placeLevel(lvl());
+  const free = placeLevel(lvl({ canals: [] }));
+  const dome = (x, y) => { const c = S / 2, r = Math.hypot(x - c, y - c) / Math.hypot(c, c); return 2 * (1 - r * r); };
+  let maxMicro = 0;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const i = at(x, y);
+    if (w.kind[i] === KIND.CANAL) assert.ok(Math.abs(w.z[i] - dome(x, y)) < 1e-5, `canal z at ${x},${y}`);
+    else assert.equal(w.z[i], free.z[i]);
+    maxMicro = Math.max(maxMicro, Math.abs(free.z[i] - dome(x, y)));
+  }
+  assert.ok(maxMicro > 0.05 && maxMicro <= 0.3 + 1e-5, `micro ${maxMicro}`);
 });

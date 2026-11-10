@@ -24,7 +24,7 @@ export const ACTIONS = {
   tempBlock: { cost: 100, weeks: 1, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.NONE) },
   permBlock: { cost: 250, weeks: 3, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.TEMP) },
   backfill: { cost: 600, weeks: 6, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i)) },
-  well: { cost: 80, weeks: 1, r: 'defense', valid: (wd, i, g) => ok(!g.wells.has(i)) },
+  well: { cost: 80, weeks: 1, r: 'defense', valid: (_wd, i, g) => ok(!g.wells.has(i)) },
   plant: { cost: 60, weeks: 1, r: 'reveg', valid: (wd, i, g) => ok(wd.kind[i] === KIND.PEAT && !g.seedlings.has(i)) },
   mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i) => ok(wd.kind[i] === KIND.PEAT) },
   palud: {
@@ -70,6 +70,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
     dryWtHistory: [], wind: randWind(world.rng), events: [], S,
     wt0: Float32Array.from(world.wt), wetTicks: new Uint16Array(world.n),
     wells: new Set(), seedlings: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(),
+    dome: null, // lazy domeZ(level), for illegal-canal beds
     illegal: (level.illegalCanals || []).map(() => 0), // next path index per illegal canal; -1 = stopped
   };
   if (level.elNinoYear === 1) g.events.push({ type: 'elNinoWarning', year: 1 });
@@ -95,11 +96,6 @@ export function applyAction(g, id, i) {
   const doneAt = g.tick + a.weeks * TPW;
   g.crews[crew] = doneAt;
   g.jobs.push({ id, i, doneAt, crew });
-  if (id === 'fireCrew') {
-    const { fireT, fire } = g.world;
-    fireT[i] = Math.min(fireT[i], CREW_TICKS[fire[i]]);
-    if (g.upgrades.fastCrew) fireT[i] = Math.ceil(fireT[i] * 0.7);
-  }
   return { ok: true };
 }
 
@@ -110,10 +106,24 @@ function finish(g, { id, i }) {
   else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; redrain(g); }
   else if (id === 'well') g.wells.add(i);
   else if (id === 'plant') g.seedlings.set(i, 0);
-  else if (id === 'mound') wd.z[i] += 0.2;
+  else if (id === 'mound') { wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
   else if (id === 'palud') g.paluds.add(i);
   else if (id === 'pond') g.ponds.add(i);
   else if (id === 'fireGroup') g.fireGroups.add(i);
+}
+
+const WT_MIN = -0.3, WT_MAX = 1.5; // hydro.js clamp
+const crewCap = (g, f) => (g.upgrades.fastCrew ? Math.ceil(CREW_TICKS[f] * 0.7) : CREW_TICKS[f]);
+
+function onLit(g, i) {
+  const wd = g.world;
+  g.burnt.add(i);
+  g.seedlings.delete(i);
+  if (near(wd, i, 6, (k) => g.fireGroups.has(k))) g.events.push({ type: 'fireSpotted', i });
+  if (nextTo(wd, i, (k) => wd.kind[k] === KIND.VILLAGE)) {
+    g.goodwill = Math.max(0, g.goodwill - 10);
+    g.events.push({ type: 'villageFire', i });
+  }
 }
 
 const inBand = (wt) => wt >= 0 && wt <= WET_WT;
@@ -142,29 +152,22 @@ export function step(g) {
     g.dryWtHistory.push(Float32Array.from(wt));
   }
 
-  // 4. fire; crewed tiles are put out when their timer runs down (2x with a well within 3 tiles)
+  // 4. fire; crewed timers are capped every tick (also after a re-light), put out at <= 1, 2x with a well within 3 tiles
   for (const j of g.jobs) {
     if (j.id !== 'fireCrew' || !fire[j.i]) continue;
+    fireT[j.i] = Math.min(fireT[j.i], crewCap(g, fire[j.i]));
     if (fireT[j.i] > 1 && near(wd, j.i, 3, (k) => g.wells.has(k))) fireT[j.i]--;
     if (fireT[j.i] <= 1) { fire[j.i] = 0; fireT[j.i] = 0; }
   }
   const { burnt } = fireTick(wd, env, g.wind);
-  for (const i of burnt) {
-    g.burnt.add(i);
-    g.seedlings.delete(i);
-    if (near(wd, i, 6, (k) => g.fireGroups.has(k))) g.events.push({ type: 'fireSpotted', i });
-    if (nextTo(wd, i, (k) => kind[k] === KIND.VILLAGE)) {
-      g.goodwill = Math.max(0, g.goodwill - 10);
-      g.events.push({ type: 'villageFire', i });
-    }
-  }
+  for (const i of burnt) onLit(g, i);
 
   // 5. threats
   if (dry && rng() < (g.level.arson * (1 - g.goodwill / 100)) / 147) {
     const i = Math.floor(rng() * n);
     if (!near(wd, i, 6, (k) => g.fireGroups.has(k)) || rng() < 0.5) {
       const lit = ignite(wd, i);
-      if (lit) g.burnt.add(i);
+      if (lit) onLit(g, i);
       g.events.push({ type: 'arson', i, lit });
     }
   }
@@ -174,8 +177,8 @@ export function step(g) {
       const path = g.level.illegalCanals[c];
       if (p < 0 || p >= path.length) return;
       const i = idx(wd.w, path[p][0], path[p][1]);
-      if (wd.block[i] !== BLOCK.NONE || kind[i] === KIND.VILLAGE) { g.illegal[c] = -1; return; }
-      if (kind[i] !== KIND.CANAL) { kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], domeZ(g.level)[i]); changed = true; }
+      if (wd.block[i] !== BLOCK.NONE || kind[i] === KIND.VILLAGE || kind[i] === KIND.RIVER) { g.illegal[c] = -1; return; }
+      if (kind[i] !== KIND.CANAL) { kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]); changed = true; }
       g.illegal[c] = p + 1;
     });
     if (changed) redrain(g);
