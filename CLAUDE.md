@@ -57,7 +57,7 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 ## Domain facts
 
 - Every number about the real world (emission factors, water thresholds, subsidence rates) must come from a source opened in the session, with page or table cited, recorded in `docs/references/`.
-- Mark a value `NOT SOURCED` rather than giving it from memory. Still open: the PP 57/2016 Article 23 text for the 0.4 m rule.
+- Mark a value `NOT SOURCED` rather than giving it from memory. The 0.4 m rule is sourced: PP 57/2016 Article 23(3)(a), key `PP57` in `docs/references/peat-hydrology-and-emissions.md`.
 
 ## Rendering and save notes
 

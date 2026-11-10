@@ -1,5 +1,14 @@
 # Canal dimensions
 
+## Sources
+
+| Key | Source | Access |
+|---|---|---|
+| KFCP14 | Kalimantan Forests and Climate Partnership (2014). "Carbon emissions from drained and degraded peatland in Indonesia and emission factors for MRV of peatland greenhouse gas emissions". Technical report. | We read page 9 in an earlier session. On 2026-11-10 the Dropbox copy was an empty 0-byte file. We found only the catalogue page: https://www.tropicalpeatlands.org/knowledge/publication/11463_17025 |
+| R14 | Ritzema, H.P. et al. (2014). *Catena* 114, 11–20. See `peat-hydrology-and-emissions.md`. | PDF opened 2026-11-10: https://edepot.wur.nl/282926 |
+
+R14 page 3 gives the size of the whole Mega Rice Project canal network: 187 km of main canal, then 771 km of main canals, 973 km of secondary canals and 900 km of tertiary canals in Block A alone. It gives no canal width or depth.
+
 ## Main canals in Blok A, Ex-Mega Rice Project, Central Kalimantan (KFCP 2014)
 
 Source: Kalimantan Forests and Climate Partnership (KFCP), May 2014. "Carbon emissions from drained and degraded peatland in Indonesia and emission factors for measurement, reporting and verification (MRV) of peatland greenhouse gas emissions: a summary of KFCP research results for practitioners". Technical report. Page 9 of the report (page 13 of the PDF).

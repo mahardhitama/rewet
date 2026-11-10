@@ -34,7 +34,7 @@ Success criteria:
 
 ## 2. Canal ends at the map edge (render)
 
-- A canal tile on a map edge has an arm to that edge when the canal continues off the map. The trunk inlet (high edge) and the trunk outlet (outlet edge, or the river) continue off the map.
+- A canal end on a map edge has an arm off the map: the trunk inlet, the trunk outlet, and the start of an illegal canal. A trunk that ends at the river joins the river and has no off-map arm.
 - The side wall below that tile shows a notch: the bank, the wet bed, and the water surface at `cWater` below the bank. The notch depth uses the same pixel scale as the canal sprite.
 - The notch is part of the cached canal sprite set. Add an edge key to the existing canal sprite key.
 
