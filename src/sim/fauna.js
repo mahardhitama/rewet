@@ -80,11 +80,13 @@ export function faunaTick(g) {
       let best = -1;
       for (const j of opts) if (best < 0 || edge(j) < edge(best)) best = j; // opts is in index order
       if (best >= 0 && edge(best) < edge(a.i)) go(a, best);
+      else a.gone = true; // fire blocks each nearer tile: remove the animal, as for fire within FAR, so fire cannot trap it
       continue;
     }
     const k = Math.floor(rng() * (opts.length + 1));
     if (k < opts.length) go(a, opts[k]);
   }
+  g.fauna = g.fauna.filter((a) => !a.gone);
 
   // spawn: one per species per call, up to the target, with a chance that depends on the season
   const wet = isWetSeason(g);

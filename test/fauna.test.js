@@ -6,7 +6,7 @@ import { LEVELS, buildLevelWorld } from '../src/levels.js';
 import { resolveLevel } from '../src/sim/mapgen.js';
 import { createGame, applyAction, step } from '../src/sim/game.js';
 import { blockPlan } from '../scripts/auto-plan.js';
-import { TICKS_PER_YEAR } from '../src/sim/season.js';
+import { TICKS_PER_YEAR, isWetSeason, dryStart } from '../src/sim/season.js';
 import { KIND } from '../src/sim/world.js';
 
 const L1 = () => { const l = resolveLevel(LEVELS[0]); return createGame(l, {}, buildLevelWorld(l)); };
@@ -173,18 +173,50 @@ test('wildlife: at most 8 animals, one tile per step, stay is bounded, leaving a
   }
 });
 
-test('wildlife: the spawn mix differs between wet and dry weeks for at least 3 species (L6, 3 years)', () => {
-  const wet = {}, dry = {}, seen = new Set();
-  runPlan(6, 3, (g) => {
-    for (const a of g.fauna) {
-      if (seen.has(a.id)) continue;
-      seen.add(a.id);
-      const o = a.born % TICKS_PER_YEAR / 4 < 31 ? wet : dry; // born is the tick of the faunaTick call
-      o[a.species] = (o[a.species] || 0) + 1;
+test('wildlife: spawn weights make the species mix differ between wet and dry weeks', () => {
+  const g = green(L1()), N = 2000;
+  const count = (tick) => {
+    const c = {};
+    g.tick = tick;
+    for (let k = 0; k < N; k++) {
+      g.fauna = [];
+      faunaTick(g);
+      for (const a of g.fauna) c[a.species] = (c[a.species] || 0) + 1;
     }
-  });
-  const differ = FAUNA.filter((f) => (wet[f.id] || 0) !== (dry[f.id] || 0)).length;
-  assert.ok(differ >= 3, JSON.stringify({ wet, dry }));
+    return c;
+  };
+  g.tick = 20; // week 5
+  assert.ok(isWetSeason(g));
+  const wet = count(20);
+  const dryTick = 4 * (dryStart(g) + 9); // week 40 in a normal year
+  g.tick = dryTick;
+  assert.ok(!isWetSeason(g));
+  const dry = count(dryTick);
+  for (const s of ['stork', 'hornbill']) assert.ok(wet[s] > 1.5 * dry[s], `${s} wet ${wet[s]} dry ${dry[s]}`);
+  for (const s of ['sunbear', 'fishowl', 'monitor']) assert.ok(dry[s] > 1.5 * wet[s], `${s} wet ${wet[s]} dry ${dry[s]}`);
+});
+
+const leaver = (i) => ({ id: 9999, species: 'orangutan', i, from: i, moved: 0, born: 0, leave: 0, leaving: true });
+const alive = (g) => g.fauna.some((a) => a.id === 9999);
+
+test('wildlife: a leaving animal on an edge tile goes at once, on the second ring after 2 steps', () => {
+  const g = green(L1()), { w, h } = g.world, y = h >> 1;
+  g.fauna = [leaver(y * w)]; // x = 0
+  faunaTick(g);
+  assert.ok(!alive(g));
+  g.fauna = [leaver(y * w + 1)]; // second ring
+  faunaTick(g);
+  assert.ok(alive(g));
+  faunaTick(g);
+  assert.ok(!alive(g));
+});
+
+test('wildlife: a leaving animal that fire blocks from each nearer tile is removed', () => {
+  const g = green(L1()), { w, h, fire } = g.world, y = h >> 1;
+  g.fauna = [leaver(y * w + 3)];
+  fire[y * w] = 1; // 3 tiles from the animal: it is safe, but each tile at x = 2 is within 2 of the fire
+  faunaTick(g);
+  assert.ok(!alive(g));
 });
 
 test('wildlife: an animal past its stay is leaving', () => {
