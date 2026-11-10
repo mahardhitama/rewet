@@ -19,13 +19,14 @@ const near = (world, i, r, test) => {
 const nextTo = (world, i, test) => near(world, i, 1, (j) => j !== i && test(j));
 const ok = (cond) => cond || 'invalid';
 const isCanal = (wd, i) => wd.kind[i] === KIND.CANAL;
+const plantable = (wd, g) => (j) => wd.kind[j] === KIND.PEAT && !g.seedlings.has(j) && wd.cover[j] < 1;
 
 export const ACTIONS = {
   tempBlock: { cost: 100, weeks: 1, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.NONE) },
   permBlock: { cost: 250, weeks: 3, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.TEMP) },
   backfill: { cost: 600, weeks: 6, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i)) },
   well: { cost: 80, weeks: 1, r: 'defense', valid: (_wd, i, g) => ok(!g.wells.has(i)) },
-  plant: { cost: 120, weeks: 1, r: 'reveg', valid: (wd, i, g) => ok(wd.kind[i] === KIND.PEAT && !g.seedlings.has(i)) },
+  plant: { cost: 120, weeks: 1, r: 'reveg', valid: (wd, i, g) => (wd.kind[i] !== KIND.PEAT ? 'invalid' : near(wd, i, 1, plantable(wd, g)) || 'nothingToPlant') },
   mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i, g) => (g.mounds.has(i) ? 'mounded' : ok(wd.kind[i] === KIND.PEAT)) }, // one per tile
   palud: {
     cost: 200, weeks: 2, r: 'revit',
@@ -72,7 +73,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
     crews: new Array(3 + (upgrades.crew || 0)).fill(0), jobs: [], goodwill: 50, burnt: new Set(),
     dryWtHistory: [], wind: randWind(world.rng), events: [], S,
     wt0: Float32Array.from(world.wt), wetTicks: new Uint16Array(world.n),
-    wells: new Set(), mounds: new Set(), seedlings: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(),
+    wells: new Set(), mounds: new Set(), seedlings: new Map(), planted: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(), // planted: tile -> tick it was last seeded
     dome: null, // lazy domeZ(level), for illegal-canal beds
     illegal: (level.illegalCanals || []).map(() => 0), // next path index per illegal canal; -1 = stopped
   };
@@ -114,13 +115,9 @@ function finish(g, { id, i }) {
   else if (id === 'permBlock') { wd.block[i] = BLOCK.PERM; redrain(g); }
   else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; redrain(g); }
   else if (id === 'well') g.wells.add(i);
-  else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27)
-    const { w, h } = wd, x = i % w, y = (i / w) | 0;
-    for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++)
-      for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
-        const j = yy * w + xx;
-        if (wd.kind[j] === KIND.PEAT && !g.seedlings.has(j) && wd.cover[j] < 1) g.seedlings.set(j, 0);
-      }
+  else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27); eligibility checked now, not at order time (R32)
+    const can = plantable(wd, g);
+    near(wd, i, 1, (j) => { if (can(j)) { g.seedlings.set(j, 0); g.planted.set(j, g.tick); } return false; });
   }
   else if (id === 'mound') { g.mounds.add(i); wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
   else if (id === 'palud') g.paluds.add(i);

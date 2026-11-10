@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, checkEarlyLoss, co2Estimate } from '../src/sim/score.js';
+import { evaluate, checkEarlyLoss, co2Estimate, seedlingSurvival } from '../src/sim/score.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 
 // Game-like stub: n peat tiles, `wet` of them with mean dry wt 0.3, rest 0.8.
@@ -106,4 +106,13 @@ test('avoided CO2: only tiles that started dry and end wet', () => {
   g.world.wt[1] = 0.9; // ends dry: excluded
   g.wetTicks[0] = 208 * 2; g.wetTicks[1] = 208; g.wetTicks[2] = 208;
   assert.ok(Math.abs(co2Estimate(g).avoidedTC - 14 * 0.25 * 2) < 1e-9);
+});
+
+test('seedlingSurvival counts every seeded tile since a tick; alive = seedling or full cover', () => {
+  const g = mk({ n: 4 });
+  g.planted = new Map([[0, 10], [1, 10], [2, 300], [3, 300]]);
+  g.seedlings = new Map([[0, 0], [2, 0]]);
+  g.world.cover[3] = 1; g.world.cover[1] = 0.5; // 1 died (no seedling, cover < 1)
+  assert.deepEqual(seedlingSurvival(g), { alive: 3, planted: 4 });
+  assert.deepEqual(seedlingSurvival(g, 200), { alive: 2, planted: 2 });
 });

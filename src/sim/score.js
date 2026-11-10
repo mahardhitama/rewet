@@ -51,6 +51,17 @@ export function checkEarlyLoss(g) {
   return null;
 }
 
+// Tiles seeded since `since` (tick) and how many still carry a seedling or reached full cover.
+export function seedlingSurvival(g, since = 0) {
+  let planted = 0, alive = 0;
+  for (const [i, t] of g.planted) {
+    if (t < since) continue;
+    planted++;
+    if (g.seedlings.has(i) || g.world.cover[i] >= 1) alive++;
+  }
+  return { alive, planted };
+}
+
 export function co2Estimate(g) {
   const { wt, n } = g.world;
   let avoidedTC = 0;

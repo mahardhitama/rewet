@@ -169,13 +169,27 @@ test('R27: plant seeds a 3x3 patch of peat, skipping canals, cover 1 and existin
   const g = createGame(lvl());
   g.world.cover[at(2, 7)] = 1;
   g.seedlings.set(at(3, 7), 5);
-  assert.equal(applyAction(g, 'plant', at(2, 7)).ok, true); // centre has cover 1: still a valid tap
+  assert.equal(applyAction(g, 'plant', at(2, 7)).ok, true); // centre has cover 1, neighbours are eligible
   for (let t = 0; t < 4; t++) step(g);
   for (const [x, y] of [[1, 7], [1, 8], [2, 8], [3, 8]]) assert.ok(g.seedlings.has(at(x, y)), `${x},${y}`);
   for (const x of [1, 2, 3]) assert.ok(!g.seedlings.has(at(x, 6)), 'canal row skipped');
   assert.ok(!g.seedlings.has(at(2, 7)), 'cover 1 skipped');
   assert.equal(g.seedlings.size, 5); // (3,7) kept, not re-seeded
-  assert.ok(g.seedlings.has(at(3, 7)));
+  assert.deepEqual([...g.planted.keys()].sort((a, b) => a - b), [at(1, 7), at(1, 8), at(2, 8), at(3, 8)]);
+});
+
+test('R32: plant needs an eligible tile in the 3x3; a seeded centre can extend the patch', () => {
+  const g = createGame(lvl());
+  assert.equal(applyAction(g, 'plant', at(8, 8)).ok, true);
+  for (let t = 0; t < 4; t++) step(g);
+  assert.ok(g.seedlings.has(at(8, 8)));
+  assert.equal(applyAction(g, 'plant', at(9, 8)).ok, true); // seeded centre, new column x = 10
+  for (let t = 0; t < 4; t++) step(g);
+  assert.equal(g.planted.size, 12);
+  const f = g.funds;
+  assert.deepEqual(applyAction(g, 'plant', at(9, 8)), { ok: false, reason: 'nothingToPlant' });
+  assert.deepEqual(applyAction(g, 'plant', at(3, 6)), { ok: false, reason: 'invalid' }); // canal centre
+  assert.equal(g.funds, f);
 });
 
 test('R29: one mound per tile', () => {

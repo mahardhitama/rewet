@@ -1,6 +1,6 @@
 // Level HUD, 3R action bar, year report and debrief. DOM only: reads game state, changes it only via applyAction.
 import { ACTIONS, applyAction, costOf, isWetSeason, freeCrews } from './sim/game.js';
-import { evaluate, co2Estimate, dryWetPct } from './sim/score.js';
+import { evaluate, co2Estimate, dryWetPct, seedlingSurvival } from './sim/score.js';
 import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
@@ -10,14 +10,13 @@ import { HUD, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEB
 const $ = id => document.getElementById(id);
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 let G = null, H = null, armed = null, bound = false;
-let weeks = [], plantedYear = new Set(), plantedAll = new Set(); // weekly mean peat wt; tiles planted
+let weeks = []; // weekly mean peat wt
 
 function meanPeatWt(wd) {
   let s = 0, n = 0;
   for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT) { s += wd.wt[i]; n++; }
   return n ? s / n : 0;
 }
-const alive = (g, set) => [...set].filter(i => g.seedlings.has(i) || g.world.cover[i] >= 1 || g.jobs.some(j => j.i === i && j.id === 'plant')).length;
 
 function tip(msg, x, y) {
   const t = $('tip'); t.textContent = msg; t.hidden = false;
@@ -64,13 +63,12 @@ function bind() {
     const r = applyAction(G, armed, i);
     if (!r.ok) { blip(160, 0.08, 'square'); return tip(REASON[r.reason], e.clientX, e.clientY); }
     blip(1100, 0.05);
-    if (armed === 'plant') { plantedYear.add(i); plantedAll.add(i); }
   });
 }
 
 // Per level. handlers: { canvas, map, isLevel(), setSpeed(s; 0 = pause), toggleData() }
 export function initUI(game, handlers) {
-  G = game; H = handlers; weeks = []; plantedYear = new Set(); plantedAll = new Set();
+  G = game; H = handlers; weeks = [];
   if (!bound) bind();
   armed = null; arm(null); // clears the selection
 }
@@ -118,15 +116,15 @@ export function showYearReport(game, year, elNino) {
   $('rpTitle').textContent = REPORT.title(year + 1);
   $('rpChartLabel').textContent = REPORT.chart;
   chart($('rpChart'), weeks);
+  const sv = seedlingSurvival(game, game.tick - TICKS_PER_YEAR); // seeded this year
   lines($('rpBody'), [
     REPORT.burnt((game.burnt.size / game.world.n * 100).toFixed(0)),
-    REPORT.seedlings(alive(game, plantedYear), plantedYear.size),
+    REPORT.seedlings(sv.alive, sv.planted),
     REPORT.goodwill(Math.round(game.goodwill)),
     REPORT.grant(game.level.grant, game.funds),
   ]);
   $('rpElNino').textContent = REPORT.elNino; $('rpElNino').hidden = !elNino;
   $('rpCont').textContent = REPORT.cont;
-  plantedYear = new Set();
 }
 
 function thumb(cv, w, h, wt) {
@@ -137,7 +135,7 @@ function thumb(cv, w, h, wt) {
 }
 
 export function showDebrief(game) {
-  const r = evaluate(game), loss = r.loss, p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
+  const r = evaluate(game), sv = seedlingSurvival(game), loss = r.loss, p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
   $('dbTitle').textContent = DEBRIEF.title;
   const sb = game.level.sandbox; // sandbox: figures only, no pass verdict
   $('dbStars').textContent = sb ? '' : DEBRIEF.stars(r.stars);
@@ -148,7 +146,7 @@ export function showDebrief(game) {
   lines($('dbGoals'), loss ? [DEBRIEF.loss[loss]] : sb ? DEBRIEF.figures(r) : DEBRIEF.goals(r, p)); // no ✓ lines on a loss
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
-  lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(alive(game, plantedAll), plantedAll.size)]);
+  lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(sv.alive, sv.planted)]);
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
   $('dbMenu').textContent = DEBRIEF.menu;

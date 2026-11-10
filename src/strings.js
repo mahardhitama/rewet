@@ -59,6 +59,7 @@ export const REASON = {
   crew: 'No free crew.',
   invalid: 'Not possible on this tile.',
   mounded: 'This tile already has a mound.',
+  nothingToPlant: 'Nothing left to plant here.',
 };
 
 export const REPORT = {
