@@ -129,3 +129,13 @@ export const HINTS = {
 };
 
 export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
+
+export const JOURNAL = {
+  title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next',
+  count: (x, n) => `Wildlife found ${x} of ${n}`,
+  pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
+  contentsConcepts: 'Contents: ideas', contentsWildlife: 'Contents: wildlife',
+  notFound: 'Not found yet', unknown: '?',
+  status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
+  statusLabel: 'IUCN status', sources: 'Sources', hint: 'Left and Right arrows turn pages. Esc closes.',
+};

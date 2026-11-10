@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SAVE, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, hasProgress, MAX_LEVEL, SAVE_KEY } from '../src/save.js';
+import { DEFAULT_SAVE, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, MAX_LEVEL, SAVE_KEY } from '../src/save.js';
 
 const mem = (init = {}) => {
   const d = { ...init };
@@ -100,4 +100,24 @@ test('a save with the sandbox open keeps it', () => {
 test('hasProgress is false for a new save and true with one star', () => {
   assert.equal(hasProgress(DEFAULT_SAVE), false);
   assert.equal(hasProgress(recordResult(DEFAULT_SAVE, 1, 1)), true);
+});
+
+test('a new save has no wildlife found', () => {
+  assert.deepEqual(DEFAULT_SAVE.found, []);
+  assert.deepEqual(loadSave(mem()).found, []);
+});
+
+test('recordFind adds a new id once and keeps the input', () => {
+  const a = recordFind(DEFAULT_SAVE, 'otter');
+  assert.equal(a.isNew, true); assert.deepEqual(a.save.found, ['otter']);
+  const b = recordFind(a.save, 'otter');
+  assert.equal(b.isNew, false); assert.deepEqual(b.save.found, ['otter']);
+  assert.deepEqual(DEFAULT_SAVE.found, []);
+  assert.equal(recordFind(DEFAULT_SAVE, 'dodo').isNew, false); // unknown id
+});
+
+test('an unknown id or a duplicate in a stored save is dropped on load', () => {
+  const raw = { ...DEFAULT_SAVE, found: ['otter', 'dodo', 'otter', 7, 'gibbon'] };
+  assert.deepEqual(loadSave(mem({ [SAVE_KEY]: JSON.stringify(raw) })).found, ['otter', 'gibbon']);
+  assert.deepEqual(loadSave(mem({ [SAVE_KEY]: JSON.stringify({ ...DEFAULT_SAVE, found: 'otter' }) })).found, []);
 });

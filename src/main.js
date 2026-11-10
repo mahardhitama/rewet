@@ -6,8 +6,9 @@ import { resolveLevel } from './sim/mapgen.js';
 import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
-import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM } from './strings.js';
+import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
+import { openJournal } from './journalView.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
@@ -176,6 +177,15 @@ function boot() {
   document.querySelectorAll('.btn').forEach(b => { b.addEventListener('mouseenter', () => !b.disabled && blip(660, 0.03)); b.addEventListener('click', () => blip(880, 0.06)); });
   $('bNew').onclick = toLevelSelect;
   $('bCont').onclick = () => hasProgress(save) ? toLevelSelect() : toast(TOAST.noSave);
+  // The journal pauses a level. On close, the speed and the paused state come back. The intro hides both buttons, so no click can reach it.
+  $('bJrnMenu').onclick = () => openJournal({ found: save.found });
+  $('bJournal').textContent = JOURNAL.open;
+  $('bJournal').onclick = e => {
+    e.currentTarget.blur();
+    const was = { paused, speed };
+    paused = true;
+    openJournal({ found: save.found, onClose: () => { ({ paused, speed } = was); } });
+  };
   $('bSet').onclick = () => { $('snd').checked = !isMuted(); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
   $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
