@@ -9,6 +9,7 @@ import { createMapView } from './render/view.js';
 import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
+import { withIcon } from './icons.js';
 import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
@@ -31,6 +32,7 @@ function boot() {
   const storage = browserStorage;
   let save = loadSave(storage);
   setMuted(save.settings.mute);
+  const setT = (el, text) => { el.querySelector('.t').textContent = text; };
   const persist = next => { save = next; writeSave(storage, save); };
 
   const INTRO_END = 10.5;
@@ -66,13 +68,13 @@ function boot() {
       const b = document.createElement('button'), s = document.createElement('small');
       b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`;
       s.textContent = `${SELECT.best(save.stars[L.id] || 0)} · ${SELECT.years(L.years)} · ${L.teaches}`;
-      b.append(s);
+      b.append(s); withIcon(b, 'level');
       b.onclick = () => { blip(880, 0.06); startLevel(L); };
       return b;
     });
     if (save.unlocked > MAX_LEVEL) {
       const b = document.createElement('button'), s = document.createElement('small');
-      b.className = 'btn'; b.textContent = SELECT.sandbox; s.textContent = SELECT.sandboxNote; b.append(s);
+      b.className = 'btn'; b.textContent = SELECT.sandbox; s.textContent = SELECT.sandboxNote; b.append(s); withIcon(b, 'sandbox');
       b.onclick = () => { blip(880, 0.06); startSandbox(); };
       items.push(b);
     }
@@ -85,7 +87,7 @@ function boot() {
     $('lsUpList').replaceChildren(...Object.entries(UPGRADE_COST).map(([id, cost]) => {
       const b = document.createElement('button'), s = document.createElement('small'), own = save.upgrades[id];
       b.className = 'btn'; b.textContent = UPGRADES[id][0]; b.dataset.id = id;
-      s.textContent = `${own ? SELECT.owned : SELECT.buy(cost)} · ${UPGRADES[id][1]}`; b.append(s);
+      s.textContent = `${own ? SELECT.owned : SELECT.buy(cost)} · ${UPGRADES[id][1]}`; b.append(s); withIcon(b, 'upgrade');
       b.disabled = !!own || availableStars(save) < cost;
       b.onclick = () => { const r = buyUpgrade(save, id); if (r.error) return; blip(1100, 0.08); persist(r); renderUpgrades(); };
       return b;
@@ -174,6 +176,8 @@ function boot() {
 
   // ---- menu actions
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
+  document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('.btn').forEach(b => { b.addEventListener('mouseenter', () => !b.disabled && blip(660, 0.03)); b.addEventListener('click', () => blip(880, 0.06)); });
   $('bNew').onclick = toLevelSelect;
   $('bCont').onclick = () => hasProgress(save) ? toLevelSelect() : toast(TOAST.noSave);
@@ -193,7 +197,7 @@ function boot() {
     if (!r.isNew) return;
     persist(r.save); blip(1320, 0.08);
     const t = $('findToast'); $('findMsg').textContent = JOURNAL.found(SPECIES.find(s => s.id === id).name);
-    $('findOpen').textContent = JOURNAL.openEntry;
+    setT($('findOpen'), JOURNAL.openEntry);
     $('findOpen').onclick = () => { t.hidden = true; openBook(id); };
     t.style.bottom = `${$('bar').offsetHeight + 8}px`; t.hidden = false;
     clearTimeout(findTimer); findTimer = setTimeout(() => { t.hidden = true; }, 8000);
@@ -203,11 +207,11 @@ function boot() {
   $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
   $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; $('menuFound').textContent = JOURNAL.count(0, SPECIES.length); toast(TOAST.saveDeleted); }; // keeps the mute setting
-  $('lsTitle').textContent = SELECT.title; $('lsBack').textContent = SELECT.back;
+  $('lsTitle').textContent = SELECT.title; setT($('lsBack'), SELECT.back);
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };
   $('dbMenu').onclick = toMenu;
-  $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; $('qYes').textContent = QUIT.yes; $('qNo').textContent = QUIT.no;
+  $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; setT($('qYes'), QUIT.yes); setT($('qNo'), QUIT.no);
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
   $('zoom').setAttribute('aria-label', ZOOM.group);

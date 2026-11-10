@@ -60,7 +60,7 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
   }
   const turn = d => { idx = Math.min(pages.length - 1, Math.max(0, idx + d * (mq.matches ? 1 : 2))); render(); };
 
-  $('jTitle').textContent = T.title; $('jClose').textContent = T.close; $('jPrev').textContent = T.prev; $('jNext').textContent = T.next;
+  $('jTitle').textContent = T.title; for (const [id, text] of [['jClose', T.close], ['jPrev', T.prev], ['jNext', T.next]]) $(id).querySelector('.t').textContent = text;
   $('jCount').textContent = T.count(SPECIES.filter(s => has.has(s.id)).length, SPECIES.length); $('jHint').textContent = T.hint;
   $('jClose').onclick = () => dlg.close();
   $('jPrev').onclick = () => { focusId = 'jNext'; turn(-1); };

@@ -8,88 +8,94 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#efe6cf;--dim:#a99f86;--accent:#e8b04a;--panel:#14120ecc;--line:#3a3328}
+:root{--ink:#efe6cf;--dim:#a99f86;--accent:#e8b04a;--panel:#14120ecc;--line:#3a3328;--fs-label:14px;--fs-body:22px;--fs-head:24px;--fs-title:clamp(64px,14vw,144px)}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:#0e0d0b;color:var(--ink);font-family:VT323,monospace;font-size:22px;overflow:hidden}
+html,body{margin:0;height:100%;background:#0e0d0b;color:var(--ink);font-family:VT323,monospace;font-size:var(--fs-body);overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;touch-action:none}
 #intro{position:fixed;left:0;right:0;bottom:12vh;text-align:center;padding:0 16px;pointer-events:none}
-#line{font-size:clamp(22px,3.4vw,34px);text-shadow:0 2px 0 #000;transition:opacity .6s}
-#skip{position:fixed;right:16px;bottom:16px;font:inherit;font-size:18px;color:var(--dim);background:none;border:1px solid var(--line);padding:4px 10px;min-height:44px;min-width:44px;cursor:pointer}
-#menu{position:fixed;left:max(16px,6vw);top:50%;transform:translateY(-50%);width:min(340px,calc(100% - 32px));opacity:0;visibility:hidden;pointer-events:none;transition:opacity .8s,visibility .8s}
+#line{font-size:var(--fs-head);text-shadow:0 2px 0 #000;transition:opacity .6s}
+#skip,#findOpen,.jb,.btn{display:grid;grid-template-columns:24px 1fr 24px;align-items:center;gap:8px;text-align:center}
+#skip{position:fixed;right:16px;bottom:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--dim);background:none;border:1px solid var(--line);padding:4px 8px;min-height:44px;cursor:pointer}
+#skip:hover,#skip:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+#menu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;min-width:min(360px,calc(100% - 32px));max-width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .8s,visibility .8s}
 #menu.on{opacity:1;visibility:visible;pointer-events:auto}
-h1{font-family:Silkscreen,monospace;font-weight:400;font-size:clamp(44px,8vw,72px);margin:0;line-height:1;letter-spacing:2px;color:var(--ink);text-shadow:0 4px 0 #2d4a24}
-.sub{display:inline-block;font-size:18px;color:var(--dim);background:var(--panel);padding:2px 8px;margin:8px 0 24px}
-.btn{display:block;width:100%;text-align:left;font-family:Silkscreen,monospace;font-size:18px;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:12px 14px;margin-bottom:8px;cursor:pointer}
+h1{display:flex;justify-content:center;white-space:nowrap;font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-title);margin:0;line-height:1;letter-spacing:2px;color:var(--ink);text-shadow:0 4px 0 #2d4a24}
+.sub{display:inline-block;font-size:var(--fs-body);color:var(--dim);background:var(--panel);padding:2px 8px;margin:8px 0 24px}
+.btn{width:100%;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:8px 12px;min-height:44px;margin-bottom:8px;cursor:pointer}
+.t{min-width:0}
+.tree{visibility:hidden}
+.tree svg,.pic svg{display:block}
+:is(.btn,.jb,#findOpen,#skip):hover:not(:disabled) .tree,:is(.btn,.jb,#findOpen,#skip):focus-visible .tree{visibility:visible}
 .btn:hover:not(:disabled),.btn:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
-.btn:hover:not(:disabled)::before,.btn:focus-visible::before{content:"▶ "}
 .btn:disabled{opacity:.4;cursor:default}
-dialog{background:#14120e;color:var(--ink);border:2px solid var(--line);padding:20px;width:min(380px,calc(100% - 32px));font:inherit}
+dialog{position:fixed;inset:auto;left:50%;top:50%;margin:0;transform:translate(-50%,-50%);max-height:calc(100% - 32px);overflow:auto;background:#14120e;color:var(--ink);border:2px solid var(--line);padding:20px;width:min(380px,calc(100% - 32px));font:inherit}
 dialog::backdrop{background:#0008}
-dialog h2{font-family:Silkscreen,monospace;font-size:20px;margin:0 0 14px}
+dialog h2{font-family:Silkscreen,monospace;font-size:var(--fs-head);margin:0 0 14px}
 dialog label{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
 dialog p{margin:6px 0;color:var(--dim)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14120e;border:2px solid var(--accent);padding:8px 14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px)}
 #toast.on{opacity:1}
 #findToast{position:fixed;left:50%;width:max-content;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#14120e;border:2px solid var(--accent);padding:4px 4px 4px 14px;max-width:calc(100% - 16px);pointer-events:none}
 #findMsg{min-width:0}
-#findOpen{pointer-events:auto;flex:none;font-family:Silkscreen,monospace;font-size:14px;color:var(--ink);background:var(--panel);border:2px solid var(--line);min-width:44px;min-height:44px;padding:4px 12px;cursor:pointer}
+#findOpen{pointer-events:auto;flex:none;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);min-width:44px;min-height:44px;padding:4px 12px;cursor:pointer}
 #findOpen:hover,#findOpen:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
-#bJrnMenu small{float:right;font-family:VT323,monospace;font-size:20px;color:var(--dim)}
-#levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:max(16px,6vw);top:50%;transform:translateY(-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
-#levelSelect h2,#report h2,#debrief h2{font-family:Silkscreen,monospace;font-weight:400;font-size:24px;margin:0 0 14px}
-#levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:18px;margin:14px 0 6px}
-#levelSelect #lsStars{color:var(--accent);font-family:VT323,monospace;font-size:22px;margin-bottom:6px}
-#levelSelect .btn small{display:block;font-family:VT323,monospace;font-size:20px;color:var(--dim);margin-top:2px}
+#menu .btn{display:grid;max-width:360px;margin-inline:auto}
+#bJrnMenu small{display:block;margin-top:2px;font-family:VT323,monospace;font-size:var(--fs-body);color:var(--dim)}
+#levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
+#levelSelect h2,#report h2,#debrief h2{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-head);margin:0 0 14px}
+#levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:14px 0 6px}
+#levelSelect #lsStars{color:var(--accent);font-family:VT323,monospace;font-size:var(--fs-body);margin-bottom:6px}
+#levelSelect .btn small{display:block;font-family:VT323,monospace;font-size:var(--fs-body);color:var(--dim);margin-top:2px}
 #report p,#debrief p{margin:6px 0}
 #hud{position:fixed;left:12px;top:12px;max-width:calc(100% - 24px);background:var(--panel);border:2px solid var(--line);padding:6px 10px}
-#hud small{display:block;color:var(--dim);font-size:18px}
+#hud small{display:block;color:var(--dim);font-size:var(--fs-body)}
 #hudStats{display:flex;flex-wrap:wrap;column-gap:.6em}#hudStats span{white-space:nowrap}
-.hb{font:inherit;font-size:18px;color:var(--ink);background:none;border:1px solid var(--line);padding:2px 8px;margin:4px 4px 0 0;min-width:44px;min-height:44px;cursor:pointer}
+.hb{font:inherit;font-size:var(--fs-body);color:var(--ink);background:none;border:1px solid var(--line);padding:2px 8px;margin:4px 4px 0 0;min-width:44px;min-height:44px;cursor:pointer}
 .hb:hover{border-color:var(--accent);color:var(--accent)}
 .hb:focus-visible,#zoom button:focus-visible{outline:2px solid var(--dim);outline-offset:1px} /* an outline, so the ring also shows on a selected button */
 .hb.on{border-color:var(--accent);color:var(--accent)}
-#legend{position:relative;width:180px;height:28px;margin-top:6px;font-size:16px;color:var(--dim)}
+#legend{position:relative;width:180px;height:28px;margin-top:6px;font-size:var(--fs-body);color:var(--dim)}
 #legendBar{position:relative;height:8px;border:1px solid var(--line)}
 #legendMark{position:absolute;top:-4px;width:2px;height:14px;background:#5ff0ff}
 #legend i{position:absolute;top:10px;font-style:normal;white-space:nowrap}
 #legend i:nth-of-type(1){left:0}#legend i:nth-of-type(2){transform:translateX(-50%);color:#5ff0ff}#legend i:nth-of-type(3){right:0}
 #bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:2px solid var(--line);padding:4px 8px 6px}
 #barTop{display:flex;align-items:center;gap:8px}
-#barHint{flex:1;min-width:0;font-size:18px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#barHint{flex:1;min-width:0;font-size:var(--fs-body);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #barTabs{display:none}
 #barRow{display:flex}
 #barGroups{flex:1;min-width:0;display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scroll-snap-type:x proximity}
 .grp{display:flex;flex-direction:column;gap:2px;flex:none;scroll-snap-align:start}
-.grp>span{font-family:Silkscreen,monospace;font-size:10px;line-height:12px;color:var(--accent)}
+.grp>span{font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:12px;color:var(--accent)}
 .grp>div{display:flex;gap:4px}
 #barMore{position:relative;flex:none;width:20px;margin-bottom:2px;border-left:2px solid var(--line)} /* beside the scroll area, so it covers no button */
 #barMore::after{content:"";position:absolute;left:5px;top:50%;margin-top:-7px;border-left:8px solid var(--accent);border-block:7px solid transparent}
-#barTabs button,.grp button{font-family:Silkscreen,monospace;font-size:12px;color:var(--ink);background:#14120e;border:2px solid var(--line);padding:4px 6px;min-width:76px;min-height:44px;cursor:pointer;text-align:left}
-.grp button small{display:block;font-family:VT323,monospace;font-size:17px;color:var(--dim)}
+#barTabs button,.grp button{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:#14120e;border:2px solid var(--line);padding:4px 6px;min-width:76px;min-height:44px;cursor:pointer;text-align:left}
+.grp button small{display:block;font-family:VT323,monospace;font-size:var(--fs-body);color:var(--dim)}
 #barTabs button:hover,.grp button:hover{border-color:var(--dim)}
 #barTabs button:focus-visible,.grp button:focus-visible{outline:2px solid var(--dim);outline-offset:1px} /* an outline, so the ring also shows on the selected button */
 .grp button.on{border-color:var(--accent);color:var(--accent)}
 .grp button.poor small{color:#c0583a}
-#barTabs button{flex:auto;min-width:44px;padding:4px;font-size:10px;text-align:center}
+#barTabs button{flex:auto;min-width:44px;padding:4px;text-align:center}
 #barTabs button.on{border-color:var(--accent);color:var(--accent)}
-@media (max-width:359px){#barTabs button{font-size:8px;padding:4px 2px}} /* the 4 tab names fit at 320 px */
+@media (max-width:359px){#barTabs button{padding:4px 2px}} /* the 4 tab names fit at 320 px */
 #zoom{flex:none;position:fixed;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
-#zoom button{width:44px;height:44px;font-family:Silkscreen,monospace;font-size:14px;white-space:nowrap;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:0;cursor:pointer}
+#zoom button{width:44px;height:44px;font-family:Silkscreen,monospace;font-size:var(--fs-label);white-space:nowrap;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:0;cursor:pointer}
 #zoom button:hover{border-color:var(--accent);color:var(--accent)}
-#tip{position:fixed;z-index:5;background:#14120e;border:2px solid #c0583a;padding:2px 8px;font-size:18px;pointer-events:none}
+#tip{position:fixed;z-index:5;background:#14120e;border:2px solid #c0583a;padding:2px 8px;font-size:var(--fs-body);pointer-events:none}
 #report canvas,#debrief canvas{display:block;width:100%;image-rendering:pixelated;border:1px solid var(--line);margin:4px 0}
 #rpElNino{color:var(--accent)}
-#dbStars{font-size:34px;color:var(--accent);letter-spacing:4px}
+#dbStars{font-size:var(--fs-head);color:var(--accent);letter-spacing:4px}
 #dbThumbs{display:flex;gap:12px}#dbThumbs figure{margin:0;flex:1;text-align:center;color:var(--dim)}
 #dbThumbs canvas{aspect-ratio:1;max-width:140px;margin:4px auto}
-#debrief h3{font-family:Silkscreen,monospace;font-weight:400;font-size:16px;margin:12px 0 4px;color:var(--dim)}
+#debrief h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:12px 0 4px;color:var(--dim)}
 #dbHint{color:var(--accent)}
 /* journal: a book. 2 pages side by side, or 1 page on a phone (journalView.js adds .one) */
 #dJournal{width:min(920px,calc(100% - 24px));max-height:calc(100% - 24px);padding:12px}
 #jHead{display:flex;align-items:center;gap:4px 12px;margin-bottom:10px}
 #jHead h2{margin:0;flex:none}
-#jCount{flex:1;color:var(--accent);font-size:20px}
-.jb{font-family:Silkscreen,monospace;font-size:14px;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:4px 12px;min-width:44px;min-height:44px;cursor:pointer}
+#jCount{flex:1;color:var(--accent);font-size:var(--fs-body)}
+.jb{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:4px 12px;min-width:44px;min-height:44px;cursor:pointer}
 .jb:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .jb:focus-visible,.jc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .jb:disabled{opacity:.4;cursor:default}
@@ -97,37 +103,37 @@ dialog p{margin:6px 0;color:var(--dim)}
 #jBook.one{grid-template-columns:1fr}
 .jPage{display:flex;flex-direction:column;overflow:auto;padding:14px 16px}
 #jBook:not(.one) .jPage+.jPage{border-left:2px solid var(--line)}
-.jPage h3{font-family:Silkscreen,monospace;font-weight:400;font-size:18px;margin:0 0 10px;color:var(--accent)}
+.jPage h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:0 0 10px;color:var(--accent)}
 .jPage p{margin:0 0 8px;color:var(--ink)}
 .jPage em{color:var(--dim)}
-.jPage .jSrc{margin-top:auto;padding-top:10px;font-size:16px;color:var(--dim)}
-.jc{display:block;width:100%;min-height:44px;text-align:left;font:inherit;font-size:20px;color:var(--ink);background:none;border:0;border-bottom:1px solid var(--line);padding:4px 6px;cursor:pointer}
+.jPage .jSrc{margin-top:auto;padding-top:10px;font-size:var(--fs-body);color:var(--dim)}
+.jc{display:block;width:100%;min-height:44px;text-align:left;font:inherit;font-size:var(--fs-body);color:var(--ink);background:none;border:0;border-bottom:1px solid var(--line);padding:4px 6px;cursor:pointer}
 .jc:hover{color:var(--accent)}
-.jSprite{width:100px;height:100px;border:2px solid var(--line);background:#14120e;display:flex;align-items:center;justify-content:center;margin:0 0 10px;font-family:Silkscreen,monospace;font-size:40px;color:var(--dim)}
+.jSprite{width:100px;height:100px;border:2px solid var(--line);background:#14120e;display:flex;align-items:center;justify-content:center;margin:0 0 10px;font-family:Silkscreen,monospace;font-size:var(--fs-head);color:var(--dim)}
 .jSprite canvas{width:96px;height:96px;image-rendering:pixelated}
-.jSt{display:inline-block;border:1px solid var(--accent);color:var(--accent);padding:0 6px;font-size:18px}
+.jSt{display:inline-block;border:1px solid var(--accent);color:var(--accent);padding:0 6px;font-size:var(--fs-body)}
 #jNav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
 #jPos{color:var(--dim);text-align:center}
-#jHint{display:block;margin-top:6px;color:var(--dim);font-size:16px}
+#jHint{display:block;margin-top:6px;color:var(--dim);font-size:var(--fs-body)}
 @media (pointer:coarse){#jHint{display:none}}
-@media (max-width:600px){#jHead{flex-wrap:wrap}#jHead h2{flex:1}#jCount{order:3;flex-basis:100%}}
+@media (max-width:600px){.jb{grid-template-columns:1fr 24px;gap:4px;padding:4px 8px}.jb .tree{display:none}#jPos{min-width:0}#jHead{flex-wrap:wrap}#jHead h2{flex:1}#jCount{order:3;flex-basis:100%}}
 [hidden]{display:none!important}
 @media (pointer:coarse){#hudKeys{display:none!important}}
 /* short landscape: the HUD is one row (text, buttons, legend) so the map band stays tall. It wraps to 2 rows on a narrow window. max-width keeps it clear of the zoom column. */
-@media (max-height:500px){#hud{left:8px;top:8px;max-width:calc(100% - 80px);padding:4px 8px;font-size:18px;display:flex;align-items:center;gap:4px 6px;flex-wrap:wrap}#hudText{flex:1 1 280px;min-width:0;display:flex;flex-wrap:wrap;column-gap:.6em}#hudStats{display:contents}.hb{margin:0}#legend{flex:none;margin:0}#hudKeys{display:none!important}}
+@media (max-height:500px){#hud{left:8px;top:8px;max-width:calc(100% - 80px);padding:4px 8px;font-size:var(--fs-body);display:flex;align-items:center;gap:4px 6px;flex-wrap:wrap}#hudText{flex:1 1 280px;min-width:0;display:flex;flex-wrap:wrap;column-gap:.6em}#hudStats{display:contents}.hb{margin:0}#legend{flex:none;margin:0}#hudKeys{display:none!important}}
 /* very short window: smaller HUD text, and the zoom buttons are a row, because a 144 px column does not fit between the HUD and the bar */
-@media (max-height:360px){#hud{font-size:16px;max-width:calc(100% - 16px)}#barHint{font-size:16px}#zoom{flex-direction:row;gap:4px}}
+@media (max-height:360px){#hud{font-size:var(--fs-body);max-width:calc(100% - 16px)}#barHint{font-size:var(--fs-body)}#zoom{flex-direction:row;gap:4px}}
 /* portrait phone (short landscape is excluded, its rules above win): the zoom buttons move into the action bar, the hint gets 3 lines, and tabs show one action group */
-@media (max-width:600px) and (min-height:501px){#zoom{position:static;transform:none;flex-direction:row;gap:4px}#barHint{font-size:16px;line-height:15px;height:45px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
-#barTabs{display:flex;gap:4px;margin:4px 0}.grp:not(.cur){display:none}.grp>span{display:none}}
-@media (max-width:600px){#menu{top:auto;bottom:16px;transform:none}.sub{margin-bottom:16px}#hud{left:8px;top:8px;padding:4px 8px;font-size:18px}#hudKeys{display:none!important}#report,#debrief{top:auto;bottom:8px;transform:none;max-height:calc(100% - 16px)}#report canvas,#debrief canvas:not(#dbThumbs canvas){height:80px}}
+@media (max-width:600px) and (min-height:501px){#zoom{position:static;transform:none;flex-direction:row;gap:4px}#barHint{font-size:var(--fs-body);line-height:15px;height:45px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+#barTabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:4px 0}.grp:not(.cur){display:none}.grp>span{display:none}}
+@media (max-width:600px){:root{--fs-body:20px}.sub{margin-bottom:16px}#hud{left:8px;top:8px;padding:4px 8px;font-size:var(--fs-body)}#hudKeys{display:none!important}#report canvas,#debrief canvas:not(#dbThumbs canvas){height:80px}}
 </style>
 </head>
 <body>
 <canvas id="bg" aria-label="Pixel art peat swamp recovering from drought and fire"></canvas>
 
 <div id="intro"><div id="line" aria-live="polite"></div></div>
-<button id="skip">Skip ▸</button>
+<button id="skip">Skip</button>
 
 <nav id="menu" aria-label="Main menu">
   <h1>REWET</h1>

@@ -152,7 +152,7 @@ export function showYearReport(game, year, elNino) {
     REPORT.species(seenNames(game)),
   ]);
   $('rpElNino').textContent = REPORT.elNino; $('rpElNino').hidden = !elNino;
-  $('rpCont').textContent = REPORT.cont;
+  $('rpCont').querySelector('.t').textContent = REPORT.cont;
 }
 
 function thumb(cv, w, h, wt) {
@@ -177,5 +177,5 @@ export function showDebrief(game) {
   lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(sv.alive, sv.planted), REPORT.species(seenNames(game))]);
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
-  $('dbMenu').textContent = DEBRIEF.menu;
+  $('dbMenu').querySelector('.t').textContent = DEBRIEF.menu;
 }
