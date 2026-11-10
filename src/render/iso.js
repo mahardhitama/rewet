@@ -2,6 +2,7 @@
 import { KIND, BLOCK, WET_WT, VEG, vegOf } from '../sim/world.js';
 import { TW, TH, tileToScreen } from './isoMath.js';
 import { TICKS_PER_YEAR } from '../sim/season.js';
+import { PS, WALK_FRAME_MS, WORK_FRAME_MS, crewPlan, crewSeen, crewSweep, crewPhase, crewEntries, guardPose, personSprite, resetCrews, crewHash } from './crew.js';
 
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -551,7 +552,7 @@ export function animalSprite(id, silhouette = false) {
 const SLIDE_MS = 600;
 const slides = new Map(), drawList = [], pa = [0, 0], pb = [0, 0];
 let slideFrame = 0;
-export const resetSlides = () => slides.clear();
+export const resetSlides = () => { slides.clear(); resetCrews(); };
 export const slideCount = () => slides.size;
 const clamp01 = v => Math.max(0, Math.min(1, v));
 // Pure. Linear blend of two points. t is 0 to 1. out is optional, to avoid an allocation.
@@ -570,6 +571,27 @@ export function slideState(a, tick, now, w, h, frame, map = slides) {
   s.f = frame;
   if (a.leaving && s.leaveAt < 0 && Math.min(a.i % w, (a.i / w) | 0, w - 1 - a.i % w, h - 1 - ((a.i / w) | 0)) === 0) s.leaveAt = now; // the sim removes it at the next weekly step
   return s;
+}
+// Adds a draw entry for each crew person (crew.js) to drawList, from index n. Returns the new count.
+const phase = { t: 0, alpha: 0, walking: false };
+function addCrews(game, now, w, h, kind, pos, n) {
+  for (const j of game.jobs) { const key = `${j.id}:${j.i}:${j.doneAt}`; crewSeen(key, now, slideFrame, () => crewPlan(j.id, j.i, key, w, h, kind, j.tiles)); }
+  for (const i of game.fireGroups ?? []) { const key = 'guard:' + i; crewSeen(key, now, slideFrame, () => crewPlan('guard', i, key, w, h, kind)); }
+  crewSweep(now, slideFrame);
+  for (const [key, s] of crewEntries()) {
+    const ph = crewPhase(s, now, phase), walking = ph.walking && !REDUCED, u = REDUCED ? 0 : 1 - ph.t;
+    const away = s.leaveAt >= 0 && now >= s.leaveAt, guard = key.startsWith('guard:');
+    s.plan.forEach((m, k) => {
+      const tx = m.tile % w, ty = (m.tile / w) | 0, fx = m.from[0] - tx, fy = m.from[1] - ty, d = drawList[n++] ??= { x: 0, y: 0, al: 1, a: null, xy: [0, 0] };
+      d.x = pos[2 * m.tile] + m.ox + Math.round((fx - fy) * HW * u);
+      d.y = pos[2 * m.tile + 1] + HH + m.oy + Math.round((fx + fy) * HH * u);
+      const pose = walking ? 'walk' : guard ? guardPose(m.tile, now) : m.pose;
+      const flip = walking ? (fx - fy > 0) !== away : m.flip; // walk in: face the spot; walk away: face the start point
+      const frame = REDUCED ? 0 : Math.floor(now / (walking ? WALK_FRAME_MS : WORK_FRAME_MS) + crewHash(m.tile + k) * 2) % 2;
+      d.spr = personSprite(pose, frame, m.pal, flip); d.al = ph.alpha; d.a = null;
+    });
+  }
+  return n;
 }
 // Pure. Hit radius in buffer px: 22 CSS px (half of a 44 px target), but at least the reach of the sprite from its centre.
 export const hitRadius = scale => Math.max(22 / scale, AS / 2 + 1);
@@ -785,12 +807,20 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       const d = drawList[n] ??= { x: 0, y: 0, al: 1, a: null, xy: [0, 0] };
       pa[0] = pos[2 * from]; pa[1] = pos[2 * from + 1]; pb[0] = pos[2 * a.i]; pb[1] = pos[2 * a.i + 1];
       slidePos(pa, pb, clamp01((now - s.seenAt) / SLIDE_MS), d.xy);
-      d.x = Math.round(d.xy[0]); d.y = Math.round(d.xy[1]) + HH + 3; d.a = a; d.al = fadeAlpha(now - s.shownAt, s.leaveAt < 0 ? -1 : now - s.leaveAt);
+      d.x = Math.round(d.xy[0]); d.y = Math.round(d.xy[1]) + HH + 3; d.a = a; d.spr = null; d.al = fadeAlpha(now - s.shownAt, s.leaveAt < 0 ? -1 : now - s.leaveAt);
       n++;
     }
     if (slides.size > n) for (const [id, s] of slides) if (s.f !== slideFrame) slides.delete(id);
+    n = addCrews(game, now, w, h, kind, pos, n);
     drawList.length = n; drawList.sort((p, q) => p.y - q.y);
     for (const d of drawList) {
+      if (d.spr) { // a crew person: not tappable
+        if (d.al <= 0) continue;
+        if (d.al < 1) ctx.globalAlpha = d.al;
+        ctx.drawImage(d.spr, d.x - PS / 2, d.y - PS);
+        ctx.globalAlpha = 1;
+        continue;
+      }
       const a = d.a, up = Math.sin(now / 700 + hash(a.id) * 6.28) > .7 ? 1 : 0; // 1 px idle step, slow
       if (d.al < 1) ctx.globalAlpha = d.al;
       ctx.drawImage(animalSprite(a.species), d.x - AS / 2, d.y - AS - up);

@@ -15,6 +15,10 @@
 - A canal that joins on a corner crosses the two side tiles. Each side tile draws a patch with the channel pixels.
 - `drawWorld()` draws one cached sprite per tile, then the overlays (patch, pond, block, vegetation), then small markers.
 - Draw with `fillRect` only. No image files.
+- Work crews (`src/render/crew.js`): 1 to 3 people at each job tile, and 1 guard at each fire group post. They are display only.
+  - `FRAMES` holds the poses as row strings, 2 frames each, with the body on columns 4 to 8. `CREW` gives the crew size and the poses for each action.
+  - `crewPlan()` picks the size, the poses, the clothes and the start point from a hash of the job key. People walk in from the nearest village tile.
+  - A crew walks in for 800 ms and fades in. It works at least 600 ms. It walks away for 800 ms and fades out. `drawWorld()` adds the people to the animal pass, so the depth sort includes them.
 
 ## Palette
 
