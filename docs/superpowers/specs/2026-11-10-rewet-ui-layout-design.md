@@ -122,6 +122,8 @@ Success criteria:
 
 - The intro builds a world with the map generator. It uses a sandbox-type map with a new random seed each time the intro starts.
 - The level renderer (`src/render/iso.js` `drawWorld`, through `src/render/view.js`) draws it at the fit zoom. The canvas uses the window size, as on the level screen. The map is not cropped.
+- Camera (user change, 2026-11-10): the intro starts on the whole map. Near the end it zooms in to 2.5 times the fit scale. In the menu it pans once, slowly, to the left or the right edge (random each time), and stops. With `prefers-reduced-motion`, the camera stays on the whole map.
+- The intro map is 15 by 15 tiles (user change, 2026-11-10).
 - `src/render/introStory.js` is render-only and has no DOM access. It exports:
   - `buildStory(seed)` returns `{ game, start, end }`. `game` is the object that `drawWorld` reads. `start` is the degraded state: a dry water table, low cover, fire on some tiles. `end` is the restored state: a wet water table, high cover, no fire.
   - `storyAt(story, h)` writes the state at story time `h` (0 to 1) into `story.game`. Each tile has its own start time from `hash(i)`, so the change spreads over the map.

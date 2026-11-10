@@ -21,14 +21,16 @@ export function createMapView(cv) {
   if (hud && bar && zoomEl) { const ro = new ResizeObserver(measure); [hud, bar, zoomEl].forEach(el => ro.observe(el)); addEventListener('resize', measure); }
   const toBuffer = (cx, cy) => clientToBuffer(cx, cy, cv.getBoundingClientRect(), cv.width, cv.height);
   const v = {
-    mode: 'normal', whole: false, hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the step from openStep()
+    mode: 'normal', whole: false, shot: null, hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the step from openStep()
     wasDrag: false, // true from the moment the current/last press became a drag; Task 12 click handler skips it
     // Size the canvas for the level screen; pan is re-clamped and the zoom step re-checked on every resize/rotation.
     fit(wd) {
       world = wd;
       const wasFit = v.scale === v.steps[0];
       v.steps = zoomSteps(fitScale(innerWidth, innerHeight, world.w, world.h, ins));
-      v.scale = v.whole ? v.steps[0] : keepStep(v.steps, v.scale, wasFit, openStep(innerWidth, innerHeight)); // whole: the menu and the intro show the full map
+      const shot = v.whole && v.shot; // the intro camera: zoom is a factor of the fit scale, pan is -1 (left edge) to 1 (right edge)
+      v.scale = shot ? v.steps[0] * shot.zoom : v.whole ? v.steps[0] : keepStep(v.steps, v.scale, wasFit, openStep(innerWidth, innerHeight)); // whole: the menu and the intro show the full map
+      if (shot) v.pan = { x: shot.pan * cameraFor(innerWidth, innerHeight, world.w, world.h, { x: 1e6, y: 0 }, v.scale, ins).pan.x, y: 0 };
       const c = cameraFor(innerWidth, innerHeight, world.w, world.h, v.pan, v.scale, ins);
       if (cv.width !== c.bw || cv.height !== c.bh) { cv.width = c.bw; cv.height = c.bh; }
       v.cam = c; v.pan = c.pan;

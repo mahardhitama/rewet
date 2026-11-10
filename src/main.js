@@ -34,8 +34,11 @@ function boot() {
   const persist = next => { save = next; writeSave(storage, save); };
 
   const INTRO_END = 10.5;
+  // Intro camera (art values): the whole map first (zoom factor 1). From ZOOM_START it zooms in to SHOT_ZOOM times the fit scale.
+  // In the menu it stays zoomed in and pans once, slowly, to the left or the right edge (PAN), then stops.
+  const SHOT_ZOOM = 2.5, ZOOM_START = 8, PAN = 0.7, shot = { zoom: 1, pan: 0 };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let phase, t0, h = 0, shown = -1, last = null, story = null;
+  let phase, t0, h = 0, shown = -1, last = null, story = null, panTo = 0;
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const newStory = () => { story = buildStory(Math.floor(Math.random() * 2 ** 31)); map.leave(); };
   let game = null, paused = false, speed = 1, carry = 0;
@@ -52,11 +55,11 @@ function boot() {
     $('debrief').hidden = p !== 'debrief';
     $('findToast').hidden = true;
   }
-  function startIntro() { t0 = performance.now(); h = 0; shown = -1; newStory(); show('intro'); }
+  function startIntro() { t0 = performance.now(); h = 0; shown = -1; shot.zoom = 1; shot.pan = 0; newStory(); show('intro'); }
   function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)], { label: MENU.label }); }
   function toMenu() {
     if (phase === 'menu') return;
-    show('menu'); game = null; map.leave(); // leave: a level's pan must not carry into the menu
+    show('menu'); game = null; map.leave(); panTo = Math.random() < 0.5 ? -PAN : PAN; // leave: a level's pan must not carry into the menu
     $('bCont').disabled = !hasProgress(save);
     menuStats();
     (hasProgress(save) ? $('bCont') : $('bNew')).focus({ preventScroll: true });
@@ -141,15 +144,20 @@ function boot() {
       h = clamp((t - 5.6) / 4.5);
       const idx = LINES.reduce((n, l, i) => t >= l[0] ? i : n, 0);
       if (idx !== shown) { shown = idx; $('line').textContent = LINES[idx][1]; blip(220 + idx * 110, 0.12, 'triangle'); }
+      const p = clamp((t - ZOOM_START) / (INTRO_END - ZOOM_START)), e = p * p * (3 - 2 * p); // smoothstep
+      shot.zoom = 1 + (SHOT_ZOOM - 1) * e; shot.pan = 0;
       if (t > INTRO_END) toMenu();
-    } else h += (1 - h) * 0.04;
+    } else {
+      h += (1 - h) * 0.04;
+      if (!reduce) { shot.zoom += (SHOT_ZOOM - shot.zoom) * 0.03; shot.pan += (panTo - shot.pan) * 0.01; } // eased: it slows down and stops at the edge
+    }
     if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
     if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
     if (game && ['level', 'yearReport', 'debrief'].includes(phase)) { map.whole = false; map.draw(game, now); }
     else {
       if (!story) newStory(); // first frame with reduced motion
-      map.whole = true; storyAt(story, h); map.draw(story.game, now);
+      map.whole = true; map.shot = shot; storyAt(story, h); map.draw(story.game, now);
     }
     requestAnimationFrame(frame);
   }
