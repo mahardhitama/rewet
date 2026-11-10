@@ -2,7 +2,7 @@
 
 ## How sprites work
 
-- Tile grid: `TW = 16`, `TH = 8` (`src/render/isoMath.js`). Buffer: 320×180, upscaled with `image-rendering: pixelated`.
+- Tile grid: `TW = 32`, `TH = 16` (`src/render/isoMath.js`). Buffer: 320×180, upscaled with `image-rendering: pixelated`.
 - `src/render/iso.js` builds a sprite cache once (`buildCache()`). Each sprite is an offscreen canvas made with `sprite(draw)`. The anchor is the top vertex of the tile: `(SW/2, HEAD)`.
 - Helpers: `block` (tile side faces), `blob`, `tree`, and `canal()` for canal-type tiles.
 - `drawWorld()` picks one cached sprite per tile, then draws small markers on top.
