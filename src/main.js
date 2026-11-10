@@ -71,8 +71,11 @@ function boot() {
     const items = LEVELS.map(L => {
       const b = document.createElement('button'), s = document.createElement('small');
       b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`;
-      s.textContent = `${SELECT.best(save.stars[L.id] || 0)} · ${SELECT.years(L.years)} · ${L.teaches}`;
-      b.append(s); withIcon(b, 'level');
+      const n = save.stars[L.id] || 0, st = document.createElement('span');
+      st.className = 'lsBest'; st.setAttribute('aria-label', SELECT.best(n));
+      for (let k = 0; k < 3; k++) { const e = icon(k < n ? 'starOn' : 'star'); e.classList.toggle('on', k < n); st.append(e); }
+      s.textContent = `${SELECT.years(L.years)} · ${L.teaches}`;
+      b.append(st, s); withIcon(b, 'level');
       b.onclick = () => { blip(880, 0.06); startLevel({ ...L, seed: L.seeds[Math.floor(Math.random() * L.seeds.length)] }); };
       return b;
     });

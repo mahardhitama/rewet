@@ -8,7 +8,7 @@ export const TOAST = {
 
 export const SELECT = {
   title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}`,
-  best: n => (n ? '★'.repeat(n) + '☆'.repeat(3 - n) : '☆☆☆'),
+  best: n => `${n} of 3 stars`,
   upTitle: 'Upgrades',
   stars: n => `Stars available: ${n}`,
   owned: 'Owned',
