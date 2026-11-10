@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TW, TH, PAD, HUD_PAD, tileToScreen, screenToTile, cameraFor, clientToBuffer, clampPan, zOffset, fitScale, zoomSteps, panForZoom, nearestStep, keepStep, openStep } from '../src/render/isoMath.js';
+import { TW, TH, PAD, HUD_PAD, tileToScreen, screenToTile, cameraFor, clientToBuffer, clampPan, zOffset, fitScale, zoomSteps, panForZoom, nearestStep, keepStep, openStep, PHONE_W } from '../src/render/isoMath.js';
 
 // A point strictly inside tile (x, y): the diamond centre, plus nudges toward each corner.
 const inner = (x, y, v) => {
@@ -160,4 +160,10 @@ test('z offset: round(z/0.075) px, clamped to +-4, higher ground drawn higher', 
   assert.equal(zOffset(0.075), 1); assert.equal(zOffset(-0.6), -4); assert.equal(zOffset(1), 4); assert.equal(zOffset(0.03), 0);
   const v = { ox: 0, oy: 0, w: 4, h: 4 };
   assert.equal(tileToScreen(1, 1, 0.3, v)[1], tileToScreen(1, 1, 0, v)[1] - 4);
+});
+
+test('PHONE_W matches the phone media query in index.html', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes(`max-width:${PHONE_W}px`), `index.html has no max-width:${PHONE_W}px media query`);
 });
