@@ -138,3 +138,14 @@ test('coverPct is the gain above the start cover', () => {
   g.cover0.fill(0.6);
   assert.ok(Math.abs(evaluate(g).coverPct - 50) < 1e-4);
 });
+
+test('evaluate returns speciesSeen and the same stars with and without fauna', () => {
+  const l = resolveLevel(LEVELS[0]);
+  const a = createGame(l, {}, buildLevelWorld(l)), b = createGame(l, {}, buildLevelWorld(l));
+  a.seen.add('otter');
+  const ra = evaluate(a), rb = evaluate(b);
+  assert.deepEqual(ra.speciesSeen, ['otter']);
+  assert.deepEqual(rb.speciesSeen, []);
+  assert.equal(ra.stars, rb.stars);
+  assert.equal(ra.passed, rb.passed);
+});

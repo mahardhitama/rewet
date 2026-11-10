@@ -39,7 +39,7 @@ export function evaluate(g) {
   if (coverPct < p.reveg) hints.push('reveg');
   if (goodwill < p.revit) hints.push('revit');
   const stars = passed ? 1 + (coverPct >= p.reveg) + (goodwill >= p.revit) : 0;
-  return { rewetPct, coverPct, goodwill, passed, stars, hints, loss };
+  return { rewetPct, coverPct, goodwill, passed, stars, hints, loss, speciesSeen: [...(g.seen ?? [])] };
 }
 
 const PAID = Object.keys(ACTIONS).filter((id) => ACTIONS[id].cost > 0);
