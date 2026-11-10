@@ -25,6 +25,7 @@ export function createWorld({ w, h, seed }) {
     kind: new Uint8Array(n),
     block: new Uint8Array(n),
     fire: new Uint8Array(n),
+    fireT: new Uint16Array(n),
     src: new Int32Array(n).fill(-1),
   };
 }
