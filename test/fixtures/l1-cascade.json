@@ -1,0 +1,14 @@
+[
+  {"tick":0,"id":"tempBlock","x":0,"y":5},
+  {"tick":0,"id":"tempBlock","x":0,"y":11},
+  {"tick":0,"id":"tempBlock","x":0,"y":17},
+  {"tick":4,"id":"tempBlock","x":7,"y":5},
+  {"tick":4,"id":"tempBlock","x":7,"y":11},
+  {"tick":4,"id":"tempBlock","x":7,"y":17},
+  {"tick":8,"id":"permBlock","x":0,"y":5},
+  {"tick":8,"id":"permBlock","x":0,"y":11},
+  {"tick":8,"id":"permBlock","x":0,"y":17},
+  {"tick":20,"id":"permBlock","x":7,"y":5},
+  {"tick":20,"id":"permBlock","x":7,"y":11},
+  {"tick":20,"id":"permBlock","x":7,"y":17}
+]
