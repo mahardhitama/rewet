@@ -30,6 +30,7 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 ## Commands
 
 - **Run:** `python3 -m http.server 8765`, then open http://localhost:8765. ES modules don't load from `file://`.
+- **Deploy:** Netlify serves the repo root (`netlify.toml`, no build). Follow `.claude/skills/rewet/deploy.md`. Ask the user before each production deploy.
 - **Tests:** `npm test` (= `node --test`, Node ≥ 20).
 - **Single test file:** `node --test test/hydro.test.js`
 - **Single test by name:** `node --test --test-name-pattern="C1" test/hydro.calibration.test.js`
