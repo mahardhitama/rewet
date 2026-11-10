@@ -1,5 +1,5 @@
-import { createWorld, mulberry32, idx } from './world.js';
-import { generateTerrain } from './terrain.js';
+import { createWorld, mulberry32, idx, KIND, VEG } from './world.js';
+import { generateTerrain, boxBlur } from './terrain.js';
 
 const TRUNK = { w: 8, d: 5 }; // KFCP 2014 p.9
 export const BRANCH = { w: 4, d: 2.5 }; // NOT SOURCED
@@ -155,3 +155,34 @@ export function generateMap(level) {
 }
 
 export const resolveLevel = (level) => (level.map ? { ...level, ...generateMap(level) } : level);
+
+const VEG_SALT = 0x5eed;
+// p = noise x wetness; the first row with p >= limit gives the type. Game values, NOT SOURCED.
+const VEG_LIMITS = [[0.38, VEG.TREE], [0.28, VEG.SHRUB], [0.18, VEG.SEEDLING], [0.1, VEG.FERN]];
+const START_COVER = [0, 0.15, 0.3, 0.6, 1]; // by VEG; game values, NOT SOURCED
+
+// Sets the start cover on peat tiles. Uses its own RNG, so world.rng does not change.
+export function seedVegetation(world, { treeShare = 1 } = {}) {
+  const { w, h, n, kind, wt, cover } = world;
+  const rng = mulberry32(world.seed ^ VEG_SALT);
+  let noise = new Float32Array(n);
+  for (let i = 0; i < n; i++) noise[i] = rng();
+  noise = boxBlur(noise, w, h);
+  let lo = Infinity, hi = -Infinity;
+  for (const v of noise) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  const bad = (k) => k === KIND.CANAL || k === KIND.FARM;
+  for (let i = 0; i < n; i++) {
+    if (kind[i] !== KIND.PEAT) continue;
+    const x = i % w, y = (i / w) | 0;
+    let skip = false;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < w && yy < h && bad(kind[idx(w, xx, yy)])) skip = true;
+    }
+    if (skip) continue;
+    const p = ((noise[i] - lo) / (hi - lo || 1)) * Math.min(1, Math.max(0, 1 - wt[i]));
+    let v = VEG_LIMITS.find(([lim]) => p >= lim)?.[1] ?? VEG.NONE;
+    if (v === VEG.TREE && rng() > treeShare) v = VEG.SHRUB;
+    cover[i] = START_COVER[v];
+  }
+}

@@ -1,6 +1,8 @@
 export const KIND = { PEAT: 0, CANAL: 1, RIVER: 2, VILLAGE: 3, FARM: 4 };
 // Wet/healthy: wt <= 0.40 m. Float32-rounded so a stored 0.4 counts as wet.
 export const WET_WT = Math.fround(0.4);
+export const VEG = { NONE: 0, FERN: 1, SEEDLING: 2, SHRUB: 3, TREE: 4 };
+export const vegOf = (c) => (c >= 0.85 ? VEG.TREE : c >= 0.5 ? VEG.SHRUB : c >= 0.2 ? VEG.SEEDLING : c >= 0.1 ? VEG.FERN : VEG.NONE);
 export const BLOCK = { NONE: 0, TEMP: 1, PERM: 2, FILLED: 3 };
 
 export function mulberry32(seed) {

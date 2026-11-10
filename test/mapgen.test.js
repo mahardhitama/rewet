@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateMap, resolveLevel } from '../src/sim/mapgen.js';
-import { createWorld, idx } from '../src/sim/world.js';
+import { generateMap, resolveLevel, seedVegetation } from '../src/sim/mapgen.js';
+import { createWorld, idx, vegOf, VEG, KIND } from '../src/sim/world.js';
+import { LEVELS, buildLevelWorld } from '../src/levels.js';
 import { generateTerrain } from '../src/sim/terrain.js';
 
 const L = { size: 30, seed: 11, map: { trunks: 3, branches: 2, meander: 0.2, river: true, villages: 1, illegal: 2 } };
@@ -157,4 +158,27 @@ test('resolveLevel is deterministic and leaves a level with no map unchanged', (
   const plain = { size: 22, seed: 1, canals: [[0, 0]] };
   assert.equal(resolveLevel(plain), plain);
   assert.equal(generateMap({ size: 20, seed: 3, map: {} }).canals.length, 0);
+});
+
+test('vegOf limits', () => {
+  assert.equal(vegOf(0.05), VEG.NONE);
+  assert.equal(vegOf(0.15), VEG.FERN);
+  assert.equal(vegOf(0.3), VEG.SEEDLING);
+  assert.equal(vegOf(0.6), VEG.SHRUB);
+  assert.equal(vegOf(0.9), VEG.TREE);
+});
+
+test('seedVegetation is deterministic and does not touch world.rng', () => {
+  const mk = () => { const wd = createWorld({ w: 20, h: 20, seed: 7 }); generateTerrain(wd); return wd; };
+  const a = mk(), b = mk(), c = mk();
+  seedVegetation(a); seedVegetation(c);
+  assert.deepEqual(a.cover, c.cover);
+  assert.ok(a.cover.some((v) => v > 0));
+  for (let k = 0; k < 5; k++) assert.equal(a.rng(), b.rng());
+});
+
+test('more trees far from canals', () => {
+  const wd = buildLevelWorld(resolveLevel(LEVELS[0]));
+  const mean = (f) => { let s = 0, c = 0; for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT && f(wd.dist[i])) { s += wd.cover[i]; c++; } return s / c; };
+  assert.ok(mean((d) => d > 200) > mean((d) => d <= 50));
 });

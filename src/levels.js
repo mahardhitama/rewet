@@ -2,6 +2,7 @@ import { placeLevel } from './sim/game.js';
 import { hydroTick } from './sim/hydro.js';
 import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { computeStrength } from './sim/drainage.js';
+import { seedVegetation } from './sim/mapgen.js';
 
 const pass = (k) => ({ rewet: 60 + 3 * k, reveg: 40 + 3 * k, revit: 60 + 2 * k }); // R17
 
@@ -15,7 +16,7 @@ export const LEVELS = [
   {
     id: 2, name: 'Burnt former forest', size: 24, years: 3, seed: 203, grant: 2200, arson: 0, elNinoYear: null,
     pass: pass(1), teaches: 'Planting, drowning in dips, mounds',
-    map: { trunks: 3, branches: 1, meander: 0.2, river: false, villages: 0, illegal: 0 },
+    map: { trunks: 3, branches: 1, meander: 0.2, river: false, villages: 0, illegal: 0, treeShare: 0.3 },
   },
   {
     id: 3, name: 'Village edge', size: 26, years: 4, seed: 305, grant: 2400, arson: 4, elNinoYear: null,
@@ -44,5 +45,6 @@ export function buildLevelWorld(level) {
   const world = placeLevel(level);
   const S = computeStrength(world);
   for (let t = 0; t < TICKS_PER_YEAR; t++) hydroTick(world, S, seasonAt(t));
+  seedVegetation(world, { treeShare: level.map?.treeShare });
   return world;
 }

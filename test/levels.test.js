@@ -93,9 +93,7 @@ test('fixture l1-cascade passes level 1 through the sim-run code path', () => {
   assert.equal(r.evaluate.passed, true, `rewet ${r.evaluate.rewetPct.toFixed(1)}%`);
 });
 
-// todo: the cascade on level 1 has 12 blocks and uses most of the funds. Thus the grid starts late, and the cover stays near 15%.
-// Task 5 tunes pass.reveg with the new gain rule; remove the todo there.
-test('R27: fixture l1-reveg (cascade, then a 3x3-spaced planting grid) reaches the L1 revegetation star', { todo: 'Task 5 tunes pass.reveg' }, () => {
+test('R27: fixture l1-reveg (cascade, then a 3x3-spaced planting grid) reaches the L1 revegetation star', () => {
   const plan = JSON.parse(readFileSync(new URL('./fixtures/l1-reveg.json', import.meta.url)));
   const r = runPlan(1, plan);
   assert.deepEqual(r.refused, []);

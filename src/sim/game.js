@@ -79,7 +79,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
     world, level, upgrades, tick: 0, funds: level.grant,
     crews: new Array(3 + (upgrades.crew || 0)).fill(0), jobs: [], goodwill: 50, burnt: new Set(),
     dryWtHistory: [], wind: randWind(world.rng), events: [], S,
-    wt0: Float32Array.from(world.wt), wetTicks: new Uint16Array(world.n),
+    wt0: Float32Array.from(world.wt), cover0: Float32Array.from(world.cover), wetTicks: new Uint16Array(world.n),
     wells: new Set(), mounds: new Set(), seedlings: new Map(), planted: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(), // planted: tile -> tick it was last seeded
     dome: null, // lazy domeZ(level), for illegal-canal beds
     illegal: (level.illegalCanals || []).map(() => 0), // next path index per illegal canal; -1 = stopped

@@ -82,7 +82,7 @@ export const DEBRIEF = {
   thumbs: 'Water depth at start and end (blue wet, brown dry)',
   goals: (r, p) => [
     `${r.rewetPct >= p.rewet ? '✓' : '✗'} Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season (pass: ${p.rewet}%).`,
-    `${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation: forest cover is ${r.coverPct.toFixed(0)}% (goal: ${p.reveg}%).`,
+    `${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation: new forest cover is ${r.coverPct.toFixed(0)}% (goal: ${p.reveg}%).`,
     `${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation: village goodwill is ${r.goodwill.toFixed(0)} (goal: ${p.revit}).`,
   ],
   goalsTitle: 'Goal status',
@@ -103,7 +103,7 @@ export const DEBRIEF = {
   sandbox: seed => `Sandbox (seed ${seed}): figures only, no pass mark.`,
   figures: r => [
     `Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season.`,
-    `Revegetation: forest cover is ${r.coverPct.toFixed(0)}%.`,
+    `Revegetation: new forest cover is ${r.coverPct.toFixed(0)}%.`,
     `Revitalisation: village goodwill is ${r.goodwill.toFixed(0)}.`,
   ],
 };

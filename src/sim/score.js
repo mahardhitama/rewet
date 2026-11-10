@@ -22,9 +22,12 @@ export function dryWetPct(g) {
 }
 
 export function evaluate(g) {
-  const { kind, cover, n } = g.world;
+  const { kind, cover, n } = g.world, c0 = g.cover0;
   let cSum = 0, cN = 0;
-  for (let i = 0; i < n; i++) if (kind[i] !== KIND.CANAL && kind[i] !== KIND.FARM) { cSum += cover[i]; cN++; }
+  // A tile at full start cover has no gain to make, so it does not count.
+  for (let i = 0; i < n; i++) if (kind[i] !== KIND.CANAL && kind[i] !== KIND.FARM && c0[i] < 1) {
+    cSum += Math.max(0, cover[i] - c0[i]) / Math.max(0.01, 1 - c0[i]); cN++;
+  }
   const rewetPct = dryWetPct(g);
   const coverPct = cN ? (cSum / cN) * 100 : 0;
   const { goodwill } = g;

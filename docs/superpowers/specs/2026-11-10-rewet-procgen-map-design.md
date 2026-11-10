@@ -208,7 +208,17 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
 2. **Canal fill fractions (`fill` 0.15 wet, 0.7 dry) and `kCanal`:** game values, `NOT SOURCED`. Tune them so the water drop is clear on screen.
 3. **Tilt (1.0 m) and dome rise:** game values, `NOT SOURCED`.
 4. **Start cover per vegetation type:** game values, `NOT SOURCED`.
+   - Task 5 tune: `VEG_LIMITS` = `[[0.38, TREE], [0.28, SHRUB], [0.18, SEEDLING], [0.1, FERN]]` on `p = noise × wetness` (noise: 1 box blur, stretched to [0, 1]). Game values, `NOT SOURCED`.
+   - Mean start cover over the tiles that `evaluate()` counts, with these limits: L1 25.8%, L2 24.1%, L3 22.3%, L4 31.1%, L5 20.1%, L6 35.0%. The brief start values `[0.55, 0.4, 0.28, 0.15]` gave L1 13.2%, below the 20% to 40% goal. Other runs on L1: `[0.45, 0.33, 0.22, 0.12]` 19.2%, `[0.4, 0.3, 0.2, 0.1]` 22.9%, `[0.35, 0.26, 0.17, 0.09]` 28.4%.
+   - A tile with full start cover (`TREE`, `cover0 = 1`) has no gain to make. `evaluate()` does not count it. Without this rule, the score at full growth is less than 100.
 5. **Pass lines for revegetation:** new tune after the gain rule (2.6). Record the runs here.
+   - Task 5: `pass.reveg` stays at `40 + 3k` (40, 43, 46, 49, 52, 55). The `l1-reveg.json` fixture now reaches the star, so no new tune was necessary.
+   - Runs after Task 5 (rewet %, cover gain %, result):
+     - `l1-cascade.json`: 90.7%, 34.6%, 1 star.
+     - `l1-reveg.json`: 90.7%, 44.9%, 2 stars (line 40).
+     - `blockPlan()`: L1 90.7%, 34.6%. L2 100.0%, 43.8%. L3 97.0%, 45.4%. L4 95.1%, 57.2%. L5 99.6%, 46.5%. L6 97.8%, 51.9%. Each level passed.
+     - No action: L1 37.6%, fire loss. L2 43.3%, fire loss. L3 41.5%, fire loss. L4 57.6%, fire loss. L5 50.5%, fire loss. L6 56.9%, goodwill loss.
+   - Open: on L2 and L4, `blockPlan()` with no planting reaches the revegetation line. Rewetting lets the start shrubs and trees spread. A line above the `blockPlan()` gain on each level needs about `40 + 6k` (L6 70%). No planting plan shows that L6 can reach 70%. Decide with the user.
 6. **Fit scale below 1:** the pixel art loses pixels at fit on a small screen with a large map. If this looks bad, use the smallest whole-number scale and accept a small pan at the fit scale.
 7. **Level map parameters and seeds (Task 3):** game values, set with headless runs. A seed search ran 40 seeds for each level that failed. `blockPlan()` (`scripts/auto-plan.js`) must pass each level, and a plan with no action must fail it. Fire is the usual cause of a failed run.
 

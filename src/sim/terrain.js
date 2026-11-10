@@ -1,6 +1,6 @@
 import { idx } from './world.js';
 
-function boxBlur(a, w, h) {
+export function boxBlur(a, w, h) {
   const o = new Float32Array(a.length);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     let s = 0, c = 0;
