@@ -1,6 +1,6 @@
 // Level HUD, 3R action bar, year report and debrief. DOM only: reads game state, changes it only via applyAction.
 import { ACTIONS, applyAction, costOf, isWetSeason, freeCrews } from './sim/game.js';
-import { evaluate, co2Estimate } from './sim/score.js';
+import { evaluate, co2Estimate, dryWetPct } from './sim/score.js';
 import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
@@ -88,7 +88,8 @@ export function renderUI(game, { paused, speed, data }) {
   for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; }
   $('hudTime').textContent = HUD.time(Math.min(year + 1, game.level.years), game.level.years, isWetSeason(game), week + 1);
   $('hudStats').textContent = HUD.stats(game.funds, freeCrews(game), game.crews.length,
-    Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0);
+    Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0,
+    game.dryWtHistory.length ? Math.round(dryWetPct(game)) : null); // scored measure: none before the first dry season
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
   $('bData').textContent = data ? HUD.mapView : HUD.dataView;
   for (const b of $('barGroups').querySelectorAll('button')) {

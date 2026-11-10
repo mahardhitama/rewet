@@ -25,7 +25,8 @@ export const UPGRADES = {
 
 export const HUD = {
   time: (year, years, wet, week) => `Year ${year}/${years} · ${wet ? 'Wet' : 'Dry'} season · wk ${week}`,
-  stats: (funds, crews, total, goodwill, wetPct) => `Funds ${funds} · Crews ${crews}/${total} · Goodwill ${goodwill} · Wet ${wetPct}%`,
+  stats: (funds, crews, total, goodwill, wetNow, wetDry) =>
+    `Funds ${funds} · Crews ${crews}/${total} · Goodwill ${goodwill} · Wet now ${wetNow}% · Dry-season wet ${wetDry == null ? '–' : `${wetDry}%`} (scored)`,
   pause: 'Pause', x1: '×1', x2: '×2',
   legend: ['0 m', '40 cm', '1.5 m'], // water table below the surface
   legendTitle: 'Water table depth (data view). Wet = at or above 40 cm.',
