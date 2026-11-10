@@ -51,7 +51,7 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
     $('jBook').replaceChildren(...shown.map(id => id === 'cc' || id === 'cw' ? contents(id) : entry(id)));
     $('jPos').textContent = T.pos(idx + 1, idx + shown.length, pages.length);
     $('jPrev').disabled = idx === 0; $('jNext').disabled = idx + step >= pages.length;
-    if (document.activeElement?.disabled || document.activeElement === document.body) (focusId ? $(focusId) : $('jClose')).focus();
+    if (document.activeElement?.disabled || document.activeElement === document.body) { const t = focusId && !$(focusId).disabled ? $(focusId) : $('jClose'); t.focus(); } // a disabled target cannot take focus
     $('jBook').scrollTop = 0;
   }
   const turn = d => { idx = Math.min(pages.length - 1, Math.max(0, idx + d * (mq.matches ? 1 : 2))); render(); };
