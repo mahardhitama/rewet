@@ -6,7 +6,7 @@ import { resolveLevel } from './sim/mapgen.js';
 import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
-import { LINES, TOAST, SELECT, UPGRADES, QUIT } from './strings.js';
+import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
@@ -43,7 +43,7 @@ function boot() {
     $('menu').classList.toggle('on', p === 'menu');
     $('levelSelect').hidden = p !== 'levelSelect';
     $('hud').hidden = p !== 'level' && p !== 'yearReport';
-    $('bar').hidden = p !== 'level';
+    $('bar').hidden = $('zoom').hidden = p !== 'level';
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
   }
@@ -158,6 +158,10 @@ function boot() {
     if (e.key === 'p' || e.key === 'P' || e.key === ' ') { e.preventDefault(); setSpeed(0); }
     else if (e.key === '1' || e.key === '2') setSpeed(+e.key);
     else if (e.key === 'd' || e.key === 'D') map.toggleMode();
+    else if (e.target.closest?.('input, textarea, select')) return;
+    else if (e.key === '+' || e.key === '=') map.zoom(1);
+    else if (e.key === '-') map.zoom(-1);
+    else if (e.key === '0') map.zoom(0);
   });
   $('skip').onclick = toMenu;
   reduce ? (phase = 'intro', toMenu(), h = 1) : startIntro();
@@ -180,6 +184,11 @@ function boot() {
   $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; $('qYes').textContent = QUIT.yes; $('qNo').textContent = QUIT.no;
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
+  $('zoom').setAttribute('aria-label', ZOOM.group);
+  for (const [id, key, dir] of [['bZoomIn', 'in', 1], ['bZoomOut', 'out', -1], ['bZoomFit', 'fit', 0]]) {
+    const b = $(id); [b.textContent, b.title] = ZOOM[key]; b.setAttribute('aria-label', b.title);
+    b.onclick = () => map.zoom(dir);
+  }
   if (new URLSearchParams(location.search).has('debug')) globalThis.rewet = { get game() { return game; } }; // ?debug: console access, e.g. replaying a sim-run plan
 }
 

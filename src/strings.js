@@ -30,9 +30,17 @@ export const HUD = {
   pause: 'Pause', x1: '×1', x2: '×2',
   legend: ['0 m', '40 cm', '1.5 m'], // water table below the surface
   legendTitle: 'Water table depth (data view). Wet = at or above 40 cm.',
-  keys: 'P/Space pause · 1/2 speed · D data view · drag/arrows pan · Esc menu',
+  keys: 'P/Space pause · 1/2 speed · D data view · drag/arrows pan · +/- zoom · 0 full map · Esc menu',
   dataView: 'Data view',
   mapView: 'Map view',
+};
+
+// visible text, label for screen readers and the tooltip
+export const ZOOM = {
+  group: 'Zoom',
+  in: ['+', 'Zoom in (+)'],
+  out: ['−', 'Zoom out (-)'],
+  fit: ['ALL', 'Show the full map (0)'],
 };
 
 export const R_NAMES = { rewet: 'Rewetting', reveg: 'Revegetation', revit: 'Revitalisation', defense: 'Defense' };
