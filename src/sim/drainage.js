@@ -4,33 +4,40 @@ export const DRAIN = { canal: 1, river: 0.6, temp: 0.35, perm: 0.1, maxHeadTiles
 
 const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
 
+// BFS `steps` levels upstream of canal tile b, calling visit(j); returns the last front (non-empty = run goes further).
+export function walkUp(world, b, steps, visit) {
+  const { w, h, kind, block, z } = world;
+  const seen = new Set([b]);
+  let front = [b];
+  for (let d = 0; d < steps && front.length; d++) {
+    const next = [];
+    for (const i of front) {
+      const x = i % w, y = (i / w) | 0;
+      for (const [dx, dy] of N8) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
+        const j = yy * w + xx;
+        if (seen.has(j) || kind[j] !== KIND.CANAL || z[j] < z[i] || block[j] !== BLOCK.NONE) continue;
+        seen.add(j);
+        visit(j);
+        next.push(j);
+      }
+    }
+    front = next;
+  }
+  return front;
+}
+
 // Upstream = 8-connected canal neighbours with equal-or-higher z (flat canals propagate; `seen` prevents loops).
 export function computeStrength(world) {
-  const { w, h, n, kind, block, z } = world;
+  const { n, kind, block } = world;
   const S = new Float32Array(n);
   for (let i = 0; i < n; i++) S[i] = kind[i] === KIND.CANAL ? DRAIN.canal : kind[i] === KIND.RIVER ? DRAIN.river : 0;
   for (let b = 0; b < n; b++) {
     if (kind[b] !== KIND.CANAL || (block[b] !== BLOCK.TEMP && block[b] !== BLOCK.PERM)) continue;
     const s = block[b] === BLOCK.TEMP ? DRAIN.temp : DRAIN.perm;
     S[b] = Math.min(S[b], s);
-    const seen = new Set([b]);
-    let front = [b];
-    for (let d = 0; d < DRAIN.maxHeadTiles; d++) {
-      const next = [];
-      for (const i of front) {
-        const x = i % w, y = (i / w) | 0;
-        for (const [dx, dy] of N8) {
-          const xx = x + dx, yy = y + dy;
-          if (xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
-          const j = yy * w + xx;
-          if (seen.has(j) || kind[j] !== KIND.CANAL || z[j] < z[i] || block[j] !== BLOCK.NONE) continue;
-          seen.add(j);
-          S[j] = Math.min(S[j], s);
-          next.push(j);
-        }
-      }
-      front = next;
-    }
+    walkUp(world, b, DRAIN.maxHeadTiles, (j) => { S[j] = Math.min(S[j], s); });
   }
   for (let i = 0; i < n; i++) if (block[i] === BLOCK.FILLED) S[i] = 0;
   return S;

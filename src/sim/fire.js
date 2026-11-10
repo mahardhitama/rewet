@@ -1,10 +1,10 @@
-import { KIND } from './world.js';
+import { KIND, WET_WT } from './world.js';
 
 export const FIRE = { base: 0.0004, spreadP: 0.15, smoulderP: 0.2, surfaceTicks: 8, smoulderTicks: 56 };
 // fire[i]: 0 none, 1 surface burning, 2 smouldering; fireT[i]: ticks left in that state.
 
 const ignitable = (world, i) =>
-  world.fire[i] === 0 && world.wt[i] > 0.4 && (world.kind[i] === KIND.PEAT || world.kind[i] === KIND.FARM);
+  world.fire[i] === 0 && world.wt[i] > WET_WT && (world.kind[i] === KIND.PEAT || world.kind[i] === KIND.FARM);
 
 function light(world, i) {
   world.fire[i] = 1;
@@ -39,11 +39,11 @@ export function fireTick(world, env, wind) {
     if (--fireT[i] > 0) continue;
     if (fire[i] === 1) {
       if (rng() < FIRE.smoulderP) { fire[i] = 2; fireT[i] = FIRE.smoulderTicks; } else fire[i] = 0;
-    } else if (wt[i] > 0.4) lit(i); // smoulder re-flares only on dry peat
+    } else if (wt[i] > WET_WT) lit(i); // smoulder re-flares only on dry peat
     else fire[i] = 0;
   }
   for (let i = 0; i < n; i++) {
-    if (ignitable(world, i) && rng() < FIRE.base * env.dry * (wt[i] - 0.4)) lit(i);
+    if (ignitable(world, i) && rng() < FIRE.base * env.dry * (wt[i] - WET_WT)) lit(i);
   }
   return { burnt };
 }
