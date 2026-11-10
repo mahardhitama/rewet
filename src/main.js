@@ -132,6 +132,7 @@ function boot() {
   addEventListener('keydown', e => {
     if (e.key === 'Escape' && ['levelSelect', 'level', 'yearReport', 'debrief'].includes(phase)) return toMenu();
     if (phase !== 'level') return;
+    if (map.key(e)) return;
     if (e.key === 'p' || e.key === 'P' || e.key === ' ') { e.preventDefault(); paused = !paused; }
     else if (e.key === '1' || e.key === '2') { speed = +e.key; paused = false; }
     else if (e.key === 'd' || e.key === 'D') toggleData();
@@ -139,7 +140,6 @@ function boot() {
   $('skip').onclick = toMenu;
   function toggleData() { map.toggleMode(); $('bData').textContent = map.mode === 'data' ? HUD.mapView : HUD.dataView; }
   $('bData').onclick = e => { toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
-  addEventListener('pointermove', e => { map.hover = phase === 'level' ? map.pickTile(e) : null; });
   reduce ? (phase = 'intro', toMenu(), h = 1) : startIntro();
   requestAnimationFrame(frame);
 
