@@ -6,12 +6,12 @@ import { resolveLevel } from './sim/mapgen.js';
 import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
-import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL } from './strings.js';
-import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
+import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
+import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
 import { icon, withIcon, setText } from './icons.js';
 import { SPECIES } from './journal.js';
-import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
+import { initUI, renderUI, afterStep, showYearReport, showDebrief, table } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
 const TICKS_PER_MS = TICKS_PER_YEAR / 75000;
@@ -52,11 +52,12 @@ function boot() {
     $('findToast').hidden = true;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; smoke.length = 0; show('intro'); }
+  function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)]); }
   function toMenu() {
     if (phase === 'menu') return;
     show('menu'); game = null;
     $('bCont').disabled = !hasProgress(save);
-    $('menuFound').textContent = JOURNAL.count(save.found.length, SPECIES.length);
+    menuStats();
     (hasProgress(save) ? $('bCont') : $('bNew')).focus({ preventScroll: true });
   }
 
@@ -205,7 +206,7 @@ function boot() {
   $('bCred').onclick = () => $('dCred').showModal();
   $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
-  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; $('menuFound').textContent = JOURNAL.count(0, SPECIES.length); toast(TOAST.saveDeleted); }; // keeps the mute setting
+  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; menuStats(); toast(TOAST.saveDeleted); }; // keeps the mute setting
   $('lsTitle').textContent = SELECT.title; setText($('lsBack'), SELECT.back);
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };

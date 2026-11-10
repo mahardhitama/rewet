@@ -148,6 +148,31 @@ function lines(el, list) {
   el.replaceChildren(...list.map(t => Object.assign(document.createElement('p'), { textContent: t })));
 }
 
+// Replaces the contents of el with a table. rows: [[label, value, ...]]. A row with one cell spans all columns. head: optional column names.
+export function table(el, rows, { head } = {}) {
+  const cols = head ? head.length : Math.max(...rows.map(r => r.length));
+  const t = document.createElement('table');
+  const tr = (cells, tag) => {
+    const row = document.createElement('tr');
+    for (const c of cells) {
+      const cell = Object.assign(document.createElement(tag), { textContent: c });
+      if (tag === 'th') cell.scope = 'col';
+      if (cells.length === 1 && cols > 1) cell.colSpan = cols;
+      row.append(cell);
+    }
+    return row;
+  };
+  if (head) t.createTHead().append(tr(head, 'th'));
+  t.createTBody().append(...rows.map(r => tr(r, 'td')));
+  el.replaceChildren(t);
+}
+
+// the species row, then the names row when there are names
+const speciesRows = game => {
+  const [label, count, names] = REPORT.speciesRow(seenNames(game));
+  return names ? [[label, count], [names]] : [[label, count]];
+};
+
 const seenNames = game => {
   const ids = evaluate(game).speciesSeen;
   return ids.map(id => SPECIES.find(s => s.id === id)?.name ?? id);
@@ -158,12 +183,9 @@ export function showYearReport(game, year, elNino) {
   $('rpChartLabel').textContent = REPORT.chart;
   chart($('rpChart'), weeks);
   const sv = seedlingSurvival(game, game.tick - TICKS_PER_YEAR); // seeded this year
-  lines($('rpBody'), [
-    REPORT.burnt((game.burnt.size / game.world.n * 100).toFixed(0)),
-    REPORT.seedlings(sv.alive, sv.planted),
-    REPORT.goodwill(Math.round(game.goodwill)),
-    REPORT.grant(game.level.grant, game.funds),
-    REPORT.species(seenNames(game)),
+  table($('rpBody'), [
+    ...REPORT.rows((game.burnt.size / game.world.n * 100).toFixed(0), sv, Math.round(game.goodwill), game.level.grant, game.funds),
+    ...speciesRows(game),
   ]);
   $('rpElNino').textContent = REPORT.elNino; $('rpElNino').hidden = !elNino;
   setText($('rpCont'), REPORT.cont);
@@ -185,10 +207,11 @@ export function showDebrief(game) {
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;
   $('dbGoalsTitle').textContent = DEBRIEF.goalsTitle;
-  lines($('dbGoals'), loss ? [DEBRIEF.loss[loss]] : sb ? DEBRIEF.figures(r) : DEBRIEF.goals(r, p)); // no ✓ lines on a loss
+  if (loss) lines($('dbGoals'), [DEBRIEF.loss[loss]]); // no goal table on a loss
+  else table($('dbGoals'), sb ? DEBRIEF.figureRows(r) : DEBRIEF.goalRows(r, p), { head: DEBRIEF.goalHead });
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
-  lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(sv.alive, sv.planted), REPORT.species(seenNames(game))]);
+  table($('dbData'), [...DEBRIEF.dataRows(co2, sv), ...speciesRows(game)]);
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
   setText($('dbMenu'), DEBRIEF.menu);

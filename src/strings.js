@@ -94,11 +94,14 @@ export const REPORT = {
   chart: 'Mean peat water depth, past year',
   chartAria: 'Chart of mean peat water-table depth per week over the past year, with the 40 cm wet line',
   line40: '40 cm',
-  burnt: pct => `Burnt so far: ${pct}% of the site`,
-  seedlings: (alive, planted) => planted ? `Seedling survival: ${alive}/${planted} planted this year` : 'Seedling survival: none planted this year',
-  goodwill: g => `Village goodwill: ${g}`,
-  grant: (grant, funds) => `Grant received: +${grant} · Funds now ${funds}`,
-  species: names => `Species seen: ${names.length}${names.length ? ` (${names.join(', ')})` : ''}`,
+  // each row is [label, value]
+  rows: (burntPct, sv, goodwill, grant, funds) => [
+    ['Burnt so far', `${burntPct}% of the site`],
+    ['Seedling survival', sv.planted ? `${sv.alive}/${sv.planted} planted this year` : 'none planted this year'],
+    ['Village goodwill', `${goodwill}`],
+    ['Grant received', `+${grant} · Funds now ${funds}`],
+  ],
+  speciesRow: names => ['Species seen', `${names.length}`, names.join(', ')], // [label, count, namesText]
   elNino: 'Warning: El Niño next year. The dry season starts 10 weeks early. Get blocks and wells in place.',
   cont: 'Continue',
 };
@@ -108,16 +111,20 @@ export const DEBRIEF = {
   stars: n => '★'.repeat(n) + '☆'.repeat(3 - n),
   before: 'Start', after: 'End',
   thumbs: 'Water depth at start and end (blue wet, brown dry)',
-  goals: (r, p) => [
-    `${r.rewetPct >= p.rewet ? '✓' : '✗'} Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season (pass: ${p.rewet}%).`,
-    `${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation: new forest cover is ${r.coverPct.toFixed(0)}% (goal: ${p.reveg}%).`,
-    `${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation: village goodwill is ${r.goodwill.toFixed(0)} (goal: ${p.revit}).`,
+  goalHead: ['Goal', 'Result', 'Pass mark'],
+  // each row is [goal, result, pass mark]
+  goalRows: (r, p) => [
+    [`${r.rewetPct >= p.rewet ? '✓' : '✗'} Rewetting`, `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`, `${p.rewet}%`],
+    [`${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation`, `new forest cover is ${r.coverPct.toFixed(0)}%`, `${p.reveg}%`],
+    [`${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation`, `village goodwill is ${r.goodwill.toFixed(0)}`, `${p.revit}`],
   ],
   goalsTitle: 'Goal status',
   dataTitle: 'Data',
-  avoided: tc => `Drainage emissions avoided: ${tc.toFixed(1)} (estimate, t C)`,
-  fire: tc => `Fire emissions: ${tc.toFixed(1)} (estimate, t C)`,
-  seedlings: (alive, planted) => planted ? `Seedling survival: ${alive}/${planted}` : 'Seedling survival: none planted',
+  dataRows: (co2, sv) => [
+    ['Drainage emissions avoided', `${co2.avoidedTC.toFixed(1)} (estimate, t C)`],
+    ['Fire emissions', `${co2.fireTC.toFixed(1)} (estimate, t C)`],
+    ['Seedling survival', sv.planted ? `${sv.alive}/${sv.planted}` : 'none planted'],
+  ],
   allMet: 'All goals met. Well done.',
   passed: 'Site restored.',
   failed: 'Site not restored.',
@@ -129,10 +136,10 @@ export const DEBRIEF = {
   },
   menu: 'Menu',
   sandbox: seed => `Sandbox (seed ${seed}): figures only, no pass mark.`,
-  figures: r => [
-    `Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season.`,
-    `Revegetation: new forest cover is ${r.coverPct.toFixed(0)}%.`,
-    `Revitalisation: village goodwill is ${r.goodwill.toFixed(0)}.`,
+  figureRows: r => [
+    ['Rewetting', `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`, ''],
+    ['Revegetation', `new forest cover is ${r.coverPct.toFixed(0)}%`, ''],
+    ['Revitalisation', `village goodwill is ${r.goodwill.toFixed(0)}`, ''],
   ],
 };
 
@@ -144,6 +151,11 @@ export const HINTS = {
 };
 
 export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
+
+export const MENU = {
+  stars: (x, n) => ['Stars', `${x} of ${n}`],
+  found: (x, n) => ['Wildlife found', `${x} of ${n}`],
+};
 
 export const JOURNAL = {
   title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next',
