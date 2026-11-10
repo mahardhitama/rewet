@@ -71,7 +71,7 @@ function bind() {
   $('bData').textContent = HUD.dataView;
   for (const [id, name] of Object.entries({ bPause: 'pause', bX1: 'play', bX2: 'fast', bData: 'data', bJournal: 'journal' })) {
     const b = $(id), t = Object.assign(document.createElement('span'), { className: 't', textContent: b.textContent });
-    b.replaceChildren(icon(name), t); b.setAttribute('aria-label', t.textContent);
+    b.replaceChildren(icon(name), t); b.setAttribute('aria-label', t.textContent); b.title = t.textContent; // the title is the tooltip when the text is hidden
   }
   for (const p of document.querySelectorAll('#hudRow .part')) p.prepend(icon(p.dataset.id));
   const [c0, c40, c150] = [0, WET_WT, 1.5].map(v => rgb(heatColor(v)));
@@ -123,7 +123,7 @@ export function renderUI(game, { paused, speed, data }) {
   }
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
   const dt = data ? HUD.mapView : HUD.dataView;
-  if ($('bData').lastChild.textContent !== dt) { setText($('bData'), dt); $('bData').setAttribute('aria-label', dt); }
+  if ($('bData').lastChild.textContent !== dt) { setText($('bData'), dt); $('bData').setAttribute('aria-label', dt); $('bData').title = dt; }
   $('legend').hidden = !data;
   for (const b of $('barGroups').querySelectorAll('button')) {
     const id = b.dataset.id, c = costOf(game, id);

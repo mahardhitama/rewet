@@ -139,7 +139,8 @@ dialog p{margin:6px 0;color:var(--dim)}
 @media (max-height:500px){.part svg{width:12px;height:12px}} /* one row between the left edge and the zoom column at 844 px */
 /* the HUD is 2 rows (parts, then buttons) up to 800 px wide: the parts need 760 px. Under 380 px the parts wrap to 2 lines. */
 @media (max-width:800px){#hud{grid-template-columns:auto;max-width:calc(100% - 8px);padding:4px 0}.sep{display:none}#hudBtns{justify-self:center}.part{gap:2px;padding:0 2px}.part svg{width:12px;height:12px}}
-@media (max-width:380px){#hudRow{flex-wrap:wrap;justify-content:center}}
+/* the dividers go, so a wrapped part shows no divider at a line start */
+@media (max-width:380px){#hudRow{flex-wrap:wrap;justify-content:center;gap:4px 8px}.part{border-left:0}}
 @media (max-height:500px) and (min-width:601px){#hud{max-width:calc(100% - 80px);left:calc(50% - 32px)}}
 /* very short window: smaller HUD text, and the zoom buttons are a row, because a 144 px column does not fit between the HUD and the bar */
 @media (max-height:360px){#hud{max-width:calc(100% - 16px);left:50%}#barHint{font-size:var(--fs-body)}#zoom{flex-direction:row;gap:4px}}

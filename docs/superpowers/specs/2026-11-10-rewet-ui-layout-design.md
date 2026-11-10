@@ -76,6 +76,13 @@ Success criteria:
 - The water depth legend shows only in the data view. It goes under the HUD row, centred.
 - The keys hint (`#hudKeys`) moves under the bar on desktop and stays hidden on touch.
 - Short landscape (max-height 500px): one row, with labels hidden as on a phone.
+- Width steps, because the row needs 1576 px with all labels and the button text, and 760 px without them:
+  - Under 1600 px, the button text hides (the button keeps `aria-label` and `title`), and the time value is the short form ("1/5 · Wet · wk 2").
+  - Under 1280 px, the labels hide too.
+  - Up to 800 px wide, the HUD is 2 rows: the parts, then the buttons. A phone in landscape between 601 and 800 px wide also gets 2 rows.
+  - Under 380 px, the parts wrap to a second line and the dividers hide.
+- On a phone, the part icons are 12 px, and the gap and the padding are 2 px. This is an exception to the 4 px scale in section 2: the 6 parts need 366 px at 390 px.
+- `#hud` is a grid, so the legend can sit under the row.
 
 ## 5. Action bar (`#bar`, `src/ui.js`)
 
