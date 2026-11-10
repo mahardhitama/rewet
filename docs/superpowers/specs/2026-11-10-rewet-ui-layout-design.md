@@ -10,13 +10,13 @@ The user asked for these changes (impeccable `layout`):
 2. Text sizes are consistent.
 3. Top bar: one line, with each context in its own part. Each part has an icon and its own colour. The text is easy to read.
 4. Bottom bar: larger buttons in a hotbar layout, with an icon on each button.
-5. Main menu, year report and level report: centred. Metrics show as tables. Hover does not move the text and does not add `▶`; a tree icon shows instead. Each button has an icon at the right and centred text.
+5. Main menu, year report and level report: centred. Metrics show as tables. Hover does not move the text and does not add `▶`; a tree icon shows instead. Each button has an icon at the left and centred text.
 6. Main menu: a large centred "REWET" title. The intro uses the new sprites. The story text is centred on both axes. The intro map fits the viewport and comes from the map generator.
 
 User decisions:
 
 - Phone top bar: icon and number only. The label text shows on desktop, in the tooltip and in the accessible name. On a phone, the speed buttons and the Journal button go to a second short row.
-- Hover tree: the tree shows at the left edge of the button. The purpose icon stays at the right. The text stays centred and does not move.
+- Button icons: the purpose icon is at the left edge of the button, and the hover tree shows at the right edge. The text stays centred and does not move. (Changed by the user on 2026-11-10; the first version had the tree at the left.)
 - Process: full spec, plan and subagent tasks.
 
 Mode (impeccable): the intro and the menu are Experience. The level screen is Operate. The reports are Read.
@@ -92,10 +92,10 @@ Success criteria:
 ## 6. Panels and buttons (menu, level select, reports, dialogs)
 
 - `#menu`, `#levelSelect`, `#report`, `#debrief` and each `<dialog>` are centred on both axes (`left:50%`, `top:50%`, `translate(-50%,-50%)`). On a phone, they keep a 16 px gutter and scroll inside the panel when they are too tall.
-- `.btn` layout: a 3-column grid. The left column (24 px) holds the hover tree. The centre holds the text, centred. The right column (24 px) holds the purpose icon.
-- On hover and on `:focus-visible`, the tree icon shows in the left column, and the border and the text change to the accent colour. The text does not move. The `::before` "▶ " rule is removed.
+- `.btn` layout: a 3-column grid. The left column (24 px) holds the purpose icon. The centre holds the text, centred. The right column (24 px) holds the hover tree.
+- On hover and on `:focus-visible`, the tree icon shows in the right column, and the border and the text change to the accent colour. The text does not move. The `::before` "▶ " rule is removed.
 - A disabled button shows no tree.
-- Buttons in `src/journalView.js` (`.jb`) and in the find toast (`#findOpen`) get an icon at the right. Their hover follows the same rule.
+- Buttons in `src/journalView.js` (`.jb`) and in the find toast (`#findOpen`) get an icon at the left. Their hover follows the same rule.
 - Metrics show as a `<table>` with 2 columns: the label (left, `--dim`) and the value (right, `--ink`). Rows have a 1 px `--line` border.
   - Year report: burnt so far, seedling survival, village goodwill, grant and funds, species seen. The species names go in a third row under "Species seen", in one cell that spans both columns.
   - Level report: the goals table has 3 columns: the goal, the result, and the pass mark. The data block is a 2-column table.
