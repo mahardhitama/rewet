@@ -3,7 +3,8 @@ import { TICKS_PER_YEAR, seasonAt } from './sim/season.js';
 import { evaluate, checkEarlyLoss } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { blip, setMuted, isMuted } from './audio.js';
-import { initIntro, drawWorld, smoke, clamp } from './render/intro.js';
+import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
+import { createMapView } from './render/view.js';
 import { LINES, TOAST, SELECT, HUD, REPORT, DEBRIEF } from './strings.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
@@ -23,7 +24,9 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch { return 
 
 function boot() {
   const $ = id => document.getElementById(id);
-  initIntro($('bg'));
+  const cv = $('bg');
+  initIntro(cv);
+  const map = createMapView(cv);
   setMuted(store.get('rewet_mute') === '1');
 
   const INTRO_END = 10.5;
@@ -40,6 +43,7 @@ function boot() {
     $('hud').hidden = p !== 'level' && p !== 'yearReport';
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
+    $('bData').textContent = map.mode === 'data' ? HUD.mapView : HUD.dataView;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; smoke.length = 0; show('intro'); }
   function toMenu() {
@@ -65,7 +69,7 @@ function boot() {
   // ---- level (temporary text readout until Tasks 11-12)
   function startLevel(level) {
     game = createGame(level, {}, buildLevelWorld(level));
-    paused = false; speed = 1; carry = 0;
+    paused = false; speed = 1; carry = 0; map.leave();
     $('hudKeys').textContent = HUD.keys;
     show('level');
   }
@@ -115,7 +119,12 @@ function boot() {
     if (phase === 'level') tickLevel(dt);
     if (game) readout();
     shift += ((phase === 'menu' && innerWidth > 600 ? 1 : 0) - shift) * 0.05;
-    drawWorld(h, now, shift);
+    // Level screens resize the canvas to the window (view.js); everything else keeps the intro's 320x180 buffer.
+    if (game && ['level', 'yearReport', 'debrief'].includes(phase)) map.draw(game, now);
+    else {
+      if (cv.width !== BW || cv.height !== BH) { cv.width = BW; cv.height = BH; map.leave(); }
+      drawWorld(h, now, shift);
+    }
     requestAnimationFrame(frame);
   }
 
@@ -125,8 +134,12 @@ function boot() {
     if (phase !== 'level') return;
     if (e.key === 'p' || e.key === 'P' || e.key === ' ') { e.preventDefault(); paused = !paused; }
     else if (e.key === '1' || e.key === '2') { speed = +e.key; paused = false; }
+    else if (e.key === 'd' || e.key === 'D') toggleData();
   });
   $('skip').onclick = toMenu;
+  function toggleData() { map.toggleMode(); $('bData').textContent = map.mode === 'data' ? HUD.mapView : HUD.dataView; }
+  $('bData').onclick = e => { toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
+  addEventListener('pointermove', e => { map.hover = phase === 'level' ? map.pickTile(e) : null; });
   reduce ? (phase = 'intro', toMenu(), h = 1) : startIntro();
   requestAnimationFrame(frame);
 

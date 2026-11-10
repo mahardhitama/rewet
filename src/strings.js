@@ -13,7 +13,9 @@ export const HUD = {
   line: (year, years, week, funds) => `Year ${year}/${years} · Week ${week} · Funds ${funds}`,
   paused: 'paused',
   speed: s => `x${s}`,
-  keys: 'P/Space pause · 1/2 speed · Esc menu',
+  keys: 'P/Space pause · 1/2 speed · D data view · Esc menu',
+  dataView: 'Data view',
+  mapView: 'Map view',
 };
 
 export const REPORT = {
