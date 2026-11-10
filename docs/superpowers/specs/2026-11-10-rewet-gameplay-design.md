@@ -273,3 +273,4 @@ scripts/sim-run.js  headless run of a level plus a plan file, printing 3R result
 2. **44/12 conversion:** source it (IPCC 2006 Guidelines) before showing "t CO2". Until then show "t C".
 3. **2019 Refinement:** check whether the 2019 Refinement changes wetlands organic-soil factors.
 4. **Initial tuning numbers:** costs, times, `S_block`, `maxHeadTiles`, `k_*`. Set them through calibration tests C1–C3 and play testing.
+5. **`S_block` perm = 0.1 (was 0.2):** set by C2 (Task 5). With 0.2 the Ritzema cascade case ends at 0.536 m mean, above the 0.30–0.45 m target. With 0.1 it ends at 0.407 m (start 1.127 m, dry-season max 0.547 m). The C2 degraded site uses a test-only override: `eqDry 2.5`, `eqWet 2.0` (deep canal), default far-field. `temp` stays 0.35 (not calibrated yet).

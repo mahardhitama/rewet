@@ -1,6 +1,6 @@
 import { KIND, BLOCK } from './world.js';
 
-export const DRAIN = { canal: 1, river: 0.6, temp: 0.35, perm: 0.2, maxHeadTiles: 6, tileM: 50 };
+export const DRAIN = { canal: 1, river: 0.6, temp: 0.35, perm: 0.1, maxHeadTiles: 6, tileM: 50 };
 
 const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
 
