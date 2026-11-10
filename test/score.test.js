@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, checkEarlyLoss, co2Estimate, HINTS } from '../src/sim/score.js';
+import { evaluate, checkEarlyLoss, co2Estimate } from '../src/sim/score.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 
 // Game-like stub: n peat tiles, `wet` of them with mean dry wt 0.3, rest 0.8.
@@ -27,13 +27,22 @@ test('T4 stars at exact boundaries', () => {
   assert.equal(r.rewetPct, 59.9);
   assert.equal(r.passed, false);
   assert.equal(r.stars, 0);
-  assert.equal(r.hints[0], HINTS.rewet);
+  assert.equal(r.hints[0], 'rewet');
   r = evaluate(mk({ goodwill: 59 }));
   assert.equal(r.stars, 2);
-  assert.deepEqual(r.hints, [HINTS.revit]);
+  assert.deepEqual(r.hints, ['revit']);
   r = evaluate(mk({ cover: 0.39 }));
   assert.equal(r.stars, 2);
-  assert.deepEqual(r.hints, [HINTS.reveg]);
+  assert.deepEqual(r.hints, ['reveg']);
+});
+
+test('R21: early loss fails the level: passed false, stars 0, loss set', () => {
+  const r = evaluate(mk({ n: 100, wet: 100, burnt: 36 }));
+  assert.equal(r.rewetPct, 100);
+  assert.equal(r.loss, 'fire');
+  assert.equal(r.passed, false);
+  assert.equal(r.stars, 0);
+  assert.equal(evaluate(mk()).loss, null);
 });
 
 test('rewetPct uses mean over dry season, falls back to current wt', () => {

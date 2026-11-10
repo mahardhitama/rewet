@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, BLOCK, idx } from '../src/sim/world.js';
-import { createGame, applyAction, step, costOf, placeLevel } from '../src/sim/game.js';
+import { createGame, applyAction, step, costOf, placeLevel, isWetSeason, freeCrews } from '../src/sim/game.js';
 
 const S = 12;
 const canal = [[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6]]; // edge toward dome centre
@@ -68,6 +68,10 @@ test('wet season discount 0.8', () => {
   assert.equal(costOf(c, 'tempBlock'), 60);
   assert.equal(costOf(c, 'well'), 64);
 });
+
+test('isWetSeason: weeks 0-30 wet, 31 dry', () => { const g = createGame(lvl()); g.tick = 30 * 4; assert.equal(isWetSeason(g), true); g.tick = 31 * 4; assert.equal(isWetSeason(g), false); });
+
+test('freeCrews counts crews whose busy-until tick has passed', () => { const g = createGame(lvl()); g.crews = [0, 10, Infinity]; g.tick = 10; assert.equal(freeCrews(g), 2); });
 
 test('backfill removes drainage source after job completes', () => {
   const g = createGame(lvl());

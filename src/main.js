@@ -75,8 +75,8 @@ function boot() {
     show('level');
   }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
-  function toDebrief(loss) {
-    showDebrief(game, loss);
+  function toDebrief() {
+    showDebrief(game); // evaluate() decides loss itself
     show('debrief'); $('dbMenu').focus({ preventScroll: true });
   }
   function tickLevel(dt) {
@@ -88,9 +88,9 @@ function boot() {
       if (game.events.some(e => e.type === 'yearEnd')) break; // never run past a year report
     }
     const ev = game.events.splice(0); // drain (yearEnd.year is 0-based)
-    if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief(null);
+    if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief();
     const loss = checkEarlyLoss(game);
-    if (loss) return toDebrief(loss);
+    if (loss) return toDebrief();
     const ye = ev.find(e => e.type === 'yearEnd');
     if (ye) {
       paused = true;
@@ -152,7 +152,7 @@ function boot() {
   $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; $('qYes').textContent = QUIT.yes; $('qNo').textContent = QUIT.no;
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
-  globalThis.rewet = { get game() { return game; } }; // console access for manual checks (e.g. replaying a sim-run plan)
+  if (new URLSearchParams(location.search).has('debug')) globalThis.rewet = { get game() { return game; } }; // ?debug: console access, e.g. replaying a sim-run plan
 }
 
 if (typeof document !== 'undefined') boot();

@@ -1,13 +1,6 @@
 import { KIND, WET_WT } from './world.js';
-import { ACTIONS } from './game.js';
+import { ACTIONS, freeCrews } from './game.js';
 import { TICKS_PER_YEAR } from './season.js';
-
-// Hint copy; Task 10 moves this into strings.js.
-export const HINTS = {
-  rewet: 'Rewet more peat: block canals and keep water high through the dry season.',
-  reveg: 'Plant more trees on wet peat.',
-  revit: 'Earn more goodwill: build ponds, fire groups and paludiculture.',
-};
 
 const HA_PER_TILE = 0.25; // 50 m x 50 m
 const CROPLAND_TC_HA_YR = 14; // IPCC 2013 Wetlands Supplement, drained cropland
@@ -31,20 +24,21 @@ export function evaluate(g) {
   const coverPct = cN ? (cSum / cN) * 100 : 0;
   const { goodwill } = g;
   const p = g.level.pass;
-  const passed = rewetPct >= p.rewet;
-  const hints = [];
-  if (rewetPct < p.rewet) hints.push(HINTS.rewet);
-  if (coverPct < p.reveg) hints.push(HINTS.reveg);
-  if (goodwill < p.revit) hints.push(HINTS.revit);
+  const loss = checkEarlyLoss(g); // an early loss fails the level whatever the scores
+  const passed = !loss && rewetPct >= p.rewet;
+  const hints = []; // keys into strings.js HINTS, in goal order
+  if (rewetPct < p.rewet) hints.push('rewet');
+  if (coverPct < p.reveg) hints.push('reveg');
+  if (goodwill < p.revit) hints.push('revit');
   const stars = passed ? 1 + (coverPct >= p.reveg) + (goodwill >= p.revit) : 0;
-  return { rewetPct, coverPct, goodwill, passed, stars, hints };
+  return { rewetPct, coverPct, goodwill, passed, stars, hints, loss };
 }
 
 const MIN_COST = Math.min(...Object.values(ACTIONS).map((a) => a.cost).filter((c) => c > 0));
 
 export function checkEarlyLoss(g) {
   if (g.burnt.size > 0.35 * g.world.n) return 'fire';
-  if (g.funds < MIN_COST && g.jobs.length === 0 && g.crews.every((t) => t <= g.tick)) return 'funds';
+  if (g.funds < MIN_COST && g.jobs.length === 0 && freeCrews(g) === g.crews.length) return 'funds';
   if (g.goodwill <= 0) return 'goodwill';
   return null;
 }

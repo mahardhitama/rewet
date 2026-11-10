@@ -59,6 +59,9 @@ const redrain = (g) => { g.S = computeStrength(g.world); computeDistance(g.world
 const year = (g) => Math.floor(g.tick / TICKS_PER_YEAR);
 const elNino = (g) => g.level.elNinoYear != null && year(g) === g.level.elNinoYear;
 const dryStart = (g) => (elNino(g) ? 21 : 31);
+export const isWetSeason = (g) => seasonAt(g.tick).week < dryStart(g);
+const crewFree = (g) => (t) => t <= g.tick;
+export const freeCrews = (g) => g.crews.filter(crewFree(g)).length;
 const randWind = (rng) => N8[Math.floor(rng() * 8)];
 
 export function createGame(level, upgrades = {}, world = placeLevel(level)) {
@@ -79,7 +82,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
 
 export function costOf(g, id) {
   let c = ACTIONS[id].cost;
-  if (seasonAt(g.tick).week < dryStart(g)) c *= 0.8;
+  if (isWetSeason(g)) c *= 0.8;
   if (g.upgrades.cheapBlocks && BLOCKS.has(id)) c *= 0.75;
   return Math.round(c);
 }
@@ -88,7 +91,7 @@ export function applyAction(g, id, i) {
   const a = ACTIONS[id];
   if (!a || i < 0 || i >= g.world.n || a.valid(g.world, i, g) !== true) return { ok: false, reason: 'invalid' };
   if (g.jobs.some((j) => j.i === i)) return { ok: false, reason: 'busy' };
-  const crew = g.crews.findIndex((t) => t <= g.tick);
+  const crew = g.crews.findIndex(crewFree(g));
   if (crew < 0) return { ok: false, reason: 'crew' };
   const cost = costOf(g, id);
   if (cost > g.funds) return { ok: false, reason: 'funds' };

@@ -1,11 +1,11 @@
 // Level HUD, 3R action bar, year report and debrief. DOM only: reads game state, changes it only via applyAction.
-import { ACTIONS, applyAction, costOf } from './sim/game.js';
-import { evaluate, co2Estimate, HINTS } from './sim/score.js';
+import { ACTIONS, applyAction, costOf, isWetSeason, freeCrews } from './sim/game.js';
+import { evaluate, co2Estimate } from './sim/score.js';
 import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { blip } from './audio.js';
-import { HUD, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF } from './strings.js';
+import { HUD, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
 
 const $ = id => document.getElementById(id);
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -55,6 +55,7 @@ function bind() {
   [...$('legend').querySelectorAll('i')].forEach((el, k) => { el.textContent = HUD.legend[k]; });
   $('legendMark').style.left = $('legend').querySelectorAll('i')[1].style.left = `${(WET_WT / 1.5 * 100).toFixed(1)}%`;
   $('hudKeys').textContent = HUD.keys;
+  for (const id of ['rpChart', 'dbChart']) $(id).setAttribute('aria-label', REPORT.chartAria);
   // canvas-only listener: clicks on HUD/panels never reach it; drags are pans, not taps
   H.canvas.addEventListener('click', e => {
     if (!G || !armed || H.map.wasDrag || !H.isLevel()) return;
@@ -83,11 +84,10 @@ export function afterStep(game) {
 
 export function renderUI(game, { paused, speed, data }) {
   const wd = game.world, year = Math.floor(game.tick / TICKS_PER_YEAR), { week } = seasonAt(game.tick);
-  const wetSeason = week < (game.level.elNinoYear === year ? 21 : 31); // mirrors dryStart in sim/game.js
   let peat = 0, wet = 0;
   for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; }
-  $('hudTime').textContent = HUD.time(Math.min(year + 1, game.level.years), game.level.years, wetSeason, week + 1);
-  $('hudStats').textContent = HUD.stats(game.funds, game.crews.filter(t => t <= game.tick).length, game.crews.length,
+  $('hudTime').textContent = HUD.time(Math.min(year + 1, game.level.years), game.level.years, isWetSeason(game), week + 1);
+  $('hudStats').textContent = HUD.stats(game.funds, freeCrews(game), game.crews.length,
     Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0);
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
   $('bData').textContent = data ? HUD.mapView : HUD.dataView;
@@ -99,8 +99,8 @@ export function renderUI(game, { paused, speed, data }) {
 }
 
 function chart(cv, data) {
-  const ctx = cv.getContext('2d'), W = cv.width, Hh = cv.height, pad = 6, max = Math.max(1, ...data);
-  const y = v => pad + (Hh - 2 * pad) * v / max; // depth grows downward: top = surface
+  const ctx = cv.getContext('2d'), W = cv.width, Hh = cv.height, pad = 6, min = -0.3, max = Math.max(1, ...data); // wt clamp floor -0.3
+  const y = v => pad + (Hh - 2 * pad) * (Math.max(min, Math.min(max, v)) - min) / (max - min); // depth grows downward
   ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, W, Hh);
   ctx.fillStyle = '#5ff0ff'; for (let x = 0; x < W; x += 6) ctx.fillRect(x, Math.round(y(WET_WT)), 3, 1);
   ctx.font = '16px VT323'; ctx.fillText(REPORT.line40, pad + 2, y(WET_WT) + 14);
@@ -135,19 +135,19 @@ function thumb(cv, w, h, wt) {
   ctx.putImageData(img, 0, 0);
 }
 
-export function showDebrief(game, loss) {
-  const r = evaluate(game), p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
+export function showDebrief(game) {
+  const r = evaluate(game), loss = r.loss, p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
   $('dbTitle').textContent = DEBRIEF.title;
-  $('dbStars').textContent = DEBRIEF.stars(loss ? 0 : r.stars); // an early loss fails the level whatever the scores
+  $('dbStars').textContent = DEBRIEF.stars(r.stars);
   $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;
+  $('dbGoalsTitle').textContent = DEBRIEF.goalsTitle;
   lines($('dbGoals'), DEBRIEF.goals(r, p));
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
   lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(alive(game, plantedAll), plantedAll.size)]);
-  // one hint: the early-loss cause, else the goal furthest below its line
-  const gap = [['rewet', r.rewetPct / p.rewet], ['reveg', r.coverPct / p.reveg], ['revit', r.goodwill / p.revit]].filter(([, f]) => f < 1).sort((a, b) => a[1] - b[1]);
-  $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : gap.length ? HINTS[gap[0][0]] : DEBRIEF.allMet;
+  // one hint: the early-loss cause, else the first unmet goal
+  $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
   $('dbMenu').textContent = DEBRIEF.menu;
 }

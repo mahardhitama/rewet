@@ -1,4 +1,4 @@
-// All UI copy (English). HINTS still lives in src/sim/score.js: score.test.js imports it from there.
+// All UI copy (English).
 export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals drained it. Then it burned.'], [5.6, 'Block the canals. Rewet the peat. Replant.']];
 
 export const TOAST = {
@@ -48,6 +48,7 @@ export const REASON = {
 export const REPORT = {
   title: year => `Year ${year} complete`,
   chart: 'Mean peat water depth, past year',
+  chartAria: 'Chart of mean peat water-table depth per week over the past year, with the 40 cm wet line',
   line40: '40 cm',
   burnt: pct => `Burnt so far: ${pct}% of the site`,
   seedlings: (alive, planted) => planted ? `Seedling survival: ${alive}/${planted} planted this year` : 'Seedling survival: none planted this year',
@@ -67,6 +68,7 @@ export const DEBRIEF = {
     `${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation: forest cover is ${r.coverPct.toFixed(0)}% (goal: ${p.reveg}%).`,
     `${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation: village goodwill is ${r.goodwill.toFixed(0)} (goal: ${p.revit}).`,
   ],
+  goalsTitle: 'Goal status',
   dataTitle: 'Data',
   avoided: tc => `Drainage emissions avoided: ${tc.toFixed(1)} (estimate, t C)`,
   fire: tc => `Fire emissions: ${tc.toFixed(1)} (estimate, t C)`,
@@ -81,6 +83,13 @@ export const DEBRIEF = {
     goodwill: 'Keep fire away from the village and build ponds, fire groups and paludiculture.',
   },
   menu: 'Menu',
+};
+
+// keyed by evaluate().hints
+export const HINTS = {
+  rewet: 'Rewet more peat: block canals and keep water high through the dry season.',
+  reveg: 'Plant more trees on wet peat.',
+  revit: 'Earn more goodwill: build ponds, fire groups and paludiculture.',
 };
 
 export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
