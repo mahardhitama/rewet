@@ -52,7 +52,7 @@ function boot() {
     $('findToast').hidden = true;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; smoke.length = 0; show('intro'); }
-  function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)]); }
+  function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)], { label: MENU.label }); }
   function toMenu() {
     if (phase === 'menu') return;
     show('menu'); game = null;

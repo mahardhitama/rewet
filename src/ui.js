@@ -149,9 +149,13 @@ function lines(el, list) {
 }
 
 // Replaces the contents of el with a table. rows: [[label, value, ...]]. A row with one cell spans all columns. head: optional column names.
-export function table(el, rows, { head } = {}) {
+// label: aria-label text; labelledby: id of a heading that names the table.
+export function table(el, rows, { head, label, labelledby } = {}) {
   const cols = head ? head.length : Math.max(...rows.map(r => r.length));
   const t = document.createElement('table');
+  t.className = 'metrics';
+  if (label) t.setAttribute('aria-label', label);
+  if (labelledby) t.setAttribute('aria-labelledby', labelledby);
   const tr = (cells, tag) => {
     const row = document.createElement('tr');
     for (const c of cells) {
@@ -186,7 +190,7 @@ export function showYearReport(game, year, elNino) {
   table($('rpBody'), [
     ...REPORT.rows((game.burnt.size / game.world.n * 100).toFixed(0), sv, Math.round(game.goodwill), game.level.grant, game.funds),
     ...speciesRows(game),
-  ]);
+  ], { labelledby: 'rpTitle' });
   $('rpElNino').textContent = REPORT.elNino; $('rpElNino').hidden = !elNino;
   setText($('rpCont'), REPORT.cont);
 }
@@ -208,10 +212,10 @@ export function showDebrief(game) {
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;
   $('dbGoalsTitle').textContent = DEBRIEF.goalsTitle;
   if (loss) lines($('dbGoals'), [DEBRIEF.loss[loss]]); // no goal table on a loss
-  else table($('dbGoals'), sb ? DEBRIEF.figureRows(r) : DEBRIEF.goalRows(r, p), { head: DEBRIEF.goalHead });
+  else table($('dbGoals'), sb ? DEBRIEF.figureRows(r) : DEBRIEF.goalRows(r, p), { head: sb ? DEBRIEF.figureHead : DEBRIEF.goalHead, labelledby: 'dbGoalsTitle' });
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
-  table($('dbData'), [...DEBRIEF.dataRows(co2, sv), ...speciesRows(game)]);
+  table($('dbData'), [...DEBRIEF.dataRows(co2, sv), ...speciesRows(game)], { labelledby: 'dbDataTitle' });
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
   setText($('dbMenu'), DEBRIEF.menu);

@@ -40,14 +40,13 @@ dialog p{margin:6px 0;color:var(--dim)}
 #findOpen{pointer-events:auto;flex:none;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);min-width:44px;min-height:44px;padding:4px 12px;cursor:pointer}
 #findOpen:hover,#findOpen:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
 #menu .btn{display:grid;max-width:360px;margin-inline:auto}
-table{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
-td,th{padding:4px 4px;border-bottom:1px solid var(--line);text-align:right;color:var(--ink);font-weight:400}
-td:first-child,th:first-child{text-align:left;color:var(--dim)}
-th{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--dim)}
-#dbGoals td:nth-child(2),#dbGoals th:nth-child(2){text-align:left;color:var(--ink)}
-#dbGoals th:nth-child(2){color:var(--dim)}
-td[colspan]{text-align:left;color:var(--ink)}
-#report table,#debrief table{margin-bottom:12px}
+.metrics{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
+.metrics td,.metrics th{padding:4px 4px;border-bottom:1px solid var(--line);text-align:right;color:var(--ink);font-weight:400}
+.metrics td:first-child,.metrics th:first-child{text-align:left;color:var(--dim)}
+.metrics th{font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--dim)}
+.metrics td:nth-child(2):not(:last-child),.metrics th:nth-child(2):not(:last-child){text-align:left}
+.metrics td[colspan]{text-align:left;color:var(--ink)}
+#report .metrics,#debrief .metrics{margin-bottom:12px}
 #dbGoals td:first-child{white-space:nowrap}
 #menuStats{max-width:360px;margin:16px auto 0;background:var(--panel)}
 #menuStats td{padding:4px 8px}
@@ -169,7 +168,7 @@ td[colspan]{text-align:left;color:var(--ink)}
   <button class="btn" id="bJrnMenu">Journal</button>
   <button class="btn" id="bSet">Settings</button>
   <button class="btn" id="bCred">Credits</button>
-  <table id="menuStats"></table>
+  <div id="menuStats"></div>
 </nav>
 
 <dialog id="dSet">

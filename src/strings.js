@@ -136,10 +136,11 @@ export const DEBRIEF = {
   },
   menu: 'Menu',
   sandbox: seed => `Sandbox (seed ${seed}): figures only, no pass mark.`,
+  figureHead: ['Goal', 'Result'],
   figureRows: r => [
-    ['Rewetting', `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`, ''],
-    ['Revegetation', `new forest cover is ${r.coverPct.toFixed(0)}%`, ''],
-    ['Revitalisation', `village goodwill is ${r.goodwill.toFixed(0)}`, ''],
+    ['Rewetting', `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`],
+    ['Revegetation', `new forest cover is ${r.coverPct.toFixed(0)}%`],
+    ['Revitalisation', `village goodwill is ${r.goodwill.toFixed(0)}`],
   ],
 };
 
@@ -153,6 +154,7 @@ export const HINTS = {
 export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
 
 export const MENU = {
+  label: 'Progress',
   stars: (x, n) => ['Stars', `${x} of ${n}`],
   found: (x, n) => ['Wildlife found', `${x} of ${n}`],
 };

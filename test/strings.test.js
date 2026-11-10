@@ -25,9 +25,17 @@ test('DEBRIEF rows have 3 cells', () => {
   for (const row of g) assert.equal(row.length, 3);
   assert.deepEqual(g.map(x => x[0][0]), ['✓', '✗', '✓']);
   assert.equal(g[0][2], '60%');
-  const f = DEBRIEF.figureRows(r);
-  assert.equal(f.length, 3);
-  for (const row of f) { assert.equal(row.length, 3); assert.equal(row[2], ''); }
+  assert.deepEqual(g, [
+    ['✓ Rewetting', '80% of the peat stayed wet through the last dry season', '60%'],
+    ['✗ Revegetation', 'new forest cover is 20%', '40%'],
+    ['✓ Revitalisation', 'village goodwill is 50', '30'],
+  ]);
+  assert.deepEqual(DEBRIEF.figureRows(r), [
+    ['Rewetting', '80% of the peat stayed wet through the last dry season'],
+    ['Revegetation', 'new forest cover is 20%'],
+    ['Revitalisation', 'village goodwill is 50'],
+  ]);
+  assert.equal(DEBRIEF.figureHead.length, 2);
   assert.deepEqual(DEBRIEF.dataRows({ avoidedTC: 1.25, fireTC: 0 }, { alive: 1, planted: 2 }), [
     ['Drainage emissions avoided', '1.3 (estimate, t C)'],
     ['Fire emissions', '0.0 (estimate, t C)'],
