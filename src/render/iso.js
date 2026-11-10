@@ -502,6 +502,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
   const wd = game.world, { w, h, z, wt, cover, kind, block: blk, fire, cWidth, cDepth, cWater } = wd, data = mode === 'data';
   const bw = view.bw ?? ctx.canvas.width, bh = view.bh ?? ctx.canvas.height;
   const year = Math.floor(game.tick / TICKS_PER_YEAR);
+  const week = game.bankWeek ?? game.tick >> 2; // the intro story has a fixed tick, so it sets its own bank week
   if (game.S !== flowS || year !== flowYear || flow?.length !== w * h) {
     flow = downstream(w, h, z, kind); flowS = game.S; flowYear = year;
     canalBase = new Int32Array(w * h); axis = new Uint8Array(w * h); patches = new Map(); // side tile -> [[canal tile, DIRS index of the side tile]]
@@ -519,8 +520,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
         patches.get(f).push([i, o]);
       }
     }
-    setBanks(wd); bankWeek = game.tick >> 2;
-  } else if (game.tick >> 2 !== bankWeek) { setBanks(wd); bankWeek = game.tick >> 2; } // the peat changes slowly: one update each week, so the banks do not flicker
+    setBanks(wd); bankWeek = week;
+  } else if (week !== bankWeek) { setBanks(wd); bankWeek = week; } // the peat changes slowly: one update each week, so the banks do not flicker
   const jobs = new Set(game.jobs.map(j => j.i)), hits = [], at = new Map();
   if (!data) for (const a of game.fauna ?? []) { const l = at.get(a.i); if (l) l.push(a); else at.set(a.i, [a]); }
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);

@@ -142,8 +142,11 @@ test('canal key: the bank step and the patch index decode back from the sprite i
 });
 
 // A canvas stub that keeps the last colour of each pixel, so a test can read a sprite.
+// The size is SW x (HEAD + TH + EDGE + 1) in iso.js: 32 x (28 + 16 + 22 + 1).
 const SPRITE_W = 32, SPRITE_H = 67;
-function stubDocument() {
+function stubDocument(t) {
+  const old = globalThis.document;
+  t.after(() => { globalThis.document = old; }); // put back the old document after the test
   globalThis.document = { createElement: () => {
     const px = new Array(SPRITE_W * SPRITE_H).fill(null);
     const g = { fillStyle: '', fillRect(x, y, w, h) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (x + i >= 0 && x + i < SPRITE_W && y + j >= 0 && y + j < SPRITE_H) px[(y + j) * SPRITE_W + x + i] = this.fillStyle; } };
@@ -154,8 +157,8 @@ const lum = c => { const [r, g, b] = c.match(/\d+/g).map(Number); return .3 * r 
 // Edge canal along y: arms +y and -y, width step 0. Key bits: arm k at 2k, width step at 16, water step at 18, edge flag at 20, bank step at 24.
 const edgeKey = (ws, bank) => 1 << 2 | 1 << 6 | ws << 18 | 1 << 20 | bank << 24;
 
-test('canal end on the map edge: the notch wall is not much darker than the face beside it (the black bar)', () => {
-  stubDocument();
+test('canal end on the map edge: the notch wall is not much darker than the face beside it (the black bar)', (t) => {
+  stubDocument(t);
   for (let bank = 0; bank < 4; bank++) for (const ws of [1, 2, 3]) {
     const px = canalSprite(edgeKey(ws, bank)).px;
     const face = lum(px[(28 + 8 + 8) * SPRITE_W + 0]); // the face colour at the left edge of the sprite
@@ -166,8 +169,8 @@ test('canal end on the map edge: the notch wall is not much darker than the face
   }
 });
 
-test('canal sprite: the top takes the bank colour of its step', () => {
-  stubDocument();
+test('canal sprite: the top takes the bank colour of its step', (t) => {
+  stubDocument(t);
   const count = (px, c) => px.slice(28 * SPRITE_W, 44 * SPRITE_W).filter(v => v === `rgb(${c})`).length;
   const seen = new Set();
   for (let bank = 0; bank < 4; bank++) {

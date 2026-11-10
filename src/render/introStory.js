@@ -79,6 +79,7 @@ export function storyAt(story, h) {
     wd.fire[i] = h < at[i] ? fire0[i] : 0;
     wd.block[i] = h >= blockAt[i] ? BLOCK.PERM : BLOCK.NONE;
   }
+  story.game.bankWeek = Math.round(h * 20); // the story peat changes with h: this gives 20 canal bank updates
   let n = 0; // animal k shows from h = 0.8 + 0.015 k; slice only when the count changes
   while (n < story.animals.length && h >= 0.8 + 0.015 * n) n++;
   if (story.game.fauna.length !== n) story.game.fauna = story.animals.slice(0, n);

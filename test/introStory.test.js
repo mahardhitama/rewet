@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStory, storyAt } from '../src/render/introStory.js';
 import { KIND, BLOCK, WET_WT } from '../src/sim/world.js';
+import { bankStep } from '../src/render/iso.js';
 
 const peat = (wd) => [...wd.kind.keys()].filter((i) => wd.kind[i] === KIND.PEAT);
 const wetShare = (wd) => { const p = peat(wd); return p.filter((i) => wd.wt[i] <= WET_WT).length / p.length; };
@@ -98,4 +99,13 @@ test('animals: at most 2 per species, at most 6, and none leave as h grows', () 
     last = s.game.fauna.length;
   }
   assert.equal(last, s.animals.length);
+});
+
+test('storyAt changes the bank week, so the canal banks turn green with the peat', () => {
+  const s = buildStory(42), wd = s.game.world;
+  const green = () => count([...wd.kind.keys()].filter((i) => wd.kind[i] === KIND.CANAL), (i) => bankStep(wd, i) === 3);
+  storyAt(s, 0); const w0 = s.game.bankWeek, g0 = green();
+  storyAt(s, 1);
+  assert.notEqual(s.game.bankWeek, w0);
+  assert.ok(green() > g0, `green banks ${g0} then ${green()}`);
 });
