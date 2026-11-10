@@ -411,6 +411,17 @@ export function animalSprite(id, silhouette = false) {
   animals.set(key, c);
   return c;
 }
+// Slide state of each animal, by id: when its last move started, when it first showed, when its leave fade started.
+const SLIDE_MS = 600;
+const slides = new Map(), drawList = [], pa = [0, 0], pb = [0, 0];
+let slideFrame = 0;
+export const resetSlides = () => slides.clear();
+export const slideCount = () => slides.size;
+const clamp01 = v => Math.max(0, Math.min(1, v));
+// Pure. Linear blend of two points. t is 0 to 1. out is optional, to avoid an allocation.
+export const slidePos = (a, b, t, out = [0, 0]) => { out[0] = a[0] + (b[0] - a[0]) * t; out[1] = a[1] + (b[1] - a[1]) * t; return out; };
+// Pure. Alpha of an animal. age: ms since it first showed (fade in). leavingAge: ms since it left on an edge tile, or -1 (fade out).
+export const fadeAlpha = (age, leavingAge = -1) => Math.min(clamp01(age / SLIDE_MS), leavingAge < 0 ? 1 : 1 - clamp01(leavingAge / SLIDE_MS));
 // Pure. Hit radius in buffer px: 22 CSS px (half of a 44 px target), but at least the reach of the sprite from its centre.
 export const hitRadius = scale => Math.max(22 / scale, AS / 2 + 1);
 // Pure. The hit nearest to (bx, by) within maxD, or null.
@@ -522,8 +533,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     }
     setBanks(wd); bankWeek = week;
   } else if (week !== bankWeek) { setBanks(wd); bankWeek = week; } // the peat changes slowly: one update each week, so the banks do not flicker
-  const jobs = new Set(game.jobs.map(j => j.i)), hits = [], at = new Map();
-  if (!data) for (const a of game.fauna ?? []) { const l = at.get(a.i); if (l) l.push(a); else at.set(a.i, [a]); }
+  const jobs = new Set(game.jobs.map(j => j.i)), hits = [];
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
     const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
@@ -555,12 +565,6 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
       if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][vegVariant(i)], ax, ay);
     }
-    const here = at.get(i);
-    if (here) for (const a of here) { // animals: 1 px idle step, slow; the feet are at the tile centre
-      const by = sy + HH + 3, up = Math.sin(now / 700 + hash(a.id) * 6.28) > .7 ? 1 : 0;
-      ctx.drawImage(animalSprite(a.species), sx - AS / 2, by - AS - up);
-      hits.push({ species: a.species, bx: sx, by: by - AS / 2 });
-    }
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
     if (game.fireGroups.has(i)) { ctx.fillStyle = '#d23a2a'; ctx.fillRect(sx + 12, sy - 8, 2, 12); ctx.fillRect(sx + 14, sy - 8, 6, 4); }
@@ -589,6 +593,38 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
         const t = (now / 600 + hash(i) + m / 2) % 1;
         ctx.fillRect(cx + Math.round((pos[2 * n] - pos[2 * i]) * t), cy + Math.round((pos[2 * n + 1] - pos[2 * i + 1]) * t), 1, 1);
       }
+    }
+  }
+  const dbg = globalThis.rewet; // ?debug only
+  if (!data) { // animals: their own pass, sorted by drawn y, so a slide keeps the depth order. The feet are at the tile centre.
+    // Trade-off: an animal now draws over the plants of the tile below it. A tile pass drew those plants over the animal.
+    slideFrame++; if (dbg) dbg.slides = slides;
+    const fauna = game.fauna ?? []; let n = 0;
+    for (const a of fauna) {
+      const moved = a.moved ?? a.born ?? 0, born = a.born ?? 0, from = a.from ?? a.i;
+      let s = slides.get(a.id);
+      if (!s) { // first sight: a new animal fades in. An old move is already settled; a move in this week step slides.
+        const settled = moved !== born && game.tick - moved >= 4;
+        s = { moved, seenAt: settled ? now - SLIDE_MS : now, shownAt: moved === born ? now : now - SLIDE_MS, leaveAt: -1, f: 0 };
+        slides.set(a.id, s);
+      } else if (s.moved !== moved) { s.moved = moved; s.seenAt = now; }
+      s.f = slideFrame;
+      if (a.leaving && s.leaveAt < 0 && Math.min(a.i % w, (a.i / w) | 0, w - 1 - a.i % w, h - 1 - ((a.i / w) | 0)) === 0) s.leaveAt = now; // the sim removes it at the next weekly step
+      const d = drawList[n] ??= { x: 0, y: 0, al: 1, a: null, xy: [0, 0] };
+      pa[0] = pos[2 * from]; pa[1] = pos[2 * from + 1]; pb[0] = pos[2 * a.i]; pb[1] = pos[2 * a.i + 1];
+      slidePos(pa, pb, clamp01((now - s.seenAt) / SLIDE_MS), d.xy);
+      d.x = Math.round(d.xy[0]); d.y = Math.round(d.xy[1]) + HH + 3; d.a = a; d.al = fadeAlpha(now - s.shownAt, s.leaveAt < 0 ? -1 : now - s.leaveAt);
+      n++;
+    }
+    if (slides.size > n) for (const [id, s] of slides) if (s.f !== slideFrame) slides.delete(id);
+    drawList.length = n; drawList.sort((p, q) => p.y - q.y);
+    for (const d of drawList) {
+      const a = d.a, up = Math.sin(now / 700 + hash(a.id) * 6.28) > .7 ? 1 : 0; // 1 px idle step, slow
+      if (d.al < 1) ctx.globalAlpha = d.al;
+      ctx.drawImage(animalSprite(a.species), d.x - AS / 2, d.y - AS - up);
+      ctx.globalAlpha = 1;
+      hits.push({ species: a.species, bx: d.x, by: d.y - AS / 2 });
+      if (dbg) (dbg.drawn ??= new Map()).set(a.id, { x: d.x, y: d.y, al: d.al, i: a.i, rx: pos[0], ry: pos[1] });
     }
   }
   if (data) { // bright line where neighbouring tiles straddle WET_WT

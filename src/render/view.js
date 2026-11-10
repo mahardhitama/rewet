@@ -1,6 +1,6 @@
 // Level-screen view state (camera pan, data mode, hover). Lives outside the game; render-only.
 import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom, openStep } from './isoMath.js';
-import { drawWorld, nearestHit, hitRadius } from './iso.js';
+import { drawWorld, nearestHit, hitRadius, resetSlides } from './iso.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
 const PINCH = 0.25; // a pinch zooms one step each time the finger distance changes by 25%
@@ -65,7 +65,7 @@ export function createMapView(cv) {
       ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, cv.width, cv.height);
       hits = drawWorld(ctx, game, v.cam, v.whole ? 'normal' : v.mode, v.hover, now);
     },
-    leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; hits = []; touches.clear(); pinch = 0; },
+    leave() { resetSlides(); v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; hits = []; touches.clear(); pinch = 0; },
     // Arrow keys pan; returns true when the key was used.
     key(e) {
       const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];

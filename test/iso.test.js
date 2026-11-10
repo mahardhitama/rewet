@@ -180,3 +180,26 @@ test('canal sprite: the top takes the bank colour of its step', (t) => {
   }
   assert.equal(seen.size, 4);
 });
+
+test('slidePos blends linearly', async () => {
+  const { slidePos } = await import('../src/render/iso.js');
+  assert.deepEqual(slidePos([0, 0], [10, -4], 0), [0, 0]);
+  assert.deepEqual(slidePos([0, 0], [10, -4], 0.5), [5, -2]);
+  assert.deepEqual(slidePos([0, 0], [10, -4], 1), [10, -4]);
+});
+
+test('fadeAlpha fades in, and fades out when leaving', async () => {
+  const { fadeAlpha } = await import('../src/render/iso.js');
+  assert.equal(fadeAlpha(0), 0);
+  assert.equal(fadeAlpha(300), 0.5);
+  assert.equal(fadeAlpha(5000), 1);
+  assert.equal(fadeAlpha(5000, 0), 1);
+  assert.equal(fadeAlpha(5000, 300), 0.5);
+  assert.equal(fadeAlpha(5000, 900), 0);
+  assert.equal(fadeAlpha(100, 300), Math.min(100 / 600, 0.5));
+});
+
+test('resetSlides empties the slide map', async () => {
+  const { resetSlides, slideCount } = await import('../src/render/iso.js');
+  resetSlides(); assert.equal(slideCount(), 0);
+});
