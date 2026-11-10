@@ -87,6 +87,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 #legendIn i{position:absolute;top:10px;font-style:normal;white-space:nowrap}
 #legendIn i:nth-of-type(1){left:0}#legendIn i:nth-of-type(2){transform:translateX(-50%);color:#5ff0ff}#legendIn i:nth-of-type(3){right:0}
 #bar{position:fixed;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--panel);border-top:2px solid var(--line);padding:4px 8px 6px}
+#barName,#barHint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:16px} /* one line each, so the bar height and the map stay fixed */
 #barName{max-width:100%;min-height:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:16px;text-align:center;color:var(--dim)}
 #barHint{max-width:100%;min-height:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:16px;text-align:center;color:var(--dim)}
 #barName.sel{color:var(--ink)}
@@ -160,7 +161,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 @media (max-height:360px){#hud{max-width:calc(100% - 16px);left:50%}#zoom{flex-direction:row;gap:4px}}
 /* portrait phone (short landscape is excluded, its rules above win): the 2 slot rows stack, and the zoom column floats at the right edge just above the bar (the bar is its positioned parent); the find toast keeps clear of that column */
 /* the slots stretch to fill the bar width; the max-width keeps the 4-slot row at the same slot width as the 5-slot row (4 gaps + the 8 px group margin = 24 px) */
-@media (max-width:600px) and (min-height:501px){#barRow{width:100%}#slots{flex-direction:column;align-items:stretch;gap:4px;width:100%}.row{justify-content:center}.slot{flex:1 1 0;width:auto;min-width:48px;max-width:calc((100% - 24px) / 5)}#barHint:empty{display:none}#findToast{left:calc(50% - 32px);max-width:calc(100% - 80px)}#zoom{position:absolute;top:auto;right:12px;bottom:100%;margin-bottom:10px;transform:none}}
+@media (max-width:600px) and (min-height:501px){#barRow{width:100%}#slots{flex-direction:column;align-items:stretch;gap:4px;width:100%}.row{justify-content:center}.slot{flex:1 1 0;width:auto;min-width:48px;max-width:calc((100% - 24px) / 5)}#findToast{left:calc(50% - 32px);max-width:calc(100% - 80px)}#zoom{position:absolute;top:auto;right:12px;bottom:100%;margin-bottom:10px;transform:none}}
 @media (max-width:600px){:root{--fs-body:14px}.sub{margin-bottom:16px}#report canvas,#debrief canvas:not(#dbThumbs canvas){height:80px}}
 </style>
 </head>

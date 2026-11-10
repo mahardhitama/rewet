@@ -32,7 +32,7 @@ const metaOf = (id, c) => id === 'plant' ? actionMeta(c, plantWeeks((2 * PLANT_R
 let hover = null;
 function showName() {
   const id = hover ?? armed, n = $('barName'), h = $('barHint');
-  const t = id ? BAR.name(ACTION_TEXT[id][0], metaOf(id, costOf(G, id))) : SELECT_HINT, how = id ? ACTION_TEXT[id][1] : '';
+  const t = id ? BAR.name(ACTION_TEXT[id][0], metaOf(id, costOf(G, id))) : SELECT_HINT[0], how = id ? ACTION_TEXT[id][1] : SELECT_HINT[1];
   if (n.textContent !== t) n.textContent = t;
   if (h.textContent !== how) h.textContent = how;
   n.classList.toggle('sel', !!id);

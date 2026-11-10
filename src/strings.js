@@ -67,19 +67,19 @@ export const R_NAMES = { rewet: 'Rewetting', reveg: 'Revegetation', revit: 'Revi
 // name, and the hint shown while the action is armed
 // [name, how-to text, short tag shown above the slot icon]
 export const ACTION_TEXT = {
-  tempBlock: ['Temp block', 'Temporary block: tap an open canal tile. Can wash out in the wet season.', 'Dam'],
-  permBlock: ['Perm block', 'Permanent block: tap a temporary block to make it permanent.', 'Dam+'],
-  backfill: ['Backfill', 'Backfill: tap a canal tile to fill it with peat. Removes the drainage.', 'Fill'],
-  well: ['Deep well', 'Deep well: fire crews within 3 tiles put fires out 2× faster.', 'Well'],
-  plant: ['Plant', 'Plant seedlings on a 5×5 patch around the tapped peat. You pay for each tile. They survive only at 0–40 cm water depth.', 'Plant'],
-  mound: ['Mound', 'Planting mound: raises a peat tile 20 cm, out of floodwater.', 'Mound'],
-  palud: ['Paludiculture', 'Paludiculture: tap a wet peat tile next to the village.', 'Farm'],
-  pond: ['Fish pond', 'Fish pond: tap an open canal tile upstream of a block.', 'Fish'],
-  fireGroup: ['Fire group', 'Fire-care group: tap a village tile. Spots fires, halves arson.', 'Watch'],
-  fireCrew: ['Fire crew', 'Fire crew: tap a burning tile. The crew stays until the fire is out.', 'Fire'],
+  tempBlock: ['Temp block', 'Tap canal. Floods can break it.', 'Dam'],
+  permBlock: ['Perm block', 'Makes a temp block permanent.', 'Dam+'],
+  backfill: ['Backfill', 'Fills a canal tile with peat.', 'Fill'],
+  well: ['Deep well', 'Crews in 3 tiles fight fire 2×.', 'Well'],
+  plant: ['Plant', 'Plants 5×5. Lives at 0–40 cm.', 'Plant'],
+  mound: ['Mound', 'Raises peat 20 cm over floods.', 'Mound'],
+  palud: ['Paludiculture', 'Tap wet peat by the village.', 'Farm'],
+  pond: ['Fish pond', 'Tap a canal upstream of a block.', 'Fish'],
+  fireGroup: ['Fire group', 'Tap the village. Halves arson.', 'Watch'],
+  fireCrew: ['Fire crew', 'Tap a fire. Stays until out.', 'Fire'],
 };
 export const actionMeta = (cost, weeks, perTile = false) => weeks === Infinity ? 'until out' : perTile ? `${cost}/tile · 1–${weeks}w` : `${cost} · ${weeks}w`; // perTile: weeks is the longest job
-export const SELECT_HINT = 'Pick an action, then tap a tile. Tap the action again to cancel.';
+export const SELECT_HINT = ['Pick an action, then tap a tile.', 'Tap the action again to cancel.']; // 2 lines, as the name and how-to lines of an action
 
 export const REASON = {
   busy: 'Work already under way here.',
