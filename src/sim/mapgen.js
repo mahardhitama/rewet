@@ -19,9 +19,11 @@ export function generateMap(level) {
   const n = level.size, m = level.map;
   const rng = mulberry32(level.seed ^ 0x3a9);
   const outlet = 'NESW'[Math.floor(rng() * 4)];
+  const rot = ROT[outlet](n);
+  // The terrain is not symmetric under rotation, so read the real surface at the rotated tile.
   const surf = createWorld({ w: n, h: n, seed: level.seed });
-  generateTerrain(surf, { microAmp: 0, tilt: 1, outlet: 'S' });
-  const zAt = ([x, y]) => surf.z[idx(n, x, y)];
+  generateTerrain(surf, { microAmp: 0, tilt: 1, outlet });
+  const zAt = (p) => { const [x, y] = rot(p); return surf.z[idx(n, x, y)]; };
   const tag = new Int32Array(n * n);
   const inMap = (x, y) => x >= 0 && y >= 0 && x < n && y < n;
   const tagAt = (x, y) => (inMap(x, y) ? tag[idx(n, x, y)] : 0);
@@ -119,7 +121,7 @@ export function generateMap(level) {
   const illegalCanals = [], cx = (n - 1) / 2;
   for (let c = 0; c < (m.illegal || 0); c++) {
     for (let k = 0; k < TRIES; k++) {
-      const x0 = rng() < 0.5 ? 0 : n - 1, y0 = Math.floor(rng() * Math.floor(n / 2)), len = ri(6, 10);
+      const x0 = rng() < 0.5 ? 0 : n - 1, y0 = 1 + Math.floor(rng() * (Math.floor(n / 2) - 1)), len = ri(6, 10);
       const step = Math.max(Math.abs(cx - x0), y0) || 1, ux = (cx - x0) / step, uy = -y0 / step;
       const path = [];
       for (let s = 0; s < len; s++) {
@@ -128,11 +130,11 @@ export function generateMap(level) {
         path.push([x, y]);
         tag[idx(n, x, y)] = -1 - c;
       }
-      if (path.length) { illegalCanals.push(path); break; }
+      if (path.length >= 6) { illegalCanals.push(path); break; }
+      for (const [x, y] of path) tag[idx(n, x, y)] = 0;
     }
   }
 
-  const rot = ROT[outlet](n);
   const rivers = m.river ? Array.from({ length: n }, (_, x) => rot([x, n - 1])) : [];
   return {
     canals: canals.flatMap((c) => c.tiles.map(rot)),

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateMap, resolveLevel } from '../src/sim/mapgen.js';
+import { createWorld, idx } from '../src/sim/world.js';
+import { generateTerrain } from '../src/sim/terrain.js';
 
 const L = { size: 30, seed: 11, map: { trunks: 3, branches: 2, meander: 0.2, river: true, villages: 1, illegal: 2 } };
 const SEEDS = Array.from({ length: 30 }, (_, i) => i + 1); // covers all four outlets
@@ -74,6 +76,19 @@ test('canal bed falls toward the outlet', () => {
   }
 });
 
+test('trunk bed is at or below the real smooth surface', () => {
+  const outlets = new Set();
+  for (const [l, m] of maps) {
+    outlets.add(m.terrain.outlet);
+    const w = createWorld({ w: l.size, h: l.size, seed: l.seed });
+    generateTerrain(w, { microAmp: 0, ...m.terrain });
+    m.canals.forEach(([x, y], i) => {
+      if (m.canalW[i] >= 6) assert.ok(m.canalZ[i] <= w.z[idx(l.size, x, y)] + 1e-9, `seed ${l.seed} tile ${x},${y}`);
+    });
+  }
+  assert.equal(outlets.size, 4);
+});
+
 test('canal sizes', () => {
   for (const [, m] of maps) m.canals.forEach((_, i) => {
     const w = m.canalW[i], dd = m.canalD[i];
@@ -101,7 +116,8 @@ test('villages and farms sit on the low half of the map; each farm touches a vil
   let farms = 0;
   for (const [l, m] of maps) {
     const d = dOut(l.size, m.terrain.outlet), village = new Set(m.villages.map(key));
-    const canal = new Set(m.canals.map(key));
+    const canal = new Set(m.canals.map(key)), trunk = new Set(trunkTiles(m).map(key));
+    for (const g of groups(m.villages)) assert.ok(g.some((t) => near8(t, trunk)), 'village touches a trunk');
     for (const t of [...m.villages, ...m.farms]) assert.ok(d(t) < l.size / 2);
     assert.ok(m.villages.length <= 9);
     for (const g of groups(m.farms)) {
@@ -117,7 +133,7 @@ test('illegal canals start on a map edge and touch no existing canal', () => {
   for (const [l, m] of maps) {
     const canal = new Set(m.canals.map(key)), n = l.size;
     for (const p of m.illegalCanals) {
-      assert.ok(p.length >= 1);
+      assert.ok(p.length >= 6 && p.length <= 10, `seed ${l.seed} length ${p.length}`);
       const [x, y] = p[0];
       assert.ok(x === 0 || y === 0 || x === n - 1 || y === n - 1, 'starts on an edge');
       assert.ok(p.every((t) => !near8(t, canal)));
