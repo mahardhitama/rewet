@@ -120,7 +120,7 @@ wt = clamp(wt, -0.3, 1.5)                               // standing water max 30
 |---|---|---|
 | < 0 | Flooded | Seedlings take drowning damage after 3 weeks. Paludiculture is fine. |
 | 0–0.40 | Wet, healthy | Can't burn. Seedlings survive. Counts toward the Rewetting goal. |
-| > 0.40 | Dry, degraded | Can burn. Seedlings die off slowly. Peat subsides. |
+| > 0.40 | Dry, degraded | Can burn. Seedlings die off; deeper water kills them faster. Peat subsides. |
 
 - **Threshold:** fire risk rises below 0.40 m (Ritzema 2014 p.2, citing Wösten et al. 2008). The Indonesian 0.4 m damage criterion (PP 57/2016, Art. 23) is **NOT SOURCED yet**; only secondary text has been seen.
 - **Subsidence:** `dz/yr (cm) = 0.1 × wt (cm)` when `wt > 0` (Ritzema 2014 p.2, citing Wösten & Ritzema 2001).
@@ -158,7 +158,7 @@ These are automated tests in `test/hydro.calibration.test.js`.
 | Rewetting | Permanent block | medium / 3 weeks | Upgrades a temporary block. `S_block_perm`. |
 | Rewetting | Backfill | high / 6 weeks | Canal tile becomes peat. Removes drainage. |
 | Rewetting | Deep well | low / 1 week | Fire crews within 3 tiles put fires out 2× faster. |
-| Revegetation | Plant seedlings | medium / 1 week | Seeds a 3×3 patch of peat around the tapped tile. Survive only at 0–0.40 m. Grow to full cover in about 2 years. |
+| Revegetation | Plant seedlings | medium / 1 week | Seeds a 3×3 patch of peat around the tapped tile. Grow only at 0–0.40 m. Grow to full cover in about 1.5 years, or 0.75 years next to a tree. Out of the band, stress builds and kills the seedling (section 8, item 11). |
 | Revegetation | Planting mound | low / 1 week | `z += 0.2` on one tile, which keeps seedlings out of floodwater. |
 | Revegetation | Natural regrowth | free | Cover spreads slowly into wet tiles next to cover ≥ 0.6. |
 | Revitalisation | Paludiculture | medium / 2 weeks | Needs a wet tile next to a village. +goodwill per year; income if the tile stays wet. |
@@ -279,3 +279,5 @@ scripts/sim-run.js  headless run of a level plus a plan file, printing 3R result
 8. **C2 transect (R9):** C2 uses a deep-canal override (`eqDry 2.5`, `eqWet 2.0`) on a 50 m-tile transect, so in-game water depths near a canal can differ from the paper's transect values.
 9. **Deferred (no plan task):** section 3 "bonus for each goal on track" funds, and section 4 score (hectares kept wet × years + a leftover-funds bonus). Not built.
 10. **Overlapping plant jobs (R32, accepted):** each pending plant job is charged when ordered; tile eligibility (peat, no seedling, cover < 1) is checked again when the job finishes, so a later job that overlaps an earlier one may seed fewer tiles. A tap with no eligible tile in its 3×3 is refused (`nothingToPlant`).
+11. **Seedling survival and nurse trees (R33):** players lost most seedlings planted in the wet season early in the dry season. Old: a seedling died after 12 ticks (3 weeks) in a row out of the 0–0.40 m band. New: each tick out of the band adds stress, and a seedling dies at stress 48. A flood adds 4 a tick (death in 3 weeks). A dry tile adds 1 a tick up to 0.5 m, then 10 for each metre of depth: 0.45 m kills in 12 weeks, 0.6 m in 6 weeks and 0.8 m in 3 weeks. One tick in the band clears the stress. A seedling next to a tile with cover ≥ 0.6 (canopy shade) grows 2 times faster and gets half the dry stress. All values are game values, NOT SOURCED. On fixture `test/fixtures/l1-reveg.json`, survival went from 160/190 to 183/190 and cover from 54% to 62% (2 stars, unchanged). The same plant taps with no blocks still fail level 1 (rewet 38%, fire loss).
+12. **Canal water fill (R33):** players could not see the water rise behind a block. Old: `CANAL.fillWet` 0.15 drew an open canal full to the bank in the wet season, the same as a blocked canal. New: `fillWet` 0.55 and `fillDry` 0.9. An open canal shows a narrow stream in the wet season and a near-empty bed in the dry season. A blocked stretch stays full to the bank, and its sprite draws a wet seep line on the bank. Game values, NOT SOURCED. `cWater` drives only the canal sprite and the fauna water test, not the water-table depth.
