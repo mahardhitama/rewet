@@ -1,11 +1,12 @@
 import { createGame, step } from './sim/game.js';
 import { TICKS_PER_YEAR } from './sim/season.js';
-import { checkEarlyLoss } from './sim/score.js';
+import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
-import { LINES, TOAST, SELECT, QUIT } from './strings.js';
+import { LINES, TOAST, SELECT, UPGRADES, QUIT } from './strings.js';
+import { browserStorage, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
@@ -19,16 +20,16 @@ export function ticksForFrame(dtMs, speed, carry) {
   return ticks > MAX_TICKS_PER_FRAME ? { ticks: MAX_TICKS_PER_FRAME, carry: 0 } : { ticks, carry: Math.max(0, acc - ticks) };
 }
 
-// Prototype wrapper kept until Task 13 replaces it with src/save.js.
-const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-                set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
 
 function boot() {
   const $ = id => document.getElementById(id);
   const cv = $('bg');
   initIntro(cv);
   const map = createMapView(cv);
-  setMuted(store.get('rewet_mute') === '1');
+  const storage = browserStorage;
+  let save = loadSave(storage);
+  setMuted(save.settings.mute);
+  const persist = next => { save = next; writeSave(storage, save); };
 
   const INTRO_END = 10.5;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -50,33 +51,60 @@ function boot() {
   function toMenu() {
     if (phase === 'menu') return;
     show('menu'); game = null;
-    $('bCont').disabled = !store.get('rewet_save');
-    (store.get('rewet_save') ? $('bCont') : $('bNew')).focus({ preventScroll: true });
+    $('bCont').disabled = !hasProgress(save);
+    (hasProgress(save) ? $('bCont') : $('bNew')).focus({ preventScroll: true });
   }
 
   // ---- level select
   function toLevelSelect() {
     show('levelSelect');
-    $('lsList').replaceChildren(...LEVELS.map(L => {
-      const b = document.createElement('button'), s = document.createElement('small');
-      b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`;
-      s.textContent = `${SELECT.years(L.years)} · ${L.teaches}`; b.append(s);
+    const items = LEVELS.map(L => {
+      const b = document.createElement('button'), s = document.createElement('small'), open = L.id <= save.unlocked;
+      b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`; b.disabled = !open;
+      s.textContent = open ? `${SELECT.best(save.stars[L.id] || 0)} · ${SELECT.years(L.years)} · ${L.teaches}` : SELECT.locked(L.id - 1);
+      b.append(s);
       b.onclick = () => { blip(880, 0.06); startLevel(L); };
       return b;
+    });
+    if (save.unlocked > MAX_LEVEL) {
+      const b = document.createElement('button'), s = document.createElement('small');
+      b.className = 'btn'; b.textContent = SELECT.sandbox; s.textContent = SELECT.sandboxNote; b.append(s);
+      b.onclick = () => { blip(880, 0.06); startSandbox(); };
+      items.push(b);
+    }
+    $('lsList').replaceChildren(...items);
+    renderUpgrades();
+    ($('lsList').querySelector('button:not(:disabled)')).focus({ preventScroll: true });
+  }
+  function renderUpgrades() {
+    $('lsStars').textContent = SELECT.stars(availableStars(save));
+    $('lsUpList').replaceChildren(...Object.entries(UPGRADE_COST).map(([id, cost]) => {
+      const b = document.createElement('button'), s = document.createElement('small'), own = save.upgrades[id];
+      b.className = 'btn'; b.textContent = UPGRADES[id][0]; b.dataset.id = id;
+      s.textContent = `${own ? SELECT.owned : SELECT.buy(cost)} · ${UPGRADES[id][1]}`; b.append(s);
+      b.disabled = !!own || availableStars(save) < cost;
+      b.onclick = () => { const r = buyUpgrade(save, id); if (r.error) return; blip(1100, 0.08); persist(r); renderUpgrades(); };
+      return b;
     }));
-    $('lsList').firstChild.focus({ preventScroll: true });
+  }
+  function startSandbox() {
+    const L = { ...LEVELS[MAX_LEVEL - 1], id: MAX_LEVEL + 1, name: SELECT.sandbox, sandbox: true, seed: Math.floor(Math.random() * 2 ** 31) };
+    startLevel(L);
+    if (map.mode !== 'data') map.toggleMode();
   }
 
   // ---- level
   function startLevel(level) {
-    game = createGame(level, {}, buildLevelWorld(level));
+    game = createGame(level, level.sandbox ? {} : save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave();
+    if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode() });
     show('level');
   }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
   function toDebrief() {
     showDebrief(game); // evaluate() decides loss itself
+    if (!game.level.sandbox) persist(recordResult(save, game.level.id, evaluate(game).stars));
     show('debrief'); $('dbMenu').focus({ preventScroll: true });
   }
   function tickLevel(dt) {
@@ -139,12 +167,12 @@ function boot() {
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
   document.querySelectorAll('.btn').forEach(b => { b.addEventListener('mouseenter', () => !b.disabled && blip(660, 0.03)); b.addEventListener('click', () => blip(880, 0.06)); });
   $('bNew').onclick = toLevelSelect;
-  $('bCont').onclick = () => toast(store.get('rewet_save') ? TOAST.continueLater : TOAST.noSave);
+  $('bCont').onclick = () => hasProgress(save) ? toLevelSelect() : toast(TOAST.noSave);
   $('bSet').onclick = () => { $('snd').checked = !isMuted(); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
-  $('snd').onchange = e => { setMuted(!e.target.checked); store.set('rewet_mute', isMuted() ? '1' : '0'); blip(1320, 0.08); };
+  $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
-  $('bReset').onclick = () => { store.set('rewet_save', null); $('bCont').disabled = true; toast(TOAST.saveDeleted); };
+  $('bReset').onclick = () => { clearSave(storage); save = structuredClone(DEFAULT_SAVE); setMuted(false); $('snd').checked = true; $('bCont').disabled = true; toast(TOAST.saveDeleted); };
   $('lsTitle').textContent = SELECT.title; $('lsBack').textContent = SELECT.back;
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };

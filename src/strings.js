@@ -3,11 +3,25 @@ export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals draine
 
 export const TOAST = {
   noSave: 'No save.',
-  continueLater: 'Continue arrives with saving. Start a new game for now.',
   saveDeleted: 'Save deleted.',
 };
 
-export const SELECT = { title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}` };
+export const SELECT = {
+  title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}`,
+  locked: n => `Locked: restore site ${n} first`,
+  best: n => (n ? '★'.repeat(n) + '☆'.repeat(3 - n) : '☆☆☆'),
+  upTitle: 'Upgrades',
+  stars: n => `Stars available: ${n}`,
+  owned: 'Owned',
+  buy: cost => `Buy · ★${cost}`,
+  sandbox: 'Sandbox', sandboxNote: 'Random site, no pass mark, data view on',
+};
+
+export const UPGRADES = {
+  crew: ['Extra crew', 'One more work crew on every site.'],
+  cheapBlocks: ['Cheaper blocks', 'Blocks cost 25% less.'],
+  fastCrew: ['Fast fire crews', 'Fire crews put fires out faster.'],
+};
 
 export const HUD = {
   time: (year, years, wet, week) => `Year ${year}/${years} · ${wet ? 'Wet' : 'Dry'} season · wk ${week}`,
@@ -83,6 +97,12 @@ export const DEBRIEF = {
     goodwill: 'Keep fire away from the village and build ponds, fire groups and paludiculture.',
   },
   menu: 'Menu',
+  sandbox: 'Sandbox: figures only, no pass mark.',
+  figures: r => [
+    `Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season.`,
+    `Revegetation: forest cover is ${r.coverPct.toFixed(0)}%.`,
+    `Revitalisation: village goodwill is ${r.goodwill.toFixed(0)}.`,
+  ],
 };
 
 // keyed by evaluate().hints

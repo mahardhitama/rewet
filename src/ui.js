@@ -138,16 +138,17 @@ function thumb(cv, w, h, wt) {
 export function showDebrief(game) {
   const r = evaluate(game), loss = r.loss, p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
   $('dbTitle').textContent = DEBRIEF.title;
-  $('dbStars').textContent = DEBRIEF.stars(r.stars);
-  $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
+  const sb = game.level.sandbox; // sandbox: figures only, no pass verdict
+  $('dbStars').textContent = sb ? '' : DEBRIEF.stars(r.stars);
+  $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : sb ? DEBRIEF.sandbox : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;
   $('dbGoalsTitle').textContent = DEBRIEF.goalsTitle;
-  lines($('dbGoals'), DEBRIEF.goals(r, p));
+  lines($('dbGoals'), sb ? DEBRIEF.figures(r) : DEBRIEF.goals(r, p));
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
   lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(alive(game, plantedAll), plantedAll.size)]);
   // one hint: the early-loss cause, else the first unmet goal
-  $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
+  $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
   $('dbMenu').textContent = DEBRIEF.menu;
 }
