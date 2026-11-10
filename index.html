@@ -25,7 +25,7 @@ h1{display:flex;justify-content:center;white-space:nowrap;font-family:Silkscreen
 .sub{display:inline-block;font-size:var(--fs-body);color:var(--dim);background:var(--panel);padding:2px 8px;margin:8px 0 24px}
 .btn{width:100%;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:8px 12px;min-height:44px;margin-bottom:8px;cursor:pointer}
 .t{min-width:0}
-.tree{visibility:hidden}
+.tree{visibility:hidden;color:var(--c-score)}
 .tree svg,.pic svg{display:block}
 :is(.btn,.jb,#findOpen,#skip):hover:not(:disabled) .tree,:is(.btn,.jb,#findOpen,#skip):focus-visible .tree{visibility:visible}
 .btn:hover:not(:disabled),.btn:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
@@ -100,7 +100,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 .slot.on{border-color:var(--accent);border-top-color:var(--c);color:var(--accent)}
 .slot.poor small{color:#c0583a}
 /* 10 slots of 64 px need 700 px, so the 48 px slots go up to 719 px wide */
-@media (max-width:719px),(max-height:500px){.slot{width:48px;height:60px;gap:1px;font-size:12px}.slot svg{width:24px;height:24px}}
+@media (max-width:719px),(max-height:500px){.slot{width:48px;height:60px;gap:1px;font-size:12px}}
 #zoom{flex:none;position:fixed;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
 #zoom button{width:44px;height:44px;font-family:Silkscreen,monospace;font-size:var(--fs-label);white-space:nowrap;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:0;cursor:pointer}
 #zoom button:hover{border-color:var(--accent);color:var(--accent)}
@@ -148,9 +148,8 @@ dialog p{margin:6px 0;color:var(--dim)}
    under 1340 px, and in short landscape, the labels hide too. */
 @media (max-width:1759px),(max-height:500px){.hb .t{display:none}}
 @media (max-width:1339px),(max-height:500px){.part .l{display:none}.part{padding:0 4px}.sep{margin-left:4px}}
-@media (max-height:500px){.part svg{width:12px;height:12px}} /* one row between the left edge and the zoom column at 844 px */
 /* the HUD is 2 rows (parts, then buttons) up to 860 px wide: one row needs 834 px. Short landscape keeps the 800 px limit, because its row is smaller. Under 480 px the parts wrap to 2 lines. */
-@media (max-width:860px) and (min-height:501px),(max-width:800px){#hud{grid-template-columns:auto;max-width:calc(100% - 8px);padding:4px 0}.sep{display:none}#hudBtns{justify-self:center}.part{gap:2px;padding:0 2px}.part svg{width:12px;height:12px}}
+@media (max-width:860px) and (min-height:501px),(max-width:800px){#hud{grid-template-columns:auto;max-width:calc(100% - 8px);padding:4px 0}.sep{display:none}#hudBtns{justify-self:center}.part{gap:2px;padding:0 2px}}
 /* the dividers go, so a wrapped part shows no divider at a line start */
 @media (max-width:480px){#hudRow{flex-wrap:wrap;justify-content:center;gap:4px 8px}.part{border-left:0}}
 @media (max-height:500px) and (min-width:601px){#hud{max-width:calc(100% - 80px);left:calc(50% - 32px)}}
@@ -189,8 +188,9 @@ dialog p{margin:6px 0;color:var(--dim)}
 </dialog>
 <dialog id="dCred">
   <h2>Credits</h2>
-  <p>Prototype. All art and sound generated in code.</p>
+  <p>Prototype. Map art and sound generated in code.</p>
   <p>Font: Silkscreen (Google Fonts).</p>
+  <p>Icons: pixelarticons by Gerrit Halfmann (MIT).</p>
   <form method="dialog"><button class="btn">Close</button></form>
 </dialog>
 <div id="levelSelect" hidden>

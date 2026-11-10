@@ -59,10 +59,12 @@ Success criteria:
 
 ## 3. Icons (`src/icons.js`, new)
 
-- Each icon is a 12×12 pixel grid, stored as data: a list of strings, one string per row, with one character per pixel. A space is clear; other characters are colours (the text colour, or a fixed colour).
-- `icon(name, size)` returns an inline `<svg>` element with `shape-rendering="crispEdges"`, `aria-hidden="true"` and one `<rect>` for each run of pixels in a row. The fill is `currentColor` unless the icon fixes a colour.
+- Each icon comes from pixelarticons 2.4.2 (MIT, Gerrit Halfmann). It is a 24×24 pixel grid, stored as the SVG path data of the icon. The Credits dialog names the set. (Changed by the user on 2026-11-10; the first version used 12×12 grids drawn for the game.)
+- A game action with no match in the set uses the nearest icon: `tempBlock` box, `permBlock` wall, `backfill` flatten, `well` waves-arrow-up, `mound` tent, `palud` tree-pine, `fireCrew` shield. `src/icons.js` names the source icon of each entry.
+- `icon(name)` returns an inline 24×24 CSS px `<svg>` element with `shape-rendering="crispEdges"`, `aria-hidden="true"` and one `<path>`. The fill is `currentColor`.
+- Each icon shows at 24 CSS px, on every screen. Then each icon pixel is a whole number of screen pixels at 1×, 2× and 3×.
 - Icons: `time`, `funds`, `crew`, `goodwill`, `wet`, `score`, `pause`, `play`, `fast`, `data`, `journal`, the 10 actions (`tempBlock`, `permBlock`, `backfill`, `well`, `plant`, `mound`, `palud`, `pond`, `fireGroup`, `fireCrew`), `zoomIn`, `zoomOut`, `fit`, `new`, `continue`, `settings`, `credits`, `back`, `close`, `sound`, `replay`, `delete`, `level`, `sandbox`, `upgrade`, `menu` and `tree`.
-- Icons are art. They need no source.
+- Icons are art. They need no source for real-world values. The licence of the icon set is MIT.
 - No image files. No new dependencies.
 
 ## 4. Top bar (`#hud`, `src/ui.js`, `src/strings.js`)
@@ -82,7 +84,7 @@ Success criteria:
   - Up to 860 px wide, the HUD is 2 rows: the parts, then the buttons. Short landscape (max-height 500px) keeps one row above 800 px, because its row is smaller.
   - Under 480 px, the parts wrap to a second line and the dividers hide.
 - At every width from 320 to 1920 px, `#hud` has `scrollWidth <= clientWidth` and the Journal button is on the screen.
-- On a phone, the part icons are 12 px, and the gap and the padding are 2 px. This is an exception to the 4 px scale in section 2: the 6 parts need 366 px at 390 px.
+- On a phone, the gap and the padding of the parts are 2 px. This is an exception to the 4 px scale in section 2. With 24 px icons, the parts wrap to 2 lines at 390 px.
 - `#hud` is a grid, so the legend can sit under the row.
 
 ## 5. Action bar (`#bar`, `src/ui.js`)
@@ -90,7 +92,7 @@ Success criteria:
 - 10 square slots, centred, in group order: Rewetting (3), Revegetation (2), Revitalisation (3), Defence (2). There are no group tabs and no sideways scroll.
 - Desktop and short landscape: one row. Portrait phone (max-width 600px and min-height 501px): 2 rows of 5. Row 1 is Rewetting and Revegetation. Row 2 is Revitalisation and Defence.
 - Slot size: 64×64 CSS px on desktop, 44×44 CSS px at max-width 719px or max-height 500px (10 slots of 64 px need 700 px). 5 slots of 44 px fit at 320 px.
-- A slot shows the action icon at 2× (24 px) or 3× (36 px) and the cost under it in `--fs-label`. The slot has `aria-label` with the name, the cost and the weeks.
+- A slot shows the action icon at 24 px and the cost under it in `--fs-label`. The slot has `aria-label` with the name, the cost and the weeks.
 - The 4 groups (Rewetting, Revegetation, Revitalisation, Defence) show as a thin colour line above their slots and a small group gap between groups. The group name is in each slot's accessible name.
 - A name line above the slots shows the name of the hovered, focused or selected action, in `--fs-label`. The how-to text of that action shows on a second line under it, in `--fs-label` and the dim colour. When no action is selected, the name line shows the existing hint text.
 - The selected slot has the accent border. A slot that the player cannot afford keeps the `poor` style on its cost.
