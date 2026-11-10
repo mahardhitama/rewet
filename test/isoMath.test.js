@@ -108,6 +108,7 @@ test('a portrait phone opens one zoom step in; other windows open at fit', () =>
   assert.equal(keepStep([0.49, 1, 2, 3], null, false, 1), 1);
   assert.equal(keepStep([3.5], null, false, 1), 3.5); // no step above fit: open at fit
   assert.equal(keepStep([0.49, 1, 2, 3], 1, false, 1), 1); // the open step applies only to a new view
+  assert.equal(keepStep([0.29, 1, 2, 3], null, false, 1), 0.29); // a big map (L6): step 1 is 3.5x fit, over OPEN_CAP, so it opens at fit
 });
 
 test('portrait 390x844: the map is wider with no side inset (zoom buttons in the action bar)', () => {

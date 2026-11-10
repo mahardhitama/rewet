@@ -123,7 +123,7 @@ Vegetation types: `NONE`, `FERN`, `SEEDLING`, `SHRUB`, `TREE`. The type is not s
 - The canvas buffer equals the window size divided by the zoom scale, as now. The buffer has the window aspect ratio, so `object-fit: cover` cuts off less than 1 buffer pixel. `object-fit` stays.
 - `fitScale(innerW, innerH, w, h)` returns the scale at which the full map box (plus `PAD`) fits in the window, below the HUD and above the action bar. The scale can be a fraction below 1. The pixel art then loses pixels at fit. This is accepted. At a whole-number scale, the art stays sharp.
 - Zoom steps: the fit scale, then 1, 2, 3 and 4. The level opens at the fit scale, except on a portrait phone.
-- Portrait phone: the window is 600 CSS px wide or less, and taller than it is wide. On a portrait phone, the level opens one zoom step in (`openStep()` in `isoMath.js`). The user approved this rule in Task 8.
+- Portrait phone: the window is 600 CSS px wide or less, and taller than it is wide. On a portrait phone, the level opens one zoom step in (`openStep()` in `isoMath.js`). The user approved this rule in Task 8. When that step is more than 2.5 times the fit scale (`OPEN_CAP`), the level opens at fit, so a big map (Level 6) shows all of the map first. The user asked for this cap.
   - Why: the window width limits the 2:1 map. At the fit scale on a 390 px wide phone, a tile is too small to tap. One step in gives tiles that a player can tap at once.
   - The `ALL` button and the `0` key go back to the fit scale.
 - On a phone (600 CSS px wide or less), the zoom buttons are in the action bar, not in a column at the right edge. The map then uses the full window width at the fit scale.

@@ -38,8 +38,13 @@ export const nearestStep = (steps, scale) => steps.reduce((a, b) => Math.abs(b -
 
 // The fit value is a float that changes with the insets and the window size, so a view at fit must follow it, not snap to an integer step.
 // A new view (scale null) opens at steps[open], or at the last step when fewer steps exist.
-export const keepStep = (steps, scale, wasFit, open = 0) =>
-  scale == null ? steps[Math.min(open, steps.length - 1)] : wasFit ? steps[0] : nearestStep(steps, scale);
+// It opens at fit when that step is more than OPEN_CAP times fit: on a big map, the player then sees the whole map first.
+export const OPEN_CAP = 2.5;
+export const keepStep = (steps, scale, wasFit, open = 0) => {
+  if (scale != null) return wasFit ? steps[0] : nearestStep(steps, scale);
+  const s = steps[Math.min(open, steps.length - 1)];
+  return s > OPEN_CAP * steps[0] ? steps[0] : s;
+};
 
 // Index of the zoom step a level opens at. A portrait phone opens one step in: at fit, its tiles are too small to tap.
 export const PHONE_W = 600; // CSS px, the same breakpoint as the phone layout in index.html
