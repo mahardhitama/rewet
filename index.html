@@ -19,6 +19,8 @@ html,body{margin:0;height:100%;background:#0e0d0b;color:var(--ink);font-family:S
 #skip:hover,#skip:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
 #menu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;min-width:min(360px,calc(100% - 32px));max-width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .8s,visibility .8s}
 #menu.on{opacity:1;visibility:visible;pointer-events:auto}
+#ver{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);font-size:var(--fs-label);color:var(--dim);background:var(--panel);padding:2px 8px;opacity:0;transition:opacity .8s;pointer-events:none}
+#menu.on+#ver{opacity:1}
 h1{display:flex;justify-content:center;white-space:nowrap;font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-title);margin:0;line-height:1;letter-spacing:2px;color:var(--ink);text-shadow:0 4px 0 #2d4a24}
 .sub{display:inline-block;font-size:var(--fs-body);color:var(--dim);background:var(--panel);padding:2px 8px;margin:8px 0 24px}
 .btn{width:100%;font-family:Silkscreen,monospace;font-size:var(--fs-label);color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:8px 12px;min-height:44px;margin-bottom:8px;cursor:pointer}
@@ -174,6 +176,7 @@ dialog p{margin:6px 0;color:var(--dim)}
   <button class="btn" id="bCred">Credits</button>
   <div id="menuStats"></div>
 </nav>
+<div id="ver">v0.1.0</div>
 
 <dialog id="dSet">
   <h2>Settings</h2>
