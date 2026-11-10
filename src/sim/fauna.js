@@ -68,11 +68,12 @@ export function faunaTick(g) {
   }
 
   // spawn: one per species per call, up to the target
+  let peat = 0;
+  for (let i = 0; i < n; i++) if (wd.kind[i] === KIND.PEAT) peat++;
   for (const { id, rule, cap, share } of FAUNA) {
-    let s = 0, have = 0, peat = 0;
+    let s = 0, have = 0;
     const all = [], pref = [];
     for (let i = 0; i < n; i++) {
-      if (wd.kind[i] === KIND.PEAT) peat++;
       if (hot[i] || !rule(g, i)) continue;
       s++; all.push(i);
       if (i % w === 0 || i % w === w - 1 || i < w || i >= n - w || cover[i] >= 0.85) pref.push(i);

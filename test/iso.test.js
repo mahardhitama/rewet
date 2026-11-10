@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS, vegVariant, nearestHit, hitRadius } from '../src/render/iso.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS } from '../src/render/iso.js';
 import { KIND } from '../src/sim/world.js';
+import { SPECIES } from '../src/journal.js';
 
 test('downstream picks the lowest lower canal or river neighbour', () => {
   const C = KIND.CANAL, P = KIND.PEAT, R = KIND.RIVER;
@@ -99,4 +100,8 @@ test('hitRadius never falls below the sprite reach', () => {
   assert.equal(hitRadius(1), 22);
   assert.equal(hitRadius(2), 11);
   assert.equal(hitRadius(3), 9); // 22 / 3 = 7.3 is below the 8 px reach of the sprite from its centre
+});
+
+test('ANIMALS has one sprite for each journal species', () => {
+  assert.deepEqual(Object.keys(ANIMALS).sort(), SPECIES.map(s => s.id).sort());
 });

@@ -38,11 +38,12 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
   function contents(kind) {
     const p = el('section', 'jPage'), list = kind === 'cc' ? CONCEPTS : SPECIES;
     p.append(el('h3', '', kind === 'cc' ? T.contentsConcepts : T.contentsWildlife));
-    for (const e of list) {
+    list.forEach((e, k) => {
       const b = el('button', 'jc', SPECIES.includes(e) ? (has.has(e.id) ? e.name : `${T.unknown} ${T.notFound}`) : e.title);
+      if (SPECIES.includes(e) && !has.has(e.id)) b.setAttribute('aria-label', T.hidden(k + 1, list.length)); // 11 buttons need 11 names
       b.dataset.go = e.id; b.type = 'button';
       p.append(b);
-    }
+    });
     return p;
   }
 

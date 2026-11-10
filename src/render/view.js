@@ -8,7 +8,7 @@ const WHEEL_MS = 150; // a trackpad sends many wheel events for one gesture: at 
 
 export function createMapView(cv) {
   const ctx = cv.getContext('2d');
-  let ptr = null, down = null, hits = []; // animal hit list of the last frame; last pointer client pos; drag start
+  let ptr = null, down = null, hits = []; // last pointer client pos; drag start; animal hit list of the last frame
   const touches = new Map(); let pinch = 0, lastWheel = -Infinity, world = null; // active pointers; pinch distance at the last zoom step
   const gap = () => { const [a, b] = touches.values(); return Math.hypot(a.x - b.x, a.y - b.y); };
   // CSS px that the HUD, the action bar and the zoom buttons cover. A hidden element has a 0 px box.
@@ -63,7 +63,7 @@ export function createMapView(cv) {
       ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, cv.width, cv.height);
       hits = drawWorld(ctx, game, v.cam, v.mode, v.hover, now);
     },
-    leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; touches.clear(); pinch = 0; },
+    leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; hits = []; touches.clear(); pinch = 0; },
     // Arrow keys pan; returns true when the key was used.
     key(e) {
       const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];

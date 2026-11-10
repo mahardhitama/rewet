@@ -264,7 +264,7 @@ function buildCache() {
 // ---- wildlife: one 16x16 sprite per species, drawn once from a character grid (one letter per pixel, '.' is empty).
 // The art sits at the bottom centre of the canvas, so the feet are at the tile centre. The silhouette is the same shape in one dark colour.
 const AS = 16, SILHOUETTE = '#4a4338';
-const ANIMALS = {
+export const ANIMALS = {
   orangutan: { pal: { o: '#c8622a', O: '#e8863c', f: '#dca468', m: '#a8754a', k: '#1c120c' }, rows: [
     '...oooooo...',
     '..oOOoooOo..',

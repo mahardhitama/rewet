@@ -8,8 +8,6 @@ export const TOAST = {
 
 export const SELECT = {
   title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}`,
-  locked: n => `Locked: restore site ${n} first`,
-  lockMark: 'Locked', // visible on a locked row; the full text is in the label
   best: n => (n ? '★'.repeat(n) + '☆'.repeat(3 - n) : '☆☆☆'),
   upTitle: 'Upgrades',
   stars: n => `Stars available: ${n}`,
@@ -137,6 +135,7 @@ export const JOURNAL = {
   pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
   contentsConcepts: 'Contents: ideas', contentsWildlife: 'Contents: wildlife',
   found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
+  hidden: (k, n) => `Unknown species ${k} of ${n}, not found yet`,
   status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
   statusLabel: 'IUCN status', sources: 'Sources', hint: 'Left and Right arrows turn pages. Esc closes.',
 };
