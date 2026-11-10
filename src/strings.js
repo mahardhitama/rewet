@@ -153,6 +153,8 @@ export const HINTS = {
 
 export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
 
+export const INTRO = { skip: 'Skip' };
+
 export const MENU = {
   label: 'Progress',
   stars: (x, n) => ['Stars', `${x} of ${n}`],

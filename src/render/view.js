@@ -21,14 +21,14 @@ export function createMapView(cv) {
   if (hud && bar && zoomEl) { const ro = new ResizeObserver(measure); [hud, bar, zoomEl].forEach(el => ro.observe(el)); addEventListener('resize', measure); }
   const toBuffer = (cx, cy) => clientToBuffer(cx, cy, cv.getBoundingClientRect(), cv.width, cv.height);
   const v = {
-    mode: 'normal', hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the step from openStep()
+    mode: 'normal', whole: false, hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the step from openStep()
     wasDrag: false, // true from the moment the current/last press became a drag; Task 12 click handler skips it
     // Size the canvas for the level screen; pan is re-clamped and the zoom step re-checked on every resize/rotation.
     fit(wd) {
       world = wd;
       const wasFit = v.scale === v.steps[0];
       v.steps = zoomSteps(fitScale(innerWidth, innerHeight, world.w, world.h, ins));
-      v.scale = keepStep(v.steps, v.scale, wasFit, openStep(innerWidth, innerHeight));
+      v.scale = v.whole ? v.steps[0] : keepStep(v.steps, v.scale, wasFit, openStep(innerWidth, innerHeight)); // whole: the menu and the intro show the full map
       const c = cameraFor(innerWidth, innerHeight, world.w, world.h, v.pan, v.scale, ins);
       if (cv.width !== c.bw || cv.height !== c.bh) { cv.width = c.bw; cv.height = c.bh; }
       v.cam = c; v.pan = c.pan;
@@ -59,9 +59,9 @@ export function createMapView(cv) {
     toggleMode() { v.mode = v.mode === 'data' ? 'normal' : 'data'; },
     draw(game, now) {
       v.fit(game.world);
-      v.hover = ptr ? v.pickTile(ptr) : null; // re-picked every frame, so pan/resize keep it accurate
+      v.hover = ptr && !v.whole ? v.pickTile(ptr) : null; // re-picked every frame, so pan/resize keep it accurate
       ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, cv.width, cv.height);
-      hits = drawWorld(ctx, game, v.cam, v.mode, v.hover, now);
+      hits = drawWorld(ctx, game, v.cam, v.whole ? 'normal' : v.mode, v.hover, now);
     },
     leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; hits = []; touches.clear(); pinch = 0; },
     // Arrow keys pan; returns true when the key was used.

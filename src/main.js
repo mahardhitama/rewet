@@ -4,9 +4,9 @@ import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
 import { blip, setMuted, isMuted } from './audio.js';
-import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
+import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
-import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
+import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
 import { icon, withIcon, setText } from './icons.js';
@@ -27,7 +27,6 @@ export function ticksForFrame(dtMs, speed, carry) {
 function boot() {
   const $ = id => document.getElementById(id);
   const cv = $('bg');
-  initIntro(cv);
   const map = createMapView(cv);
   const storage = browserStorage;
   let save = loadSave(storage);
@@ -36,7 +35,9 @@ function boot() {
 
   const INTRO_END = 10.5;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let phase, t0, h = 0, shown = -1, shift = 0, last = null;
+  let phase, t0, h = 0, shown = -1, last = null, story = null;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const newStory = () => { story = buildStory(Math.floor(Math.random() * 2 ** 31)); map.leave(); };
   let game = null, paused = false, speed = 1, carry = 0;
 
   // phase is one of intro | menu | levelSelect | level | yearReport | debrief
@@ -51,11 +52,11 @@ function boot() {
     $('debrief').hidden = p !== 'debrief';
     $('findToast').hidden = true;
   }
-  function startIntro() { t0 = performance.now(); h = 0; shown = -1; smoke.length = 0; show('intro'); }
+  function startIntro() { t0 = performance.now(); h = 0; shown = -1; newStory(); show('intro'); }
   function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)], { label: MENU.label }); }
   function toMenu() {
     if (phase === 'menu') return;
-    show('menu'); game = null;
+    show('menu'); game = null; map.leave(); // leave: a level's pan must not carry into the menu
     $('bCont').disabled = !hasProgress(save);
     menuStats();
     (hasProgress(save) ? $('bCont') : $('bNew')).focus({ preventScroll: true });
@@ -144,12 +145,11 @@ function boot() {
     } else h += (1 - h) * 0.04;
     if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
     if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
-    shift += ((phase === 'menu' && innerWidth > 600 ? 1 : 0) - shift) * 0.05;
-    // Level screens resize the canvas to the window (view.js); everything else keeps the intro's 320x180 buffer.
-    if (game && ['level', 'yearReport', 'debrief'].includes(phase)) map.draw(game, now);
+    // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
+    if (game && ['level', 'yearReport', 'debrief'].includes(phase)) { map.whole = false; map.draw(game, now); }
     else {
-      if (cv.width !== BW || cv.height !== BH) { cv.width = BW; cv.height = BH; map.leave(); }
-      drawWorld(h, now, shift);
+      if (!story) newStory(); // first frame with reduced motion
+      map.whole = true; storyAt(story, h); map.draw(story.game, now);
     }
     requestAnimationFrame(frame);
   }
@@ -171,6 +171,7 @@ function boot() {
     else if (e.key === '0') map.zoom(0);
   });
   $('skip').onclick = toMenu;
+  $('skip').textContent = INTRO.skip;
   reduce ? (phase = 'intro', toMenu(), h = 1) : startIntro();
   requestAnimationFrame(frame);
 
