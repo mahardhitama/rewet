@@ -59,7 +59,7 @@ Rules:
 ## 4. Vegetation variants (render)
 
 - 4 variants for each of `FERN`, `SEEDLING`, `SHRUB` and `TREE`. Tree variants: a tall emergent tree with a high crown, a broad round crown, a pandan-like form with long leaves, and a young tree.
-- `variant = hash(i) % 4`. The sprite cache grows from 8 to 16 vegetation sprites.
+- `variant = floor(hash(i) × 4)`, where `hash(i)` is in [0, 1). The sprite cache grows from 8 to 16 vegetation sprites.
 - Plant forms are art. They do not claim a species, so they need no source.
 
 ## 5. All levels open
