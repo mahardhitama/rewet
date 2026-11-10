@@ -7,6 +7,7 @@ const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
+const tileVariant = i => Math.floor(hash(i + .37) * 4) % 4; // ground art variant, not linked to the plant variant
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
 const FLAME = ['#c8321e', '#f08a2c', '#ffd25a', '#fff1b0'], CHAR = '#3a2a22', SMOKE = [205, 200, 192]; // flame layers, outer to core
@@ -90,13 +91,47 @@ function block(g, sx, sy, top, depth) {
 // Peat texture: 2 px dashes in a dark and a light shade, plus a few pale fibre specks.
 function texture(g, sx, sy, top, seed) {
   const dark = rgb(mix(top, BLACK, .14)), light = rgb(mix(top, WHITE, .1)), fibre = rgb(mix(DRY, WHITE, .3));
-  for (let r = 0; r < TH; r++) for (let dx = -rowW(r); dx < rowW(r) - 1; dx += 2) {
+  for (let r = 0; r < TH; r++) for (let dx = -rowW(r) + (r & 1); dx < rowW(r) - 1; dx += 2) { // odd rows start 1 px later: no straight speck columns
     const v = hash(seed * 997 + r * 61 + dx);
-    if (v < .2) g.fillStyle = dark; else if (v > .9) g.fillStyle = light; else continue;
+    if (v < .17) g.fillStyle = dark; else if (v > .92) g.fillStyle = light; else continue;
     g.fillRect(sx + dx, sy + r, v > .985 ? 1 : 2, 1);
     if (v > .985) { g.fillStyle = fibre; g.fillRect(sx + dx + 1, sy + r, 1, 1); }
   }
 }
+// Dry peat cracks: short zigzag lines along the 2 tile axes. n: number of cracks.
+function cracks(g, sx, sy, top, seed, n) {
+  g.fillStyle = rgb(mix(top, BLACK, .32));
+  for (let c = 0; c < n; c++) {
+    let a = 4 + hash(seed * 13 + c) * 8, b = 4 + hash(seed * 29 + c) * 8; // start point in ground units
+    for (let k = 0, ax = hash(seed + c * 7) < .5; k < 5; k++) {
+      const px = Math.round(a - b), py = Math.round((a + b) / 2);
+      if (Math.abs(px) < rowW(py) - 1) g.fillRect(sx + px, sy + py, 2, 1);
+      if (ax) a += 1.2; else b += 1.2;
+      if (hash(seed * 5 + c * 11 + k) < .4) ax = !ax; // a turn gives the zigzag
+    }
+  }
+}
+// Each pixel of the tile top, in ground units (a, b) in [0, 16]. f(a, b) returns a colour or null.
+function eachTop(g, sx, sy, f) {
+  for (let r = 0; r < TH; r++) for (let dx = -rowW(r); dx < rowW(r); dx++) {
+    const c = f(r + (dx + .5) / 2, r - (dx + .5) / 2);
+    if (c) { g.fillStyle = c; g.fillRect(sx + dx, sy + r, 1, 1); }
+  }
+}
+// A stilt house. (hx, hy): the left foot. hw: wall width. roof: [main, eave shadow].
+function house(g, hx, hy, hw, roof, wall = '#d8c69a') {
+  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(hx, hy + 1, hw + 2, 1); // shadow on the ground
+  g.fillStyle = '#3a2a1e'; g.fillRect(hx + 1, hy - 1, 1, 2); g.fillRect(hx + hw - 2, hy - 1, 1, 2); // stilts
+  g.fillStyle = wall; g.fillRect(hx, hy - 6, hw, 5);
+  g.fillStyle = rgb(mix(hexRgb(wall), BLACK, .2)); g.fillRect(hx + hw - 2, hy - 6, 2, 5); // the shaded end
+  g.fillStyle = roof[0]; g.fillRect(hx - 2, hy - 10, hw + 4, 4); g.fillRect(hx, hy - 12, hw, 2);
+  g.fillStyle = rgb(mix(hexRgb(roof[0]), WHITE, .2)); g.fillRect(hx, hy - 12, hw, 1); // ridge light
+  g.fillStyle = roof[1]; g.fillRect(hx - 2, hy - 7, hw + 4, 1);
+  g.fillStyle = '#3a2a1e'; g.fillRect(hx + (hw >> 1) - 1, hy - 4, 2, 3); // door
+  if (hw > 8) { g.fillStyle = '#5a4630'; g.fillRect(hx + 2, hy - 5, 2, 2); } // window
+}
+const hexRgb = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+const ROOF = { tile: ['#9a4a2a', '#7a3a20'], zinc: ['#8a949a', '#646c72'], thatch: ['#a8884a', '#7e6434'] };
 function blob(g, cx, cy, rad, col) {
   g.fillStyle = col;
   for (let dy = -rad; dy <= rad; dy++) { const w = Math.round(Math.sqrt(rad * rad - dy * dy)); g.fillRect(cx - w, cy + dy, w * 2 + 1, 1); }
@@ -225,23 +260,30 @@ function puffSprite(r) {
 }
 function buildCache() {
   const both = f => [sprite((g, x, y) => f(g, x, y, D)), sprite((g, x, y) => f(g, x, y, EDGE))]; // [inner, map-edge]
-  const ground = [[], [], []]; // [flooded, wet, dry][cover bin]
-  for (let s = 0; s < 3; s++) for (let b = 0; b < COVER_BINS; b++) ground[s][b] = both((g, x, y, d) => {
-    const top = groundTop(s, b);
-    block(g, x, y, top, d); texture(g, x, y, top, s * COVER_BINS + b);
+  const ground = [[], [], []]; // [flooded, wet, dry][cover bin][variant]
+  for (let s = 0; s < 3; s++) for (let b = 0; b < COVER_BINS; b++) ground[s][b] = [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+    const top = groundTop(s, b), seed = (s * COVER_BINS + b) * 4 + v;
+    block(g, x, y, top, d); texture(g, x, y, top, seed);
+    if (s === 2 && b < 2) cracks(g, x, y, top, seed, b ? v >> 1 : 1 + (v >> 1)); // bare dry peat cracks; cover hides them
     if (s === 0) { // water patches with sheen
       pool(g, x - 6, y + 6, 4, rgb(mix(WATER, top, .3))); pool(g, x + 6, y + 10, 3, rgb(mix(WATER, top, .3)));
       g.fillStyle = '#9fd4e8'; g.fillRect(x - 8, y + 5, 3, 1); g.fillRect(x + 5, y + 10, 2, 1);
     }
-  });
+  }));
   const cache = {
     ground,
     // Fire art. A frame is drawn with its tile top vertex at (SW/2, HEAD), like a tile sprite.
-    flame: FLAMES.map(f => sprite((g, x, y) => f.forEach(([dx, h, wd, lean]) => tongue(g, x + dx, y + 11, h, wd, lean)))),
+    flame: FLAMES.map((f, n) => sprite((g, x, y) => {
+      pool(g, x, y + 11, 11, CHAR); pool(g, x - 1, y + 10, 7, '#5a2c1a'); // scorched ground under the tongues
+      g.fillStyle = FLAME[1]; for (const [ex, ey] of [[-11, 11], [10, 12], [-4, 14], [5, 9]]) if (hash(n * 9 + ex) > .35) g.fillRect(x + ex, y + ey, 1, 1); // sparks on the char
+      f.forEach(([dx, h, wd, lean]) => tongue(g, x + dx, y + 11, h, wd, lean));
+    })),
+    // Smouldering peat: a char patch with glow cracks. The 2 frames swap the bright and the dim cracks.
     ember: [0, 1].map(k => sprite((g, x, y) => {
-      g.fillStyle = CHAR; g.fillRect(x - 5, y + 7, 10, 4); g.fillRect(x - 3, y + 6, 6, 1);
-      g.fillStyle = FLAME[1 + k]; g.fillRect(x - 3 + k, y + 8, 5, 2); g.fillRect(x - 1, y + 7, 2, 1);
-      g.fillStyle = FLAME[2 - k]; g.fillRect(x - 1 + k, y + 8, 2, 1);
+      pool(g, x, y + 9, 9, CHAR); pool(g, x + 1, y + 9, 5, '#2a1e18');
+      [[-6, 9], [-5, 9], [-4, 10], [-3, 10], [-2, 9], [-1, 9], [0, 8], [1, 8], [2, 9], [3, 10], [4, 10], [5, 9], [-1, 10], [0, 11], [1, 11], [2, 7]]
+        .forEach(([ex, ey], n) => { g.fillStyle = (n + k) % 3 ? FLAME[0] : FLAME[1 + k]; g.fillRect(x + ex, y + ey, 1, 1); });
+      g.fillStyle = FLAME[2]; g.fillRect(x + (k ? 3 : -3), y + (k ? 10 : 9), 1, 1);
     })),
     puff: Array.from({ length: PUFF_R1 - PUFF_R0 + 1 }, (_, k) => puffSprite(PUFF_R0 + k)),
     heat: Array.from({ length: HEAT_BINS }, (_, b) => both((g, x, y, d) => block(g, x, y, heatColor(b / (HEAT_BINS - 1) * 1.5), d))),
@@ -251,8 +293,10 @@ function buildCache() {
       [BLOCK.TEMP]: AXES.map((_, ax) => sprite((g, x, y) => { // sandbags in two rows
         for (const [s0, up] of [[-6, 0], [-4.75, 2]]) for (let s = s0; s <= -s0; s += 2.5) {
           const [bx, by] = across(ax, s, x, y);
+          if (!up) { g.fillStyle = SHADOW; g.fillRect(bx - 2, by + 2, 5, 1); } // shadow under the front row
           g.fillStyle = '#8f7a4f'; g.fillRect(bx - 2, by - up + 1, 4, 1); g.fillStyle = '#c9b07a'; g.fillRect(bx - 2, by - up - 1, 4, 2);
           g.fillStyle = '#e0cc98'; g.fillRect(bx - 1, by - up - 1, 2, 1);
+          g.fillStyle = '#6e5c3a'; g.fillRect(bx + 1, by - up, 1, 1); // the seam between 2 bags
         }
       })),
       [BLOCK.PERM]: AXES.map((_, ax) => sprite((g, x, y) => { // plank wall with posts, taller than the sandbags
@@ -262,7 +306,8 @@ function buildCache() {
         }
         for (const s of [-7, -2.3, 2.3, 7]) {
           const [bx, by] = across(ax, s, x, y);
-          g.fillStyle = '#3e3328'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#6a5a48'; g.fillRect(bx, by - 8, 2, 1);
+          g.fillStyle = '#4e3e2e'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#7a6650'; g.fillRect(bx, by - 8, 1, 11); // lit left side
+          g.fillStyle = '#9a8468'; g.fillRect(bx, by - 8, 2, 1); // cut top
         }
       })),
       [BLOCK.FILLED]: [sprite((g, x, y) => { // backfilled canal (sim sets kind PEAT): low peat mound with fill seams
@@ -276,24 +321,37 @@ function buildCache() {
       g.fillStyle = '#d8c69a'; g.fillRect(x - 4, y + HH - 2, 9, 1); g.fillRect(x - 4, y + HH + 2, 9, 1); g.fillRect(x - 4, y + HH - 2, 1, 5); g.fillRect(x + 4, y + HH - 2, 1, 5);
       g.fillStyle = '#e8a040'; g.fillRect(x - 1, y + HH, 2, 1); g.fillRect(x + 6, y + HH + 3, 2, 1); // fish
     }),
-    river: both((g, x, y, d) => {
-      block(g, x, y + 4, [40, 84, 110], d - 4);
-      g.fillStyle = '#7fb8d0'; g.fillRect(x - 8, y + 8, 4, 1); g.fillRect(x + 4, y + 10, 6, 1); g.fillRect(x - 2, y + 14, 3, 1);
-    }),
-    village: both((g, x, y, d) => {
-      block(g, x, y, [112, 92, 62], d); texture(g, x, y, [112, 92, 62], 42);
-      for (const [hx, hy] of [[-10, 7], [2, 10]]) { // two stilt houses: stilts, wall, roof, door
-        g.fillStyle = '#3a2a1e'; g.fillRect(hx + x + 1, y + hy, 1, 2); g.fillRect(hx + x + 8, y + hy, 1, 2);
-        g.fillStyle = '#d8c69a'; g.fillRect(x + hx, y + hy - 6, 10, 6);
-        g.fillStyle = '#9a4a2a'; g.fillRect(x + hx - 2, y + hy - 10, 14, 4); g.fillRect(x + hx, y + hy - 12, 10, 2);
-        g.fillStyle = '#7a3a20'; g.fillRect(x + hx - 2, y + hy - 7, 14, 1);
-        g.fillStyle = '#3a2a1e'; g.fillRect(x + hx + 4, y + hy - 4, 2, 4);
+    // River: each variant moves the ripples, so a long river does not repeat one pattern.
+    river: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+      const top = [40, 84, 110];
+      block(g, x, y + 4, top, d - 4);
+      for (let k = 0; k < 3; k++) {
+        const rx = Math.round((hash(v * 17 + k) - .5) * 18), ry = 6 + k * 3 + (v & 1), len = 2 + (hash(v * 5 + k) * 4 | 0);
+        if (Math.abs(rx) + len < rowW(ry - 4)) { g.fillStyle = k ? '#7fb8d0' : '#a8d4e4'; g.fillRect(x + rx, y + ry, len, 1); }
       }
-    }),
-    farm: both((g, x, y, d) => {
-      block(g, x, y, [128, 100, 60], d);
-      g.fillStyle = '#7fa842'; for (let r = 1; r < TH; r += 2) { const w = rowW(r); if (w > 4) g.fillRect(x - w + 4, y + r, w * 2 - 8, 1); }
-    }),
+    })),
+    // Village variants: tile roofs, a zinc roof, a thatch roof, and a row of 3 small houses.
+    village: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+      const top = [112, 92, 62];
+      block(g, x, y, top, d); texture(g, x, y, top, 42 + v);
+      eachTop(g, x, y, (a, b) => Math.abs(a - b) < 1.6 && a > 2 && a < 14 ? rgb(mix(top, WHITE, .12)) : null); // a beaten path across the tile
+      if (v === 0) { house(g, x - 10, y + 7, 10, ROOF.tile); house(g, x + 2, y + 10, 10, ROOF.tile); }
+      if (v === 1) { tree(g, x - 8, y + 8, 4, 3); house(g, x - 3, y + 11, 12, ROOF.zinc, '#c8b48a'); }
+      if (v === 2) { house(g, x + 1, y + 7, 10, ROOF.thatch, '#b89a6a'); house(g, x - 11, y + 10, 10, ROOF.tile); }
+      if (v === 3) { for (const [hx, hy, r] of [[-11, 7, 'zinc'], [-3, 10, 'tile'], [5, 13, 'thatch']]) house(g, x + hx, y + hy, 7, ROOF[r]); }
+    })),
+    // Farm variants: crop rows along each tile axis, cassava mounds, and a part-planted plot.
+    farm: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+      const top = [128, 100, 60], leaf = '#7fa842', dark = '#5c8232';
+      block(g, x, y, top, d); texture(g, x, y, top, 60 + v);
+      eachTop(g, x, y, (a, b) => {
+        if (a < 1.5 || b < 1.5 || a > 14.5 || b > 14.5) return null; // a bare rim
+        const u = v === 1 ? a : b, m = u % 3;
+        if (v === 2) return (a % 4 < 1.6 && b % 4 < 1.6) ? (a % 4 < .8 ? leaf : dark) : null;
+        if (v === 3 && a > 9) return m < .8 ? rgb(mix(top, BLACK, .2)) : null; // ploughed furrows, not planted yet
+        return m < .8 ? leaf : m < 1.4 ? dark : null;
+      });
+    })),
     veg: { // 4 sprites for each type, picked by vegVariant(i)
       [VEG.FERN]: [sprite((g, x, y) => { fern(g, x - 5, y + 8, 4); fern(g, x + 5, y + 11, 3); }), sprite((g, x, y) => { fern(g, x + 1, y + 10, 5); fern(g, x - 7, y + 9, 3); }),
         sprite((g, x, y) => { tuft(g, x - 4, y + 9); tuft(g, x + 5, y + 12); }), sprite((g, x, y) => { fern(g, x - 2, y + 11, 6); fern(g, x + 7, y + 9, 2); fern(g, x - 8, y + 8, 2); })],
@@ -632,10 +690,10 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     let spr;
     if (data) spr = cache.heat[Math.round(Math.max(0, Math.min(1, wt[i] / 1.5)) * (HEAT_BINS - 1))];
     else if (k === KIND.CANAL) { const c = canalSprite(canalBase[i] | canalStep(cWater[i], cDepth[i]) << 18 | e << 20); spr = [c, c]; }
-    else if (k === KIND.RIVER) spr = cache.river;
-    else if (k === KIND.VILLAGE) spr = cache.village;
-    else if (k === KIND.FARM) spr = cache.farm;
-    else spr = cache.ground[wt[i] < 0 ? 0 : wt[i] <= WET_WT ? 1 : 2][Math.round(Math.max(0, Math.min(1, cover[i])) * (COVER_BINS - 1))];
+    else if (k === KIND.RIVER) spr = cache.river[tileVariant(i)];
+    else if (k === KIND.VILLAGE) spr = cache.village[tileVariant(i)];
+    else if (k === KIND.FARM) spr = cache.farm[tileVariant(i)];
+    else spr = cache.ground[wt[i] < 0 ? 0 : wt[i] <= WET_WT ? 1 : 2][Math.round(Math.max(0, Math.min(1, cover[i])) * (COVER_BINS - 1))][tileVariant(i)];
     const ax = sx - SW / 2, ay = sy - HEAD;
     ctx.drawImage(spr[e], ax, ay);
     if (data) continue;

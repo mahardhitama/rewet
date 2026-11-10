@@ -3,7 +3,7 @@ import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
-import { blip, setMuted, isMuted } from './audio.js';
+import { blip, cue, setMuted, isMuted } from './audio.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
 import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
@@ -130,9 +130,11 @@ function boot() {
       if (game.events.some(e => e.type === 'yearEnd')) break; // never run past a year report
     }
     const ev = game.events.splice(0); // drain (yearEnd.year is 0-based)
+    const yearEnd = ev.some(e => e.type === 'yearEnd');
+    for (const e of ev) if (!(yearEnd && e.type === 'elNinoWarning')) cue(e.type); // the year report shows the warning; one sound at a time
     if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief();
     if (checkEarlyLoss(game)) return toDebrief(); // triggers the early end; evaluate() in the debrief re-derives the cause
-    const ye = ev.find(e => e.type === 'yearEnd');
+    const ye = yearEnd && ev.find(e => e.type === 'yearEnd');
     if (ye) {
       paused = true;
       showYearReport(game, ye.year, ev.some(e => e.type === 'elNinoWarning'));
