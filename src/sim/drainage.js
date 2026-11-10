@@ -4,7 +4,7 @@ export const DRAIN = { canal: 1, river: 0.6, temp: 0.35, perm: 0.2, maxHeadTiles
 
 const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
 
-// Upstream = 8-connected canal neighbours with strictly higher z.
+// Upstream = 8-connected canal neighbours with equal-or-higher z (flat canals propagate; `seen` prevents loops).
 export function computeStrength(world) {
   const { w, h, n, kind, block, z } = world;
   const S = new Float32Array(n);
@@ -23,7 +23,7 @@ export function computeStrength(world) {
           const xx = x + dx, yy = y + dy;
           if (xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
           const j = yy * w + xx;
-          if (seen.has(j) || kind[j] !== KIND.CANAL || z[j] <= z[i] || block[j] !== BLOCK.NONE) continue;
+          if (seen.has(j) || kind[j] !== KIND.CANAL || z[j] < z[i] || block[j] !== BLOCK.NONE) continue;
           seen.add(j);
           S[j] = Math.min(S[j], s);
           next.push(j);

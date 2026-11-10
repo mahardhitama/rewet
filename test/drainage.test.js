@@ -62,3 +62,21 @@ test('backfilled canal is not a source', () => {
   computeDistance(W, S);
   for (let i = 0; i < 4; i++) { assert.equal(W.dist[i], Infinity); assert.equal(W.src[i], -1); }
 });
+
+test('flat canal: block lowers S up to maxHeadTiles on both sides', () => {
+  const W = createWorld({ w: 21, h: 1, seed: 1 });
+  W.kind.fill(KIND.CANAL); // z all 0
+  W.block[10] = BLOCK.TEMP;
+  const S = computeStrength(W);
+  for (let x = 4; x <= 16; x++) near(S[x], DRAIN.temp, 1e-6);
+  near(S[3], 1, 1e-6); near(S[17], 1, 1e-6);
+});
+test('backward chamfer pass: sources at both corners', () => {
+  const W = createWorld({ w: 4, h: 4, seed: 1 });
+  W.kind[0] = KIND.CANAL; W.kind[15] = KIND.CANAL;
+  computeDistance(W, computeStrength(W));
+  near(W.dist[10], 70.71); assert.equal(W.src[10], 15);
+  near(W.dist[11], 50); assert.equal(W.src[11], 15);
+  near(W.dist[5], 70.71); assert.equal(W.src[5], 0);
+  near(W.dist[1], 50); assert.equal(W.src[1], 0);
+});
