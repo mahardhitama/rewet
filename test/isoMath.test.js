@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TW, TH, PAD, HUD_PAD, tileToScreen, screenToTile, cameraFor, clientToBuffer, clampPan, zOffset, fitScale, zoomSteps, panForZoom, nearestStep } from '../src/render/isoMath.js';
+import { TW, TH, PAD, HUD_PAD, tileToScreen, screenToTile, cameraFor, clientToBuffer, clampPan, zOffset, fitScale, zoomSteps, panForZoom, nearestStep, keepStep } from '../src/render/isoMath.js';
 
 // A point strictly inside tile (x, y): the diamond centre, plus nudges toward each corner.
 const inner = (x, y, v) => {
@@ -91,6 +91,13 @@ test('a zoom step that no longer exists falls back to the nearest step', () => {
   assert.equal(nearestStep([0.95, 2, 3], 1), 0.95); // step 1 is gone at this size
   assert.equal(nearestStep([0.3, 1, 2, 3], 1.6), 2);
   assert.equal(nearestStep([0.3, 1, 2, 3], 2), 2);
+});
+
+test('keepStep keeps the view at the fit step when the fit value changes', () => {
+  assert.equal(keepStep([0.85, 1, 2, 3], 0.9, true), 0.85); // was at fit 0.9, new fit 0.85
+  assert.equal(keepStep([0.3, 1, 2, 3], null, false), 0.3); // a new view opens at fit
+  assert.equal(keepStep([0.5, 1, 2, 3], 2, false), 2); // a non-fit step that still exists stays
+  assert.equal(keepStep([0.5, 1, 2], 3, false), 2); // a step that no longer exists falls to the nearest
 });
 
 test('inverse still exact with a pan offset applied', () => {

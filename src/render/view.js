@@ -1,5 +1,5 @@
 // Level-screen view state (camera pan, data mode, hover). Lives outside the game; render-only.
-import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, nearestStep, panForZoom } from './isoMath.js';
+import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom } from './isoMath.js';
 import { drawWorld } from './iso.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
@@ -25,8 +25,9 @@ export function createMapView(cv) {
     // Size the canvas for the level screen; pan is re-clamped and the zoom step re-checked on every resize/rotation.
     fit(wd) {
       world = wd;
+      const wasFit = v.scale === v.steps[0];
       v.steps = zoomSteps(fitScale(innerWidth, innerHeight, world.w, world.h, ins));
-      if (!v.steps.includes(v.scale)) v.scale = v.scale == null ? v.steps[0] : nearestStep(v.steps, v.scale);
+      v.scale = keepStep(v.steps, v.scale, wasFit);
       const c = cameraFor(innerWidth, innerHeight, world.w, world.h, v.pan, v.scale, ins);
       if (cv.width !== c.bw || cv.height !== c.bh) { cv.width = c.bw; cv.height = c.bh; }
       v.cam = c; v.pan = c.pan;

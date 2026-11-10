@@ -36,6 +36,9 @@ export const zoomSteps = fit => [fit, ...[1, 2, 3].filter(s => s > fit * 1.1)];
 
 export const nearestStep = (steps, scale) => steps.reduce((a, b) => Math.abs(b - scale) < Math.abs(a - scale) ? b : a);
 
+// The fit value is a float that changes with the insets and the window size, so a view at fit must follow it, not snap to an integer step.
+export const keepStep = (steps, scale, wasFit) => scale == null || wasFit ? steps[0] : nearestStep(steps, scale);
+
 // Level-screen buffer: ceil(innerWidth/scale) x ceil(innerHeight/scale), map centred between the insets plus a clamped pan.
 export function cameraFor(innerW, innerH, w, h, pan = { x: 0, y: 0 }, scale, insets = {}) {
   const bw = Math.ceil(innerW / scale), bh = Math.ceil(innerH / scale);
