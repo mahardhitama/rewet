@@ -26,10 +26,18 @@ function tip(msg, x, y) {
   clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2000);
 }
 
+// The name line shows the hovered or focused slot, else the selected action, else the hint.
+let hover = null;
+function showName() {
+  const id = hover ?? armed;
+  const t = id ? BAR.name(ACTION_TEXT[id][0], actionMeta(costOf(G, id), ACTIONS[id].weeks)) : SELECT_HINT;
+  if ($('barName').textContent !== t) $('barName').textContent = t;
+}
+
 function arm(id) {
   armed = armed === id ? null : id;
-  for (const b of $('barGroups').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === armed);
-  $('barHint').textContent = armed ? ACTION_TEXT[armed][1] : SELECT_HINT;
+  for (const b of $('slots').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === armed);
+  showName();
 }
 
 function bind() {
@@ -37,33 +45,21 @@ function bind() {
   const groups = {};
   for (const [id, a] of Object.entries(ACTIONS)) (groups[a.r] ??= []).push(id);
   const R = ['rewet', 'reveg', 'revit', 'defense'];
-  $('barGroups').replaceChildren(...R.map(r => {
-    const g = document.createElement('div'), h = document.createElement('span'), row = document.createElement('div');
-    g.className = 'grp'; g.dataset.r = r; h.textContent = R_NAMES[r]; g.append(h, row);
-    for (const id of groups[r]) {
+  // 2 rows: rewet + reveg, revit + defense. CSS stacks them on a portrait phone.
+  $('slots').replaceChildren(...[R.slice(0, 2), R.slice(2)].map(rs => {
+    const row = document.createElement('div'); row.className = 'row';
+    for (const r of rs) groups[r].forEach((id, k) => {
       const b = document.createElement('button'), s = document.createElement('small');
-      b.dataset.id = id; b.textContent = ACTION_TEXT[id][0]; b.title = ACTION_TEXT[id][1]; b.append(s);
+      b.className = k ? 'slot' : 'slot first'; b.dataset.id = id; b.dataset.r = r; b.title = ACTION_TEXT[id][1]; b.append(icon(id, 36), s);
       b.onclick = () => { blip(880, 0.04); arm(id); b.blur(); };
+      for (const [on, off] of [['pointerenter', 'pointerleave'], ['focus', 'blur']]) {
+        b.addEventListener(on, () => { hover = id; showName(); });
+        b.addEventListener(off, () => { hover = null; showName(); });
+      }
       row.append(b);
-    }
-    return g;
+    });
+    return row;
   }));
-  // The arrow marker shows while more buttons are to the right of the scroll position.
-  const bg = $('barGroups'), more = () => { $('barMore').hidden = bg.scrollLeft + bg.clientWidth >= bg.scrollWidth - 1; };
-  bg.addEventListener('scroll', more, { passive: true }); new ResizeObserver(more).observe(bg);
-  // Phone layout: CSS shows only the group with the class "cur". The tabs pick it.
-  const tab = r => {
-    for (const g of bg.children) g.classList.toggle('cur', g.dataset.r === r);
-    for (const t of $('barTabs').children) { t.classList.toggle('on', t.dataset.r === r); t.setAttribute('aria-pressed', t.dataset.r === r); }
-    more();
-  };
-  $('barTabs').setAttribute('aria-label', BAR.tabs);
-  $('barTabs').replaceChildren(...R.map(r => {
-    const t = document.createElement('button'); t.dataset.r = r; t.textContent = R_NAMES[r];
-    t.onclick = () => { blip(880, 0.04); tab(r); t.blur(); }; // blur: Space must pause, not press the tab again
-    return t;
-  }));
-  tab('rewet');
   const speed = { bPause: 0, bX1: 1, bX2: 2 };
   for (const [id, s] of Object.entries(speed)) { $(id).textContent = HUD[id.slice(1).toLowerCase()]; $(id).onclick = e => { H.setSpeed(s); e.currentTarget.blur(); }; }
   $('bData').onclick = e => { H.toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
@@ -125,11 +121,13 @@ export function renderUI(game, { paused, speed, data }) {
   const dt = data ? HUD.mapView : HUD.dataView;
   if ($('bData').lastChild.textContent !== dt) { setText($('bData'), dt); $('bData').setAttribute('aria-label', dt); $('bData').title = dt; }
   $('legend').hidden = !data;
-  for (const b of $('barGroups').querySelectorAll('button')) {
-    const id = b.dataset.id, c = costOf(game, id);
-    b.lastChild.textContent = actionMeta(c, ACTIONS[id].weeks);
+  for (const b of $('slots').querySelectorAll('button')) {
+    const id = b.dataset.id, c = costOf(game, id), m = actionMeta(c, ACTIONS[id].weeks), a = BAR.slot(ACTION_TEXT[id][0], R_NAMES[b.dataset.r], m);
+    if (b.lastChild.textContent !== String(c)) b.lastChild.textContent = c; // the weeks are in the aria-label
+    if (b.ariaLabel !== a) b.ariaLabel = a;
     b.classList.toggle('poor', c > game.funds);
   }
+  showName();
 }
 
 function chart(cv, data) {

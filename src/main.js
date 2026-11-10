@@ -9,7 +9,7 @@ import { createMapView } from './render/view.js';
 import { LINES, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
-import { withIcon, setText } from './icons.js';
+import { icon, withIcon, setText } from './icons.js';
 import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief } from './ui.js';
 
@@ -214,8 +214,8 @@ function boot() {
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
   $('zoom').setAttribute('aria-label', ZOOM.group);
-  for (const [id, key, dir] of [['bZoomIn', 'in', 1], ['bZoomOut', 'out', -1], ['bZoomFit', 'fit', 0]]) {
-    const b = $(id); [b.textContent, b.title] = ZOOM[key]; b.setAttribute('aria-label', b.title);
+  for (const [id, key, dir, name] of [['bZoomIn', 'in', 1, 'zoomIn'], ['bZoomOut', 'out', -1, 'zoomOut'], ['bZoomFit', 'fit', 0, 'fit']]) {
+    const b = $(id); b.title = ZOOM[key][1]; b.setAttribute('aria-label', b.title); b.replaceChildren(icon(name));
     b.onclick = () => map.zoom(dir);
   }
   if (new URLSearchParams(location.search).has('debug')) globalThis.rewet = { get game() { return game; } }; // ?debug: console access, e.g. replaying a sim-run plan

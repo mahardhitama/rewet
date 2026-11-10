@@ -56,8 +56,11 @@ export const ZOOM = {
   fit: ['ALL', 'All of the map (0)'], // the name starts with the visible word (WCAG 2.5.3)
 };
 
-// label of the group tabs in the action bar (phone layout)
-export const BAR = { tabs: 'Action groups' };
+// the name line above the slots, and the accessible name of a slot
+export const BAR = {
+  name: (name, meta) => `${name}: ${meta}`,
+  slot: (name, group, meta) => `${name}, ${group}, ${meta}`,
+};
 
 export const R_NAMES = { rewet: 'Rewetting', reveg: 'Revegetation', revit: 'Revitalisation', defense: 'Defense' };
 
