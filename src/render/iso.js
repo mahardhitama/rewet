@@ -25,6 +25,10 @@ export function canalMask(w, h, kind, i) {
   const x = i % w, y = (i - x) / w, at = (dx, dy) => x + dx >= 0 && y + dy >= 0 && x + dx < w && y + dy < h && isWater(kind[i + dy * w + dx]);
   let m = 0;
   DIRS.forEach(([dx, dy], k) => { if (at(dx, dy) && (k < 4 || (!at(dx, 0) && !at(0, dy)))) m |= 1 << k; });
+  // A canal end on the map edge runs off the map: the arm continues straight, or points off the map when the end has no side arm.
+  const off = [0, 1, 2, 3].filter(k => { const [dx, dy] = DIRS[k]; return x + dx < 0 || y + dy < 0 || x + dx >= w || y + dy >= h; }), sides = [0, 1, 2, 3].filter(k => m >> k & 1);
+  if (sides.length === 1 && off.includes((sides[0] + 2) % 4)) m |= 1 << (sides[0] + 2) % 4;
+  else if (!sides.length && off.length === 1) m |= 1 << off[0];
   return m;
 }
 const CW = [3.6, 4.5, 5.5]; // channel half-width in ground units for each width step
@@ -209,6 +213,21 @@ function across(ax, s, x, y) {
   const [ux, uy] = AXES[ax], n = Math.hypot(ux, uy), a = 8 - uy / n * s, b = 8 + ux / n * s;
   return [x + Math.round(a - b), y + Math.round((a + b) / 2)];
 }
+// A canal that runs off the map edge cuts its cross-section into the front wall. k = 0: the right face (x + 1 side). k = 1: the left face (y + 1 side).
+// Rows from the top of the wall: the cut wall above the water, the water, then the bed row. The water step sets where the water starts.
+const NOTCH = 8;
+function notch(g, sx, sy, k, spec) {
+  const W = CW[spec.cs], ww = waterW(W, spec.ws), wl = spec.ws * 2, t = k ? .15 : .3; // t: the shade of this face
+  const col = c => rgb(mix(c, BLACK, t));
+  for (let dx = 0; dx < HW; dx++) {
+    const u = (k ? dx : 15 - dx) + .5 - 8, top = k ? sy + HH + (dx >> 1) : sy + TH - ((dx + 1) >> 1); // u: ground distance from the channel axis
+    if (Math.abs(u) > W) continue;
+    for (let r = 0; r < NOTCH; r++) {
+      g.fillStyle = col(r < wl ? WALL : r < NOTCH - 1 && Math.abs(u) <= ww ? WATER : MUD);
+      g.fillRect(k ? sx - HW + dx : sx + dx, top + r, 1, 1);
+    }
+  }
+}
 // Canal sprite key: 2 bits per direction (0 = no arm, else 1 + the neighbour width step), then the width step, water step and map-edge flag.
 // A patch (o >= 0) draws only the channel pixels that fall in the side tile DIRS[o] of the canal tile, where a corner join crosses it.
 const canalSprites = new Map();
@@ -221,7 +240,10 @@ function canalSprite(key, o = -1) {
   const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD);
   const [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
   c = sprite((g, x, y) => {
-    if (o < 0) { block(g, x, y, BANK, key >> 20 ? EDGE : D); texture(g, x, y, BANK, 40); }
+    if (o < 0) {
+      block(g, x, y, BANK, key >> 20 ? EDGE : D); texture(g, x, y, BANK, 40);
+      if (key >> 20) for (const k of [0, 1]) if ((key >> 2 * k) & 3) notch(g, x, y, k, spec);
+    }
     for (let r = fy; r < fy + TH; r++) for (let dx = fx - rowW(r - fy); dx < fx + rowW(r - fy); dx++) {
       const zn = canalZone(dx, r, spec), v = hash(r * 61 + dx + 7);
       if (!zn) continue;
@@ -267,7 +289,10 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     for (let i = 0; i < w * h; i++) if (kind[i] === KIND.CANAL) {
       const m = canalMask(w, h, kind, i), cs = widthStep(cWidth[i]);
       let key = cs << 16;
-      DIRS.forEach(([dx, dy], k) => { if (m >> k & 1) key |= (1 + (kind[i + dy * w + dx] === KIND.CANAL ? widthStep(cWidth[i + dy * w + dx]) : cs)) << 2 * k; });
+      DIRS.forEach(([dx, dy], k) => { // an off-map arm reads no tile: it uses this tile's width step
+        const x = i % w + dx, y = ((i / w) | 0) + dy, n = x >= 0 && y >= 0 && x < w && y < h && kind[y * w + x] === KIND.CANAL;
+        if (m >> k & 1) key |= (1 + (n ? widthStep(cWidth[y * w + x]) : cs)) << 2 * k;
+      });
       canalBase[i] = key; axis[i] = m ? axisOf(31 - Math.clz32(m & -m)) : 0;
       for (let k = 4; k < 8; k++) if (m >> k & 1) for (const o of [DIRS[k][0] > 0 ? 0 : 2, DIRS[k][1] > 0 ? 1 : 3]) {
         const f = i + DIRS[o][1] * w + DIRS[o][0];

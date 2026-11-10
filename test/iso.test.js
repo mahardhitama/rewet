@@ -32,11 +32,30 @@ test('canalMask: straight run, bend, junction and end tile', () => {
   const g = grid(['.....', 'ccccc', '..c..', '..c..', '..rr.']);
   assert.deepEqual(dirs(canalMask(g.w, g.h, g.kind, 6)), ['1,0', '-1,0']); // straight
   assert.deepEqual(dirs(canalMask(g.w, g.h, g.kind, 7)), ['1,0', '0,1', '-1,0']); // junction
-  assert.deepEqual(dirs(canalMask(g.w, g.h, g.kind, 5)), ['1,0']); // end tile
+  assert.deepEqual(dirs(canalMask(g.w, g.h, g.kind, 5)), ['1,0', '-1,0']); // end tile on the map edge: the arm runs off the map
   assert.deepEqual(dirs(canalMask(g.w, g.h, g.kind, 17)), ['0,1', '0,-1']); // into the river; the corner river tile is not joined
   const b = grid(['c..', '.c.', '.cc']); // a meander step on a corner, then a bend
   assert.deepEqual(dirs(canalMask(b.w, b.h, b.kind, 4)), ['0,1', '-1,-1']);
   assert.deepEqual(dirs(canalMask(b.w, b.h, b.kind, 7)), ['1,0', '0,-1']); // bend: the corner tile is joined through the side tile
+});
+
+const edgeDirs = (rows, x, y) => { const g = grid(rows); return dirs(canalMask(g.w, g.h, g.kind, y * g.w + x)); };
+
+test('canalMask: a canal end on the map edge gets an arm off the map', () => {
+  assert.deepEqual(edgeDirs(['.....', '.....', '..c..', '..c..', '..c..'], 2, 4), ['0,1', '0,-1']);
+  assert.deepEqual(edgeDirs(['..c..', '..c..', '.....', '.....', '.....'], 2, 0), ['0,1', '0,-1']);
+});
+
+test('canalMask: a canal that runs along the edge gets no off-map arm', () => {
+  assert.deepEqual(edgeDirs(['.....', '.....', '.....', '.....', '.ccc.'], 2, 4), ['1,0', '-1,0']);
+});
+
+test('canalMask: a canal end next to the river gets no off-map arm', () => {
+  assert.deepEqual(edgeDirs(['.....', '.....', '..c..', '..c..', 'rrrrr'], 2, 3), ['0,1', '0,-1']);
+});
+
+test('canalMask: a canal end on a corner gets one off-map arm', () => {
+  assert.deepEqual(edgeDirs(['.....', '.....', '.....', '.....', '...cc'], 4, 4), ['1,0', '-1,0']);
 });
 
 test('canalZone: two neighbours with the same steps meet without a seam', () => {
