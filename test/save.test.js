@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SAVE, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, SAVE_KEY } from '../src/save.js';
+import { DEFAULT_SAVE, loadSave, writeSave, clearSave, recordResult, buyUpgrade, availableStars, hasProgress, MAX_LEVEL, SAVE_KEY } from '../src/save.js';
 
 const mem = (init = {}) => {
   const d = { ...init };
@@ -36,7 +36,8 @@ test('save round-trips and sanitizes junk fields', () => {
 });
 
 test('recordResult keeps best and unlocks next only on pass', () => {
-  let s = recordResult(DEFAULT_SAVE, 1, 0);
+  const start = { ...DEFAULT_SAVE, unlocked: 1 }; // DEFAULT_SAVE opens all levels; this test checks the unlock rule
+  let s = recordResult(start, 1, 0);
   assert.equal(s.unlocked, 1); assert.deepEqual(s.stars, {});
   s = recordResult(s, 1, 2);
   assert.equal(s.unlocked, 2); assert.equal(s.stars[1], 2);
@@ -78,4 +79,25 @@ test('clearSave removes the key and survives blocked storage', () => {
   const st = mem({ [SAVE_KEY]: '{}' });
   clearSave(st); assert.equal(st.getItem(SAVE_KEY), null);
   clearSave({ removeItem() { throw new Error('x'); } });
+});
+
+test('a new save opens all levels', () => {
+  assert.equal(loadSave(mem()).unlocked, MAX_LEVEL);
+});
+
+test('an old save opens all levels and keeps its stars', () => {
+  const old = { version: 1, unlocked: 2, stars: { 1: 2 }, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false } };
+  const s = loadSave(mem({ [SAVE_KEY]: JSON.stringify(old) }));
+  assert.equal(s.unlocked, MAX_LEVEL);
+  assert.equal(s.stars[1], 2);
+});
+
+test('a save with the sandbox open keeps it', () => {
+  const sandbox = { version: 1, unlocked: MAX_LEVEL + 1, stars: {}, upgrades: {}, settings: {} };
+  assert.equal(loadSave(mem({ [SAVE_KEY]: JSON.stringify(sandbox) })).unlocked, MAX_LEVEL + 1);
+});
+
+test('hasProgress is false for a new save and true with one star', () => {
+  assert.equal(hasProgress(DEFAULT_SAVE), false);
+  assert.equal(hasProgress(recordResult(DEFAULT_SAVE, 1, 1)), true);
 });

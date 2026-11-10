@@ -1,7 +1,7 @@
 // The only module that touches localStorage. Pure helpers take an injected `storage` ({getItem, setItem, removeItem?}).
 export const SAVE_KEY = 'rewet_v1';
 export const MAX_LEVEL = 6; // levels above this are the sandbox; unlocked = MAX_LEVEL + 1 opens it
-export const DEFAULT_SAVE = { version: 1, unlocked: 1, stars: {}, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false } };
+export const DEFAULT_SAVE = { version: 1, unlocked: MAX_LEVEL, stars: {}, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false } };
 export const UPGRADE_COST = { crew: 3, cheapBlocks: 3, fastCrew: 4 };
 
 // Lazy methods: merely reading `localStorage` can throw when storage is blocked, and the callers here catch that.
@@ -14,7 +14,7 @@ const num = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
 function sanitize(o) {
   if (!o || typeof o !== 'object' || o.version !== 1) return null;
   const s = fresh();
-  if (num(o.unlocked, 1, MAX_LEVEL + 1)) s.unlocked = o.unlocked;
+  if (num(o.unlocked, 1, MAX_LEVEL + 1)) s.unlocked = Math.max(MAX_LEVEL, o.unlocked); // old saves open all levels
   for (let id = 1; id <= MAX_LEVEL; id++) if (num(o.stars?.[id], 1, 3)) s.stars[id] = o.stars[id];
   for (const k of Object.keys(UPGRADE_COST)) if (o.upgrades?.[k] === 1) s.upgrades[k] = 1;
   s.settings.mute = o.settings?.mute === true;
@@ -53,7 +53,7 @@ export function clearSave(storage) {
 export const totalStars = (save) => Object.values(save.stars).reduce((a, b) => a + b, 0);
 export const spentStars = (save) => Object.entries(UPGRADE_COST).reduce((a, [k, c]) => a + (save.upgrades[k] ? c : 0), 0);
 export const availableStars = (save) => totalStars(save) - spentStars(save);
-export const hasProgress = (save) => save.unlocked > 1 || totalStars(save) > 0;
+export const hasProgress = (save) => totalStars(save) > 0 || save.unlocked > MAX_LEVEL;
 
 export function recordResult(save, levelId, stars) {
   const s = structuredClone(save);
