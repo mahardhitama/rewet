@@ -37,6 +37,13 @@ test('level 5 has an El Nino year; illegal canals only from level 4', () => {
   assert.ok(resolveLevel(LEVELS[3]).illegalCanals.length > 0);
 });
 
+test('each level places map.villages villages (3x3 tiles) and the same number of farms (4x3 tiles)', () => {
+  for (const l of LEVELS.map(resolveLevel)) {
+    assert.equal(l.villages.length, 9 * l.map.villages, `L${l.id} villages`);
+    assert.equal(l.farms.length, 12 * l.map.villages, `L${l.id} farms`);
+  }
+});
+
 test('every canal tile but the outlet has a downhill canal neighbour (block walks go upstream)', () => {
   for (const l of LEVELS.map(resolveLevel)) {
     const wd = buildLevelWorld(l);

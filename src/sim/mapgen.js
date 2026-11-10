@@ -94,6 +94,7 @@ export function generateMap(level) {
       for (let y = y0; y <= end; y++) tag[idx(n, b.xs[y], y)] = 0;
       for (const [x, y] of arm) tag[idx(n, x, y)] = b.id;
       b.xs = [...b.xs.slice(0, y0), ...arm.map(([x]) => x)];
+      // shortcut: a later merge that moves trunk a can raise a's bed above this join; fine while each level has 1 merge, recompute the joins when a level needs 2.
       const cb = canalOf(b), bedJ = canalOf(a).bed[yj];
       cb.tiles = b.xs.map((x, y) => [x, y]);
       cb.size = cb.size.slice(0, cb.tiles.length);

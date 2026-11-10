@@ -24,7 +24,7 @@ export const LEVELS = [
     map: { trunks: 3, branches: 1, meander: 0.2, river: true, villages: 1, illegal: 0, links: 1 },
   },
   {
-    id: 4, name: 'Canal network', size: 30, years: 4, seed: 405, grant: 2800, arson: 3, elNinoYear: null,
+    id: 4, name: 'Canal network', size: 30, years: 4, seed: 414, grant: 2800, arson: 3, elNinoYear: null,
     pass: pass(3), teaches: 'Cascades, backfill, illegal canals',
     map: { trunks: 3, branches: 2, meander: 0.25, river: false, villages: 1, illegal: 2, forks: 1 },
   },

@@ -77,17 +77,26 @@ test('canal bed falls toward the outlet', () => {
   }
 });
 
+// tol: a merged arm bed rises to 0.01 m per step above the join, so it can sit up to about 5 cm above the smooth surface (game value).
+function assertBelowSurface(l, m, tol) {
+  const w = createWorld({ w: l.size, h: l.size, seed: l.seed });
+  generateTerrain(w, { microAmp: 0, ...m.terrain });
+  m.canals.forEach(([x, y], i) => {
+    if (m.canalW[i] >= 6) assert.ok(m.canalZ[i] <= w.z[idx(l.size, x, y)] + tol, `seed ${l.seed} tile ${x},${y}`);
+  });
+}
+
 test('trunk bed is at or below the real smooth surface', () => {
   const outlets = new Set();
   for (const [l, m] of maps) {
     outlets.add(m.terrain.outlet);
-    const w = createWorld({ w: l.size, h: l.size, seed: l.seed });
-    generateTerrain(w, { microAmp: 0, ...m.terrain });
-    m.canals.forEach(([x, y], i) => {
-      if (m.canalW[i] >= 6) assert.ok(m.canalZ[i] <= w.z[idx(l.size, x, y)] + 1e-9, `seed ${l.seed} tile ${x},${y}`);
-    });
+    assertBelowSurface(l, m, 1e-9);
   }
   assert.equal(outlets.size, 4);
+  for (const seed of SEEDS) {
+    const l = { ...L, seed, map: { ...L.map, merges: 1 } };
+    assertBelowSurface(l, generateMap(l), 0.06);
+  }
 });
 
 test('canal sizes', () => {
@@ -185,7 +194,21 @@ test('more trees far from canals', () => {
 
 // Task 13: canal merges, forks and links. A 24x24 level with 3 trunks and no river, so the outlet edge is d = 0.
 const NET = { size: 24, seed: 1, map: { trunks: 3, branches: 0, meander: 0.2, river: false, villages: 0, illegal: 0 } };
-const net = (f) => { const l = { ...NET, map: { ...NET.map, ...f } }; return [l, generateMap(l)]; };
+const net = (f, seed = NET.seed) => { const l = { ...NET, seed, map: { ...NET.map, ...f } }; return [l, generateMap(l)]; };
+const NET_SEEDS = [1, 2, 3, 4, 5, 6];
+// Trunk-size canals in output order. Each canal lists its tiles by canonical row, so a new canal starts where the row does not go up by 1.
+function trunkCanals(l, m) {
+  const d = dOut(l.size, m.terrain.outlet), out = [];
+  let prev = -2;
+  m.canals.forEach((t, i) => {
+    if (m.canalW[i] < 6) return;
+    const row = l.size - 1 - d(t);
+    if (row !== prev + 1) out.push([]);
+    out[out.length - 1].push({ t, z: m.canalZ[i], row });
+    prev = row;
+  });
+  return out;
+}
 const outletGroups = (l, m) => { const d = dOut(l.size, m.terrain.outlet); return groups(m.canals.filter((t) => d(t) === 0)); };
 // Each canal tile has a lower canal neighbour or a river neighbour, or is on the outlet edge.
 function assertFalls(l, m) {
@@ -204,13 +227,35 @@ test('merge: the trunks that reach the outlet edge are one fewer', () => {
   assert.equal(outletGroups(l, m).length, l.map.trunks - 1);
 });
 
+test('merge: the bed at the join is lower than the last tile of each arm', () => {
+  for (const seed of NET_SEEDS) {
+    const [l, m] = net({ merges: 1 }, seed);
+    const cs = trunkCanals(l, m), d = dOut(l.size, m.terrain.outlet);
+    const arm = cs.find((c) => d(c[c.length - 1].t) > 0);
+    assert.ok(arm, `seed ${seed}: no merged arm`);
+    const e = arm[arm.length - 1];
+    const near = ([x, y], [u, v]) => Math.max(Math.abs(x - u), Math.abs(y - v)) === 1;
+    const into = cs.filter((c) => c !== arm).map((c) => [c, c.findIndex((p) => p.row === e.row && near(p.t, e.t))]).find(([, k]) => k > 0);
+    assert.ok(into, `seed ${seed}: no join tile`);
+    const [c, k] = into;
+    assert.ok(c[k].z < e.z, `seed ${seed}: join below the merged arm`);
+    assert.ok(c[k].z < c[k - 1].z, `seed ${seed}: join below the other arm`);
+  }
+});
+
 test('fork: the trunks that reach the outlet edge are one more', () => {
-  const [l, m] = net({ forks: 1 });
-  const g = outletGroups(l, m);
-  assert.equal(g.length, l.map.trunks + 1);
-  // Each group is at least 3 tiles from the next (Chebyshev).
-  for (let a = 0; a < g.length; a++) for (let b = a + 1; b < g.length; b++)
-    for (const [x1, y1] of g[a]) for (const [x2, y2] of g[b]) assert.ok(Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2)) >= 3);
+  for (const seed of NET_SEEDS) {
+    const [l, m] = net({ forks: 1 }, seed);
+    const g = outletGroups(l, m);
+    assert.equal(g.length, l.map.trunks + 1, `seed ${seed}`);
+    // Each group is at least 3 tiles from the next (Chebyshev).
+    for (let a = 0; a < g.length; a++) for (let b = a + 1; b < g.length; b++)
+      for (const [x1, y1] of g[a]) for (const [x2, y2] of g[b]) assert.ok(Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2)) >= 3, `seed ${seed}`);
+    // The fork arm is the trunk-size canal that does not start on the high edge. Its bed falls at each step.
+    const arms = trunkCanals(l, m).filter((c) => c[0].row > 0);
+    assert.equal(arms.length, 1, `seed ${seed}`);
+    arms[0].forEach((p, k) => k && assert.ok(p.z < arms[0][k - 1].z, `seed ${seed} step ${k}`));
+  }
 });
 
 test('link: a link canal touches two different trunks', () => {
