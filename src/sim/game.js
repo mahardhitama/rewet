@@ -26,7 +26,7 @@ export const ACTIONS = {
   backfill: { cost: 600, weeks: 6, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i)) },
   well: { cost: 80, weeks: 1, r: 'defense', valid: (_wd, i, g) => ok(!g.wells.has(i)) },
   plant: { cost: 120, weeks: 1, r: 'reveg', valid: (wd, i, g) => ok(wd.kind[i] === KIND.PEAT && !g.seedlings.has(i)) },
-  mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i) => ok(wd.kind[i] === KIND.PEAT) },
+  mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i, g) => (g.mounds.has(i) ? 'mounded' : ok(wd.kind[i] === KIND.PEAT)) }, // one per tile
   palud: {
     cost: 200, weeks: 2, r: 'revit',
     valid: (wd, i, g) => ok(wd.kind[i] === KIND.PEAT && wd.wt[i] <= WET_WT && !g.paluds.has(i) &&
@@ -72,7 +72,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
     crews: new Array(3 + (upgrades.crew || 0)).fill(0), jobs: [], goodwill: 50, burnt: new Set(),
     dryWtHistory: [], wind: randWind(world.rng), events: [], S,
     wt0: Float32Array.from(world.wt), wetTicks: new Uint16Array(world.n),
-    wells: new Set(), seedlings: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(),
+    wells: new Set(), mounds: new Set(), seedlings: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(),
     dome: null, // lazy domeZ(level), for illegal-canal beds
     illegal: (level.illegalCanals || []).map(() => 0), // next path index per illegal canal; -1 = stopped
   };
@@ -89,8 +89,14 @@ export function costOf(g, id) {
 
 export function applyAction(g, id, i) {
   const a = ACTIONS[id];
-  if (!a || i < 0 || i >= g.world.n || a.valid(g.world, i, g) !== true) return { ok: false, reason: 'invalid' };
-  if (g.jobs.some((j) => j.i === i)) return { ok: false, reason: 'busy' };
+  if (!a || i < 0 || i >= g.world.n) return { ok: false, reason: 'invalid' };
+  const v = a.valid(g.world, i, g);
+  if (v !== true) return { ok: false, reason: v };
+  const k = g.jobs.findIndex((j) => j.i === i);
+  if (k >= 0 && id === 'fireCrew' && g.jobs[k].id !== 'fireCrew') { // the fire ends the build job here (funds not refunded)
+    g.crews[g.jobs[k].crew] = g.tick;
+    g.jobs.splice(k, 1);
+  } else if (k >= 0) return { ok: false, reason: 'busy' };
   const crew = g.crews.findIndex(crewFree(g));
   if (crew < 0) return { ok: false, reason: 'crew' };
   const cost = costOf(g, id);
@@ -116,7 +122,7 @@ function finish(g, { id, i }) {
         if (wd.kind[j] === KIND.PEAT && !g.seedlings.has(j) && wd.cover[j] < 1) g.seedlings.set(j, 0);
       }
   }
-  else if (id === 'mound') { wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
+  else if (id === 'mound') { g.mounds.add(i); wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
   else if (id === 'palud') g.paluds.add(i);
   else if (id === 'pond') g.ponds.add(i);
   else if (id === 'fireGroup') g.fireGroups.add(i);

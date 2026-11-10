@@ -58,6 +58,7 @@ export const REASON = {
   funds: 'Not enough funds.',
   crew: 'No free crew.',
   invalid: 'Not possible on this tile.',
+  mounded: 'This tile already has a mound.',
 };
 
 export const REPORT = {

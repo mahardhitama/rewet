@@ -178,6 +178,29 @@ test('R27: plant seeds a 3x3 patch of peat, skipping canals, cover 1 and existin
   assert.ok(g.seedlings.has(at(3, 7)));
 });
 
+test('R29: one mound per tile', () => {
+  const g = createGame(lvl()), i = at(8, 8);
+  assert.equal(applyAction(g, 'mound', i).ok, true);
+  assert.deepEqual(applyAction(g, 'mound', i), { ok: false, reason: 'busy' });
+  for (let t = 0; t < 4; t++) step(g);
+  const f = g.funds;
+  assert.deepEqual(applyAction(g, 'mound', i), { ok: false, reason: 'mounded' });
+  assert.equal(g.funds, f);
+  assert.equal(applyAction(g, 'mound', at(9, 8)).ok, true);
+});
+
+test('R29: fire crew on a burning tile cancels its pending build job', () => {
+  const g = createGame(lvl()), i = at(8, 8);
+  assert.equal(applyAction(g, 'well', i).ok, true);
+  g.world.fire[i] = 1; g.world.fireT[i] = 8;
+  assert.equal(applyAction(g, 'fireCrew', i).ok, true);
+  assert.deepEqual(g.jobs.map((j) => j.id), ['fireCrew']);
+  assert.equal(freeCrews(g), 2); // build crew freed, one crew on the fire
+  assert.deepEqual(applyAction(g, 'fireCrew', i), { ok: false, reason: 'busy' });
+  for (let t = 0; t < 8; t++) step(g);
+  assert.ok(!g.wells.has(i));
+});
+
 test('crewed fire re-lit by a neighbour is capped and put out', () => {
   const g = createGame(lvl());
   const i = at(8, 8);
