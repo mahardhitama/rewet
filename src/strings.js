@@ -99,7 +99,7 @@ export const DEBRIEF = {
     goodwill: 'Keep fire away from the village and build ponds, fire groups and paludiculture.',
   },
   menu: 'Menu',
-  sandbox: 'Sandbox: figures only, no pass mark.',
+  sandbox: seed => `Sandbox (seed ${seed}): figures only, no pass mark.`,
   figures: r => [
     `Rewetting: ${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season.`,
     `Revegetation: forest cover is ${r.coverPct.toFixed(0)}%.`,

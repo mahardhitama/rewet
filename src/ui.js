@@ -141,11 +141,11 @@ export function showDebrief(game) {
   $('dbTitle').textContent = DEBRIEF.title;
   const sb = game.level.sandbox; // sandbox: figures only, no pass verdict
   $('dbStars').textContent = sb ? '' : DEBRIEF.stars(r.stars);
-  $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : sb ? DEBRIEF.sandbox : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
+  $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : sb ? DEBRIEF.sandbox(game.level.seed) : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;
   $('dbGoalsTitle').textContent = DEBRIEF.goalsTitle;
-  lines($('dbGoals'), sb ? DEBRIEF.figures(r) : DEBRIEF.goals(r, p));
+  lines($('dbGoals'), loss ? [DEBRIEF.loss[loss]] : sb ? DEBRIEF.figures(r) : DEBRIEF.goals(r, p)); // no ✓ lines on a loss
   $('dbDataTitle').textContent = DEBRIEF.dataTitle;
   chart($('dbChart'), weeks);
   lines($('dbData'), [DEBRIEF.avoided(co2.avoidedTC), DEBRIEF.fire(co2.fireTC), DEBRIEF.seedlings(alive(game, plantedAll), plantedAll.size)]);

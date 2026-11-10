@@ -20,7 +20,6 @@ export function ticksForFrame(dtMs, speed, carry) {
   return ticks > MAX_TICKS_PER_FRAME ? { ticks: MAX_TICKS_PER_FRAME, carry: 0 } : { ticks, carry: Math.max(0, acc - ticks) };
 }
 
-
 function boot() {
   const $ = id => document.getElementById(id);
   const cv = $('bg');
@@ -95,7 +94,7 @@ function boot() {
 
   // ---- level
   function startLevel(level) {
-    game = createGame(level, level.sandbox ? {} : save.upgrades, buildLevelWorld(level));
+    game = createGame(level, save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave();
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode() });
@@ -117,8 +116,7 @@ function boot() {
     }
     const ev = game.events.splice(0); // drain (yearEnd.year is 0-based)
     if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief();
-    const loss = checkEarlyLoss(game);
-    if (loss) return toDebrief();
+    if (checkEarlyLoss(game)) return toDebrief(); // triggers the early end; evaluate() in the debrief re-derives the cause
     const ye = ev.find(e => e.type === 'yearEnd');
     if (ye) {
       paused = true;
@@ -172,7 +170,7 @@ function boot() {
   $('bCred').onclick = () => $('dCred').showModal();
   $('snd').onchange = e => { setMuted(!e.target.checked); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
-  $('bReset').onclick = () => { clearSave(storage); save = structuredClone(DEFAULT_SAVE); setMuted(false); $('snd').checked = true; $('bCont').disabled = true; toast(TOAST.saveDeleted); };
+  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; toast(TOAST.saveDeleted); }; // keeps the mute setting
   $('lsTitle').textContent = SELECT.title; $('lsBack').textContent = SELECT.back;
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };
