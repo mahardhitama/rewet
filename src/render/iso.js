@@ -615,6 +615,7 @@ export function canalSprite(key, o = -1) {
   const arms = [];
   DIRS.forEach(([dx, dy], k) => { const v = (key >> 2 * k) & 3; if (v) arms.push([dx, dy, v - 1]); });
   const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD), bank = BANK_TOP[(key >> 24) & 3], edge = (key >> 20) & 1;
+  const wall = rgb(mix(bank, BLACK, .25)); // the cut wall: a shade of its own bank, so a drained canal does not draw a black line
   const [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
   c = sprite((g, x, y) => {
     if (o < 0) {
@@ -627,7 +628,7 @@ export function canalSprite(key, o = -1) {
         if (spec.ws === 0 && chan(dx + .5, r + .5, spec).m > -2.2) { g.fillStyle = v > .88 ? rgb(mix(WATER, WHITE, .3)) : rgb(SEEP); g.fillRect(x + dx - fx, y + r - fy, 1, 1); }
         continue;
       }
-      g.fillStyle = zn === 1 ? rgb(WALL) : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
+      g.fillStyle = zn === 1 ? wall : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
         : canalZone(dx, r - 1, spec) !== 3 ? rgb(mix(WATER, WHITE, .3)) : v > .97 ? '#9fd4e8' : rgb(WATER);
       g.fillRect(x + dx - fx, y + r - fy, 1, 1); // a patch lies in the side tile frame
     }
