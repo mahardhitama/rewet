@@ -2,6 +2,7 @@ import { createGame, step } from './sim/game.js';
 import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
+import { resolveLevel } from './sim/mapgen.js';
 import { blip, setMuted, isMuted } from './audio.js';
 import { initIntro, drawWorld, smoke, clamp, BW, BH } from './render/intro.js';
 import { createMapView } from './render/view.js';
@@ -93,7 +94,8 @@ function boot() {
   }
 
   // ---- level
-  function startLevel(level) {
+  function startLevel(L) {
+    const level = resolveLevel(L);
     game = createGame(level, save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave();
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after

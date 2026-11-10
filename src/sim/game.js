@@ -41,17 +41,17 @@ export const ACTIONS = {
 
 function domeZ(level) {
   const d = createWorld({ w: level.size, h: level.size, seed: level.seed });
-  generateTerrain(d, { microAmp: 0 });
+  generateTerrain(d, { ...level.terrain, microAmp: 0 });
   return d.z;
 }
 
 export function placeLevel(level) {
   const world = createWorld({ w: level.size, h: level.size, seed: level.seed });
-  generateTerrain(world);
-  const dome = domeZ(level);
+  generateTerrain(world, level.terrain);
+  const dome = level.canalZ ? null : domeZ(level);
   const set = (list, k) => { for (const [x, y] of list || []) world.kind[idx(world.w, x, y)] = k; };
   set(level.rivers, KIND.RIVER); set(level.villages, KIND.VILLAGE); set(level.farms, KIND.FARM); set(level.canals, KIND.CANAL);
-  for (const [x, y] of level.canals || []) { const i = idx(world.w, x, y); world.z[i] = dome[i]; } // monotone canal bed (R8)
+  (level.canals || []).forEach(([x, y], k) => { const i = idx(world.w, x, y); world.z[i] = dome ? dome[i] : level.canalZ[k]; }); // monotone canal bed (R8)
   computeDistance(world, computeStrength(world));
   return world;
 }

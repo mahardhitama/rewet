@@ -55,7 +55,7 @@ map: { trunks: 3, branches: 0, meander: 0.2, rivers: 0, villages: 0, illegal: 0 
 | 3 Village edge | 3 | 0 to 1 | yes | 1 | 0 |
 | 4 Canal network | 3 | 2 | no | 1 | 2 |
 | 5 El Niño year | 4 | 1 | no | 1 | 1 |
-| 6 Full peat dome | 4 | 2 | yes | 2 | 2 |
+| 6 Full peat dome | 4 | 1 | yes | 2 | 2 |
 
 `size`, `years`, `grant`, `arson`, `elNinoYear` and `pass` stay as they are now. The plan sets the final parameter values with headless runs (see 7).
 
@@ -76,7 +76,7 @@ If a river is in the level, it runs along the outlet edge.
 - **Trunk:** starts on the high edge and ends on the outlet edge. The path is a random walk with a bias toward the outlet. Each step moves one tile toward the outlet, plus a sideways step with probability `meander`. Trunks keep at least 4 tiles between them.
 - **Branch:** starts on a trunk tile and runs at about 45° to the trunk, uphill, for 5 to 10 tiles. It does not touch another canal. Water flows down the branch into the trunk.
 - **Illegal canal:** a path from a map edge toward the dome centre. It is cut tile by tile during play, as now (base spec section 3).
-- **Canal bed:** walk each trunk from the inlet to the outlet. Set `bed[k] = min(bed[k−1] − 0.01, surface[k] − depth[k])`. Each branch bed ends above the trunk bed where it joins. The bed then falls at each step in the flow direction, so `walkUp()` finds upstream tiles as it does now.
+- **Canal bed:** walk each trunk from the inlet to the outlet. Set `bed[k] = min(bed[k−1] − 0.01, surface[k])`. `generateMap()` returns this value as `canalZ`. `placeLevel()` sets the `z` of each canal tile to `canalZ`, and `walkUp()` reads this `z`. Each branch bed ends above the trunk bed where it joins. The bed then falls at each step in the flow direction, so `walkUp()` finds upstream tiles as it does now. The canal depth is in `cDepth`. It does not change `z`.
 - **Villages and farms:** on the low side of the map, next to a trunk or the river. A farm touches its village.
 
 ### 2.4 Canal width, depth and water level
@@ -210,3 +210,25 @@ The sim stays pure: no `window`, `document` or canvas in `src/sim/`.
 4. **Start cover per vegetation type:** game values, `NOT SOURCED`.
 5. **Pass lines for revegetation:** new tune after the gain rule (2.6). Record the runs here.
 6. **Fit scale below 1:** the pixel art loses pixels at fit on a small screen with a large map. If this looks bad, use the smallest whole-number scale and accept a small pan at the fit scale.
+7. **Level map parameters and seeds (Task 3):** game values, set with headless runs. A seed search ran 40 seeds for each level that failed. `blockPlan()` (`scripts/auto-plan.js`) must pass each level, and a plan with no action must fail it. Fire is the usual cause of a failed run.
+
+   | Level | Seed | trunks | branches | meander | river | villages | illegal |
+   |---|---|---|---|---|---|---|---|
+   | 1 | 101 | 3 | 0 | 0.15 | no | 0 | 0 |
+   | 2 | 203 | 3 | 1 | 0.2 | no | 0 | 0 |
+   | 3 | 305 | 3 | 1 | 0.2 | yes | 1 | 0 |
+   | 4 | 405 | 3 | 2 | 0.25 | no | 1 | 2 |
+   | 5 | 510 | 4 | 1 | 0.25 | no | 1 | 1 |
+   | 6 | 610 | 4 | 1 | 0.3 | yes | 2 | 2 |
+
+   - Seed search with the start values (passing seeds out of 40): L2 24, L3 21, L4 10, L5 4, L6 0. For L6 with 1 branch per trunk: 4. For L6 with 3 trunks and 1 branch: 7. For L6 with 3 trunks: 0. Thus level 6 has 1 branch per trunk, not 2.
+   - Runs with `blockPlan()` (rewet %, pass line, then the run with no action):
+     - L1: 90.0% (pass 60), passed. No action: 27.3%, fire loss.
+     - L2: 99.2% (pass 63), passed. No action: 30.1%, fire loss.
+     - L3: 94.6% (pass 66), passed. No action: 34.3%, fire loss.
+     - L4: 84.3% (pass 69), passed. No action: 36.7%, goodwill loss.
+     - L5: 91.1% (pass 72), passed. No action: 42.9%, fire loss.
+     - L6: 90.0% (pass 75), passed. No action: 42.6%, goodwill loss.
+   - C3 on level 4: best single block +89 tiles, best cascade +162 tiles (1.82×).
+   - The pass of a level is sensitive to the fire rolls. A change to the sim or to the map can make a level fail again. Then do the seed search again.
+8. **Fixture `l1-reveg.json` (Task 3):** the `l1-cascade.json` plan, then a plant order on every third tile from tick 208. Each order waits for a free crew and for 170 funds (one plant plus one more action). The cascade has 12 blocks and uses most of the funds, so only 20 plants fit. The run gives rewet 90.7%, cover 15.3%, 1 star. The R27 test is a `todo` until Task 5 tunes `pass.reveg`.

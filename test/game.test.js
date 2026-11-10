@@ -267,3 +267,13 @@ test('placeLevel canal z is the dome term of the default terrain', () => {
   }
   assert.ok(maxMicro > 0.05 && maxMicro <= 0.3 + 1e-5, `micro ${maxMicro}`);
 });
+
+test('placeLevel reads canalZ and level.terrain when present', () => {
+  const canalZ = canal.map((_, k) => -1 - 0.01 * k);
+  const terrain = { tilt: 1, outlet: 'E' };
+  const w = placeLevel(lvl({ canalZ, terrain }));
+  const free = placeLevel(lvl({ canals: [], terrain }));
+  const flat = placeLevel(lvl({ canals: [] }));
+  canal.forEach(([x, y], k) => assert.ok(Math.abs(w.z[at(x, y)] - canalZ[k]) < 1e-6, `canal z at ${x},${y}`));
+  assert.ok(free.z[at(0, 10)] > flat.z[at(0, 10)] + 0.5, 'tilt raises the high edge');
+});
