@@ -571,13 +571,13 @@ export function icon(name, px = 24) {
 // Set the text of a button that withIcon wrapped. textContent on the button would remove the icons.
 export const setText = (button, text) => { button.querySelector('.t').textContent = text; };
 
-// The button text goes in .t, the hover tree at the left, the purpose icon at the right.
+// The purpose icon goes at the left, the button text in .t, and the hover tree at the right.
 // Set the text later through .t, not textContent: textContent removes the icons.
 export function withIcon(button, name) {
   const t = document.createElement('span'), tree = document.createElement('span'), pic = document.createElement('span');
   t.className = 't'; tree.className = 'tree'; pic.className = 'pic';
   t.append(...button.childNodes);
   tree.append(icon('tree')); pic.append(icon(name));
-  button.append(tree, t, pic);
+  button.append(pic, t, tree);
   return button;
 }
