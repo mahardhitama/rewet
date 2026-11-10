@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, yearDir, emitSmoke, resetSmoke, smoke } from '../src/render/iso.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, yearDir, emitSmoke, resetSmoke, setFireCount, smoke } from '../src/render/iso.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 import { SPECIES } from '../src/journal.js';
 
@@ -245,5 +245,19 @@ test('a tile emits about 1 puff each 400 ms for a surface fire, whatever the fra
   for (let t = 0; t < 4000; t += 100) emitSmoke(5, 0, 0, 1, t);
   assert.ok(n >= 9 && n <= 11, `n=${n}`);
   assert.equal(smoke.length, n);
+  resetSmoke();
+});
+
+test('with 100 burning tiles a replaced puff is at least 3 s old', () => {
+  resetSmoke(); setFireCount(100);
+  const ages = [];
+  for (let t = 0; t < 40000; t += 16) {
+    for (let i = 0; i < 100; i++) {
+      if (t > 15000 && smoke.length === 160) { const before = smoke.map(p => p.born); emitSmoke(i, 0, 0, 1, t); smoke.forEach((p, k) => { if (p.born !== before[k]) ages.push(t - before[k]); }); } // a replaced puff: its age at the swap
+      else emitSmoke(i, 0, 0, 1, t);
+    }
+  }
+  const mean = ages.reduce((a, b) => a + b, 0) / ages.length;
+  assert.ok(ages.length > 100 && mean >= 3000, `mean=${mean} n=${ages.length}`);
   resetSmoke();
 });

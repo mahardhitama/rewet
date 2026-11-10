@@ -9,7 +9,7 @@ const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x
 export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
-const FLAME = ['#c8321e', '#f08a2c', '#ffd25a', '#fff1b0'], CHAR = '#3a2a22', SMOKE = [150, 146, 140]; // flame layers, outer to core
+const FLAME = ['#c8321e', '#f08a2c', '#ffd25a', '#fff1b0'], CHAR = '#3a2a22', SMOKE = [205, 200, 192]; // flame layers, outer to core
 const HW = TW / 2, HH = TH / 2;
 const D = 10, EDGE = D + 12, HEAD = 28, SW = TW, SH = HEAD + TH + EDGE + 1; // sprite: anchor (SW/2, HEAD) = tile top vertex
 // Half-width of row r in a 2:1 diamond that is 2*hh rows high.
@@ -210,8 +210,8 @@ function tongue(g, bx, by, h, wd, lean) {
 // Frame table for the flame sprite: [dx, height, width, lean] of 3 tongues. The heights and leans change from frame to frame.
 const FLAMES = [[[-7, 9, 5, -1], [0, 14, 7, 1], [7, 8, 5, 0]], [[-7, 11, 5, 1], [0, 11, 7, -1], [7, 10, 5, 1]],
   [[-7, 8, 5, 0], [0, 15, 7, -1], [7, 9, 5, -1]], [[-7, 10, 5, -1], [0, 12, 7, 1], [7, 11, 5, 0]]];
-// Smoke puff: 3 nested disks of fillRect rows, built once for each whole radius from 2 to 6.
-const PUFF_ALPHA = [.08, .12, .2], PUFF_R0 = 2, PUFF_R1 = 6;
+// Smoke puff: 3 nested disks of fillRect rows, built once for each whole radius from 3 to 7.
+const PUFF_ALPHA = [.18, .26, .4], PUFF_R0 = 3, PUFF_R1 = 7;
 function puffSprite(r) {
   const c = document.createElement('canvas'); c.width = c.height = 2 * r + 1;
   const g = c.getContext('2d');
@@ -559,20 +559,22 @@ const setBanks = wd => { for (let i = 0; i < wd.w * wd.h; i++) if (wd.kind[i] ==
 const REDUCED = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches; // read once; Node has no matchMedia
 const SMOKE_MAX = 160, EMIT_MS = [0, 400, 1200]; // by fire kind: 1 surface fire, 2 smouldering
 export const smoke = [];
-let smokeHead = 0, smokeN = 0, wind = 0, originX = 0, originY = 0;
-const smokeSlot = new Map(); // tile -> last emit slot, so the rate does not depend on the frame rate
+let smokeHead = 0, smokeN = 0, wind = 0, originX = 0, originY = 0, nFire = 0, emitScale = 1;
+const smokeSlot = new Map(); // tile -> last emit slot, so the rate does not depend on the frame rate. It has at most w*h keys and resetSmoke clears it.
 // Pure. Wind angle in radians for a map seed and a year. A new year gives a new direction.
 export const yearDir = (seed, year) => hash(seed * 31 + year) * 2 * Math.PI;
-export function resetSmoke() { smoke.length = 0; smokeHead = 0; smokeN = 0; smokeSlot.clear(); }
-// Emits at most 1 puff for tile i. sx, sy: the screen point of the fire. kind: 1 surface fire, 2 smouldering.
+export function resetSmoke() { smoke.length = 0; smokeHead = 0; smokeN = 0; nFire = 0; emitScale = 1; smokeSlot.clear(); }
+// With many fires the ring would reuse puffs too soon. Each tile then emits less often: 14 fires or fewer give the normal rate.
+export const setFireCount = n => { emitScale = Math.max(1, n / 14); };
+// Emits at most 1 puff for tile i. sx, sy: the screen point of the tile centre. kind: 1 surface fire (the puff starts at the flame tip), 2 smouldering.
 export function emitSmoke(i, sx, sy, kind, now) {
   if (REDUCED) return;
-  const slot = Math.floor((now + hash(i) * EMIT_MS[kind]) / EMIT_MS[kind]);
+  const ms = EMIT_MS[kind] * emitScale, slot = Math.floor((now + hash(i) * ms) / ms);
   if (smokeSlot.get(i) === slot) return;
   smokeSlot.set(i, slot);
   const a = wind + (hash(++smokeN) - .5) * Math.PI / 3; // wind +- 30 degrees
   const p = smoke.length < SMOKE_MAX ? smoke[smoke.length] = {} : smoke[smokeHead++ % SMOKE_MAX]; // when full, the oldest puff goes
-  p.x = sx - originX; p.y = sy - originY - 4; p.vx = Math.cos(a) * 6; p.vy = Math.sin(a) * 6 - 4; p.born = now; p.life = 3000 + hash(smokeN + .5) * 3000; p.r = PUFF_R0;
+  p.x = sx - originX; p.y = sy - originY - (kind === 1 ? 14 : 4); p.vx = Math.cos(a) * 6; p.vy = Math.sin(a) * 6 - 4; p.born = now; p.life = 3000 + hash(smokeN + .5) * 3000;
 }
 export function drawSmoke(ctx, now, data) {
   if (data || !cache) return;
@@ -580,7 +582,7 @@ export function drawSmoke(ctx, now, data) {
     const t = (now - p.born) / p.life;
     if (t < 0 || t >= 1) continue;
     const s = (now - p.born) / 1000, r = Math.round(PUFF_R0 + (PUFF_R1 - PUFF_R0) * t);
-    ctx.globalAlpha = 1 - t; // the disks hold the 0.08 / 0.12 / 0.2 alpha
+    ctx.globalAlpha = (1 - t) ** .7; // the disks hold the 0.18 / 0.26 / 0.4 alpha
     ctx.drawImage(cache.puff[r - PUFF_R0], Math.round(originX + p.x + p.vx * s) - r, Math.round(originY + p.y + p.vy * s) - r);
   }
   ctx.globalAlpha = 1;
@@ -612,7 +614,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
   } else if (week !== bankWeek) { setBanks(wd); bankWeek = week; } // the peat changes slowly: one update each week, so the banks do not flicker
   const jobs = new Set(game.jobs.map(j => j.i)), hits = [];
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
-  wind = yearDir(wd.seed, year);
+  wind = yearDir(wd.seed, year); setFireCount(nFire); nFire = 0; // the fire count of the last frame sets the smoke rate
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
     const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
     pos[2 * i] = sx; pos[2 * i + 1] = sy;
@@ -648,9 +650,9 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
     if (game.fireGroups.has(i)) { ctx.fillStyle = '#d23a2a'; ctx.fillRect(sx + 12, sy - 8, 2, 12); ctx.fillRect(sx + 14, sy - 8, 6, 4); }
     if (fire[i] === 1) { // surface fire: a cached flame frame, with a phase for each tile
-      ctx.drawImage(cache.flame[REDUCED ? 0 : ((now / 120 + hash(i) * 4) | 0) % 4], ax, ay); emitSmoke(i, sx, sy + HH, 1, now);
+      nFire++; ctx.drawImage(cache.flame[REDUCED ? 0 : ((now / 120 + hash(i) * 4) | 0) % 4], ax, ay); emitSmoke(i, sx, sy + HH, 1, now);
     } else if (fire[i] === 2) { // smouldering peat: an ember, and thin smoke
-      ctx.drawImage(cache.ember[REDUCED ? 0 : ((now / 400 + hash(i) * 2) | 0) % 2], ax, ay); emitSmoke(i, sx, sy + HH, 2, now);
+      nFire++; ctx.drawImage(cache.ember[REDUCED ? 0 : ((now / 400 + hash(i) * 2) | 0) % 2], ax, ay); emitSmoke(i, sx, sy + HH, 2, now);
     }
     if (jobs.has(i)) { ctx.fillStyle = '#efe6cf'; ctx.fillRect(sx - 1, sy - 10, 2, 16); ctx.fillStyle = '#e8b04a'; ctx.fillRect(sx + 1, sy - 10, 8, 4); } // work flag
   }

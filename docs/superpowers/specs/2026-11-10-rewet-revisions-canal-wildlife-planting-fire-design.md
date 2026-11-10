@@ -78,7 +78,7 @@ All values are game values, `NOT SOURCED`, and go in spec section 8 of the procg
 - **Sprite:** surface fire (`fire = 1`) gets a cached flame sprite with 4 animation frames: a base of glowing peat, 2 to 3 flame tongues in yellow, orange and red, and a dark char ring. Smouldering fire (`fire = 2`) gets a cached sprite of a dark ember patch with a slow pulse. All art uses `fillRect` and the named colours in `iso.js`.
 - **Smoke:** a render-only particle list in `src/render/iso.js`.
   - Each burning tile emits puffs at a fixed rate. Surface fire emits more puffs than smouldering fire.
-  - A puff is a soft blob: 3 nested `fillRect` disks with alpha 0.08 to 0.2. It grows, rises and fades over 3 to 6 seconds.
+  - A puff is a soft blob: 3 nested `fillRect` disks with alpha 0.18, 0.26 and 0.4 (section 9). It grows, rises and fades over 3 to 6 seconds.
   - The drift direction is `yearDir`, an angle from `hash(world.seed, year)`, with a random spread of ±30° per puff. It is a general direction, not the sim wind.
   - At most 160 puffs. When the cap is reached, the oldest puff goes first.
   - The smoke is drawn after the tiles and the animals, so it passes over them. It is not drawn in the data view.
@@ -124,3 +124,7 @@ All values are game values, `NOT SOURCED`, and go in spec section 8 of the procg
 
 - The season weights per species are game values. The journal does not state them as facts.
 - The flame and smoke art is a first pass. The user reviews screenshots before the plan's last task.
+- Smoke values after the review of task 5 (`src/render/iso.js`). The first values gave smoke that was too faint, so these values replace them:
+  - Puff colour `SMOKE = [205, 200, 192]`. Disk alpha `PUFF_ALPHA = [.18, .26, .4]`. Puff fade `(1 - t) ** .7`. Puff radius 3 to 7 px.
+  - A surface-fire puff starts at the flame tip, 14 px above the tile centre. A smouldering puff starts 4 px above it.
+  - The emit interval of each tile is multiplied by `max(1, nFire / 14)`, where `nFire` is the burning-tile count of the last frame. With many fires, the 160 puffs then stay alive for about 3 s or more.
