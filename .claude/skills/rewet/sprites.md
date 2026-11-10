@@ -5,8 +5,8 @@
 - Tile grid: `TW = 32`, `TH = 16` (`src/render/isoMath.js`). On the level screen, the buffer size comes from `cameraFor()`: the window size divided by the zoom scale. One buffer pixel is one map pixel at each scale.
 - `src/render/iso.js` builds a sprite cache once (`buildCache()`). Each sprite is an offscreen canvas made with `sprite(draw)`. The anchor is the top vertex of the tile: `(SW/2, HEAD)`.
 - Helpers: `block` (tile side faces), `texture` (peat shades and specks), `blob`, `pool` (flat ellipse), `tree`, `shrub`, `seedling` and `fern`.
-- Plant forms: `cache.veg[VEG.X]` holds 4 sprites for each plant type. `drawWorld()` picks one with `vegVariant(i)`. Each type has these forms:
-  - Tree: young trees, `broadCrown` (short trunk, wide crown), `emergent` (tall thin trunk, high flat crown) and `pandan` (stilt roots and stiff blue-green strap leaves, no trunk).
+- Plant forms: `cache.veg[VEG.X]` holds the sprites for each plant type. `drawWorld()` picks one from the tile hash. Each type has these forms:
+  - Tree: 12 sprites. `crown()` builds a lumpy crown from many lit clumps, so a tree does not look like a disc on a stick. Types: young `tree`, mature `canopy` (buttress and fork; rx and ry set the shape), `emergent` (2-tier crown), `gelam` (pale trunk, narrow grey-green crown), `tiered` (cone), `twin` (2 stems) and `mixed` (dark crown, light new leaves). Palettes: `GREENS`, `JELUTONG`, `OLIVE`, `BLUE_GREEN`, `DARK`, `LIME`, `PUCUK` (red young leaves), `GELAM`. No palms in the tree list.
   - Shrub: 2 original forms, a group of 4 small shrubs and `lowShrub` (flat mound with flower specks).
   - Seedling: 2 original forms, a group of 5 tiny seedlings and `sapling` (taller stem with 2 leaf tiers).
   - Fern: 2 original forms, `tuft` (sedge blades) and one large fern with 2 small ones.

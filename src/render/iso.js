@@ -142,46 +142,80 @@ function pool(g, cx, cy, rx, col) {
   for (let dy = -ry; dy <= ry; dy++) { const w = Math.round(rx * Math.sqrt(1 - (dy / (ry + .5)) ** 2)); g.fillRect(cx - w, cy + dy, w * 2 + 1, 1); }
 }
 const SHADOW = 'rgba(0,0,0,0.25)';
-function tree(g, bx, by, tall, rad) { // (bx, by) = foot of the trunk
-  pool(g, bx + 2, by, rad + 1, SHADOW);
-  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - tall, 2, tall);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - tall, 1, tall);
-  const cy = by - tall - rad + 2;
-  blob(g, bx, cy, rad, '#24552a'); // shadow side
-  blob(g, bx - 1, cy - 1, rad - 1, '#2f6b33');
-  blob(g, bx - 2, cy - 2, Math.max(1, rad - 3), '#5c9a45'); // light side
-  g.fillStyle = '#7fb85a'; g.fillRect(bx - 3, cy - rad + 1, 2, 1);
-}
-function emergent(g, bx, by) { // tall thin trunk, high flat crown above the other trees
-  pool(g, bx + 2, by, 4, SHADOW);
-  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - 19, 2, 19);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 19, 1, 19);
-  pool(g, bx, by - 21, 8, '#24552a'); // shadow side
-  pool(g, bx - 1, by - 22, 7, '#2f6b33');
-  pool(g, bx - 2, by - 23, 4, '#5c9a45'); // light side
-  g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 24, 2, 1);
-}
-function broadCrown(g, bx, by) { // short trunk, wide round crown of 3 blobs
-  pool(g, bx + 2, by, 7, SHADOW);
-  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - 6, 3, 6);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 6, 1, 6);
-  blob(g, bx - 5, by - 9, 5, '#24552a'); blob(g, bx + 5, by - 8, 5, '#24552a'); blob(g, bx, by - 12, 6, '#24552a');
-  blob(g, bx - 6, by - 10, 4, '#2f6b33'); blob(g, bx + 4, by - 9, 4, '#2f6b33'); blob(g, bx - 1, by - 13, 5, '#2f6b33');
-  blob(g, bx - 2, by - 14, 3, '#5c9a45'); blob(g, bx - 7, by - 11, 2, '#5c9a45');
-  g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 16, 2, 1);
-}
-function pandan(g, bx, by, h) { // no trunk: stilt roots, then stiff 2 px strap leaves that arch out and down at the tips
-  pool(g, bx + 1, by, 5, SHADOW);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx, by - 4, 1, 4); // centre root
-  for (const d of [-1, 1]) for (let k = 0; k < 3; k++) g.fillRect(bx + d * (k + 1), by - 3 + k, 1, 1); // 2 diagonal stilt roots
-  g.fillStyle = '#1f5a48'; g.fillRect(bx - 1, by - 5, 3, 2); // leaf base
-  // [x per rise, rise, droop, colour]: each leaf goes up its slope, then its last steps bend out and down
-  for (const [ax, rise, droop, c] of [[-.25, 13, 2, '#1f5a48'], [.25, 12, 2, '#1f5a48'], [-.6, 10, 3, '#2a6c54'], [.6, 9, 3, '#2a6c54'], [-1, 6, 4, '#2f7a5e'], [1, 6, 4, '#2f7a5e']]) {
-    const d = ax < 0 ? -1 : 1; g.fillStyle = c;
-    for (let k = 1; k <= rise; k++) g.fillRect(bx + Math.round(ax * k) - 1, by - 4 - k * h / 12 | 0, 2, 1);
-    const x0 = bx + Math.round(ax * rise), y0 = by - 4 - (rise * h / 12 | 0);
-    for (let k = 1; k <= droop; k++) g.fillRect(x0 + d * k - 1, y0 + (k > 1 ? k - 1 : 0), 2, 1);
+// Tree palettes, dark to light: [shade, mid, lit, glint].
+const GREENS = ['#1f4a26', '#2f6b33', '#4f8d3f', '#7fb85a'], OLIVE = ['#38422a', '#525c38', '#747c4c', '#9a9e6a'], BLUE_GREEN = ['#1c4232', '#2a5e44', '#3e7c58', '#62a074'];
+const DARK = ['#14321c', '#204628', '#305e36', '#4a7c44'], LIME = ['#3a5a20', '#567e28', '#7aa63a', '#a8d05a'], PUCUK = ['#1f4a26', '#2f6b33', '#4f8d3f', '#b86a4a']; // PUCUK: red young leaves
+const JELUTONG = ['#28502a', '#3a7434', '#5e9844', '#8cc060'], GELAM = ['#2e4836', '#48644a', '#6a8660', '#8ea67a'];
+const BARK = ['#6a4a32', '#4a3324'], PALE_BARK = ['#b8ab90', '#857a66']; // [lit side, shade side]
+// A lumpy crown: a centre clump and a ring of n clumps. Each pixel takes its shade from its own clump, lit from the top left,
+// so the crown reads as many leaf masses, not one disc. holes: the chance to drop an edge pixel, for a ragged outline.
+function crown(g, cx, cy, rx, ry, pal, seed, holes = .3, n = 5) {
+  const cl = [[cx, cy, Math.min(rx, ry) * .8]];
+  for (let k = 0; k < n; k++) {
+    const a = (k / n + hash(seed + k) * .15) * 2 * Math.PI;
+    cl.push([cx + Math.cos(a) * rx * .55, cy + Math.sin(a) * ry * .5 - ry * .1, ry * (.45 + hash(seed * 3 + k) * .2)]);
   }
+  for (let py = Math.floor(cy - ry - 2); py <= cy + ry + 2; py++) for (let px = Math.floor(cx - rx - 2); px <= cx + rx + 2; px++) {
+    let best = 0, bc = null;
+    for (const c of cl) { const m = c[2] - Math.hypot(px + .5 - c[0], py + .5 - c[1]); if (m > best) { best = m; bc = c; } }
+    if (!bc) continue;
+    const hv = hash(seed * 31 + px * 17 + py * 131);
+    if (best < 1 && hv < holes) continue;
+    let v = -((px + .5 - bc[0]) * .55 + (py + .5 - bc[1]) * .85) / bc[2] - (py - cy) / ry * .35; // clump light, plus a darker underside
+    if (hv > .94) v += .4; else if (hv < .06) v -= .5; // leaf glints and gaps
+    g.fillStyle = pal[v > .75 ? 3 : v > .3 ? 2 : v > -.3 ? 1 : 0]; g.fillRect(px, py, 1, 1);
+  }
+}
+// A 2 px trunk, lit on the left. flare: the height of the buttress roots at the foot.
+function trunk(g, bx, by, h, bark = BARK, flare = 0) {
+  g.fillStyle = bark[1]; g.fillRect(bx - 1, by - h, 2, h);
+  g.fillStyle = bark[0]; g.fillRect(bx - 1, by - h, 1, h);
+  if (!flare) return;
+  g.fillStyle = bark[1]; g.fillRect(bx - 2, by - flare, 1, flare); g.fillRect(bx + 1, by - flare, 1, flare); g.fillRect(bx - 3, by - 1, 1, 1); g.fillRect(bx + 2, by - 1, 1, 1);
+  g.fillStyle = bark[0]; g.fillRect(bx - 2, by - flare, 1, 1);
+}
+// 2 limbs that fork up and out from the trunk at height top. The crown covers their tips.
+function fork(g, bx, top, spread) {
+  g.fillStyle = BARK[1];
+  for (let k = 1; k <= spread; k++) { g.fillRect(bx - 1 - k, top - k, 1, 1); g.fillRect(bx + k, top - k, 1, 1); }
+}
+function tree(g, bx, by, tall, rad, pal = GREENS) { // a young tree: the crown sits low on a short trunk
+  pool(g, bx + 2, by, rad + 1, SHADOW);
+  trunk(g, bx, by, tall + 2);
+  crown(g, bx, by - tall - rad + 1, rad + 1, rad, pal, bx * 7 + by * 13 + tall, .3, 3);
+}
+function canopy(g, bx, by, tall, rx, ry, pal, seed, holes = .3, n = 6) { // a mature tree: buttress, a fork, a lumpy crown. rx and ry set its shape
+  pool(g, bx + 2, by, rx - 1, SHADOW);
+  trunk(g, bx, by, tall + 2, BARK, 2); fork(g, bx, by - tall, 3);
+  crown(g, bx, by - tall - ry + 1, rx, ry, pal, seed, holes, n);
+}
+function emergent(g, bx, by) { // a tall straight trunk with buttress roots, 2 low limbs and a high wide crown above the other trees
+  pool(g, bx + 2, by, 5, SHADOW);
+  trunk(g, bx, by, 20, BARK, 3); fork(g, bx, by - 16, 4);
+  crown(g, bx - 4, by - 19, 4, 3, GREENS, 91, .35, 3); crown(g, bx + 4, by - 18, 4, 3, GREENS, 92, .35, 3);
+  crown(g, bx, by - 24, 7, 4, GREENS, 93, .3, 5);
+}
+function gelam(g, bx, by, tall) { // gelam (Melaleuca): a pale papery trunk and a narrow open grey-green crown, common on burnt peat
+  pool(g, bx + 1, by, 3, SHADOW);
+  trunk(g, bx, by, tall, PALE_BARK);
+  g.fillStyle = PALE_BARK[1]; for (let k = 3; k < tall; k += 4) g.fillRect(bx - 1, by - k, 1, 1); // flaking bark
+  crown(g, bx, by - tall + 2, 3, tall * .4, GELAM, bx * 5 + tall, .45, 4);
+}
+function tiered(g, bx, by, pal, seed) { // a narrow cone of 3 leaf tiers, wide at the foot
+  pool(g, bx + 2, by, 5, SHADOW);
+  trunk(g, bx, by, 18);
+  for (const [dy, rx, ry, k] of [[-8, 6, 2.5, 0], [-13, 4.5, 2.5, 1], [-18, 3, 2.5, 2]]) crown(g, bx, by + dy, rx, ry, pal, seed + k, .3, 4);
+}
+function twin(g, bx, by, pal, seed) { // 2 stems that lean apart from one foot, each with its own crown
+  pool(g, bx + 2, by, 7, SHADOW);
+  g.fillStyle = BARK[1];
+  for (let k = 0; k < 11; k++) { g.fillRect(bx - 1 - (k >> 2), by - k, 2, 1); g.fillRect(bx + 1 + (k >> 2), by - k, 2, 1); }
+  g.fillStyle = BARK[0]; for (let k = 0; k < 11; k++) g.fillRect(bx - 1 - (k >> 2), by - k, 1, 1);
+  crown(g, bx - 4, by - 13, 5, 4, pal, seed, .3, 4); crown(g, bx + 5, by - 15, 5, 4, pal, seed + 1, .3, 4);
+}
+function mixed(g, bx, by, dark, light, seed) { // a dark crown with a light flush of new leaves on its sunny side
+  canopy(g, bx, by, 6, 7, 6, dark, seed);
+  crown(g, bx - 2, by - 14, 4, 3, light, seed + 5, .45, 3);
 }
 function shrub(g, bx, by, rad) {
   pool(g, bx + 1, by + 1, rad + 1, SHADOW);
@@ -352,7 +386,7 @@ function buildCache() {
         return m < .8 ? leaf : m < 1.4 ? dark : null;
       });
     })),
-    veg: { // 4 sprites for each type, picked by vegVariant(i)
+    veg: { // sprites for each type; drawWorld picks one from the tile hash
       [VEG.FERN]: [sprite((g, x, y) => { fern(g, x - 5, y + 8, 4); fern(g, x + 5, y + 11, 3); }), sprite((g, x, y) => { fern(g, x + 1, y + 10, 5); fern(g, x - 7, y + 9, 3); }),
         sprite((g, x, y) => { tuft(g, x - 4, y + 9); tuft(g, x + 5, y + 12); }), sprite((g, x, y) => { fern(g, x - 2, y + 11, 6); fern(g, x + 7, y + 9, 2); fern(g, x - 8, y + 8, 2); })],
       [VEG.SEEDLING]: [sprite((g, x, y) => { seedling(g, x - 5, y + 8, 4); seedling(g, x + 3, y + 7, 3); seedling(g, x, y + 12, 4); }),
@@ -361,10 +395,19 @@ function buildCache() {
         sprite((g, x, y) => { sapling(g, x - 2, y + 11, 8); seedling(g, x + 6, y + 9, 3); })],
       [VEG.SHRUB]: [sprite((g, x, y) => { shrub(g, x - 4, y + 8, 5); shrub(g, x + 5, y + 11, 4); }), sprite((g, x, y) => { shrub(g, x + 1, y + 10, 6); shrub(g, x - 8, y + 9, 3); }),
         sprite((g, x, y) => { shrub(g, x - 7, y + 9, 3); shrub(g, x + 1, y + 8, 3); shrub(g, x + 7, y + 11, 3); shrub(g, x - 3, y + 13, 3); }), sprite((g, x, y) => { lowShrub(g, x - 1, y + 10, 9); })],
-      [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 5, y + 9, 5, 3); tree(g, x + 5, y + 12, 4, 3); }), // young trees
-        sprite((g, x, y) => { broadCrown(g, x + 1, y + 12); tree(g, x - 9, y + 9, 5, 3); }),
-        sprite((g, x, y) => { tree(g, x + 6, y + 8, 7, 4); emergent(g, x - 2, y + 12); }),
-        sprite((g, x, y) => { pandan(g, x - 5, y + 9, 12); pandan(g, x + 4, y + 12, 13); tree(g, x + 9, y + 8, 4, 3); })]
+      // Trees, drawn back to front in each sprite. They differ in shape (round, tall, flat, cone, 2 stems, open), in size and in colour.
+      [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 6, y + 9, 4, 3); tree(g, x + 2, y + 7, 5, 2, JELUTONG); tree(g, x + 5, y + 12, 3, 3, OLIVE); }), // young trees
+        sprite((g, x, y) => { tree(g, x - 9, y + 8, 4, 3); canopy(g, x + 1, y + 12, 6, 8, 6, GREENS, 11); }), // broad round
+        sprite((g, x, y) => { tree(g, x + 6, y + 8, 6, 4, JELUTONG); emergent(g, x - 2, y + 12); }), // emergent
+        sprite((g, x, y) => { gelam(g, x - 5, y + 8, 15); gelam(g, x + 3, y + 10, 18); gelam(g, x + 8, y + 13, 11); }), // gelam
+        sprite((g, x, y) => { tree(g, x - 8, y + 9, 3, 3, OLIVE); canopy(g, x + 2, y + 12, 6, 4, 8, BLUE_GREEN, 41, .3, 5); }), // tall oval
+        sprite((g, x, y) => { canopy(g, x, y + 11, 7, 10, 4, DARK, 51, .3, 8); }), // wide flat crown
+        sprite((g, x, y) => { tree(g, x + 7, y + 8, 3, 3, GREENS); tiered(g, x - 2, y + 12, LIME, 61); }), // cone
+        sprite((g, x, y) => { twin(g, x, y + 12, OLIVE, 71); }), // 2 stems
+        sprite((g, x, y) => { tree(g, x + 8, y + 8, 3, 3, DARK); mixed(g, x - 1, y + 12, DARK, LIME, 81); }), // dark and light
+        sprite((g, x, y) => { tree(g, x - 8, y + 8, 4, 3, JELUTONG); canopy(g, x + 2, y + 12, 7, 7, 6, PUCUK, 91); }), // red young leaves
+        sprite((g, x, y) => { canopy(g, x - 4, y + 9, 5, 6, 5, GREENS, 31); canopy(g, x + 5, y + 13, 4, 6, 4, BLUE_GREEN, 32); }), // a pair
+        sprite((g, x, y) => { gelam(g, x - 7, y + 9, 13); canopy(g, x + 3, y + 12, 7, 7, 6, OLIVE, 101, .55, 5); })] // open, sparse crown
     },
   };
   return cache;
@@ -706,7 +749,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (ov) ctx.drawImage(ov[axis[i]] ?? ov[0], ax, ay);
     if (k === KIND.PEAT && !fire[i]) {
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
-      if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][vegVariant(i)], ax, ay);
+      if (veg !== VEG.NONE) { const vs = cache.veg[veg]; ctx.drawImage(vs[Math.floor(hash(i) * vs.length)], ax, ay); } // for 4 sprites this is vegVariant(i)
     }
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
