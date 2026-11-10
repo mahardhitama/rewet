@@ -15,7 +15,7 @@ export function createMapView(cv) {
   // Cached: a read each frame forces a layout. The observer also sees show and hide, because [hidden] sets display: none.
   const [hud, bar, zoomEl] = ['hud', 'bar', 'zoom'].map(id => document.getElementById(id));
   let ins = { top: 0, bottom: 0, side: 0 };
-  // The zoom buttons cover a side column only when they are fixed at the right edge. On a phone they sit in the action bar.
+  // The zoom buttons cover a side column only when they are fixed at the right edge. On a portrait phone they float just above the action bar and add no side inset.
   const measure = () => { ins = { top: hud.offsetHeight && hud.offsetTop + hud.offsetHeight, bottom: bar.offsetHeight,
     side: zoomEl.offsetWidth && getComputedStyle(zoomEl).position === 'fixed' ? innerWidth - zoomEl.offsetLeft : 0 }; };
   if (hud && bar && zoomEl) { const ro = new ResizeObserver(measure); [hud, bar, zoomEl].forEach(el => ro.observe(el)); addEventListener('resize', measure); }

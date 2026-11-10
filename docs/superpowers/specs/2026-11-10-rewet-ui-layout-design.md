@@ -91,9 +91,9 @@ Success criteria:
 - Slot size: 64×64 CSS px on desktop, 44×44 CSS px at max-width 600px or max-height 500px. 5 slots of 44 px fit at 320 px.
 - A slot shows the action icon at 2× (24 px) or 3× (36 px) and the cost under it in `--fs-label`. The slot has `aria-label` with the name, the cost and the weeks.
 - The 4 groups (Rewetting, Revegetation, Revitalisation, Defence) show as a thin colour line above their slots and a small group gap between groups. The group name is in each slot's accessible name.
-- A name line above the slots shows the name of the hovered, focused or selected action, in `--fs-label`. When no action is selected, it shows the existing hint text.
+- A name line above the slots shows the name of the hovered, focused or selected action, in `--fs-label`. The how-to text of that action shows on a second line under it, in `--fs-label` and the dim colour. When no action is selected, the name line shows the existing hint text.
 - The selected slot has the accent border. A slot that the player cannot afford keeps the `poor` style on its cost.
-- The zoom buttons stay in a column at the right side of the screen, with icons. On a portrait phone, they stay in the bar row at the right of the slots.
+- The zoom buttons stay in a column at the right side of the screen, with icons. On a portrait phone, the column stays at the right edge, just above the bar (8 px gap). The slots stay centred.
 - The map tap rules and the drag rules do not change.
 
 ## 6. Panels and buttons (menu, level select, reports, dialogs)

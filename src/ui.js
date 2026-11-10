@@ -26,12 +26,15 @@ function tip(msg, x, y) {
   clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2000);
 }
 
-// The name line shows the hovered or focused slot, else the selected action, else the hint.
+// The name line shows the hovered or focused slot, else the selected action, else the idle hint.
+// The line under it shows the how-to text of that action.
 let hover = null;
 function showName() {
-  const id = hover ?? armed;
-  const t = id ? BAR.name(ACTION_TEXT[id][0], actionMeta(costOf(G, id), ACTIONS[id].weeks)) : SELECT_HINT;
-  if ($('barName').textContent !== t) $('barName').textContent = t;
+  const id = hover ?? armed, n = $('barName'), h = $('barHint');
+  const t = id ? BAR.name(ACTION_TEXT[id][0], actionMeta(costOf(G, id), ACTIONS[id].weeks)) : SELECT_HINT, how = id ? ACTION_TEXT[id][1] : '';
+  if (n.textContent !== t) n.textContent = t;
+  if (h.textContent !== how) h.textContent = how;
+  n.classList.toggle('sel', !!id);
 }
 
 function arm(id) {
