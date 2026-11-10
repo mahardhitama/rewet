@@ -4,11 +4,11 @@ import { evaluate, checkEarlyLoss, co2Estimate } from '../src/sim/score.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 
 // Game-like stub: n peat tiles, `wet` of them with mean dry wt 0.3, rest 0.8.
-function mk({ n = 10, wet = 6, cover = 0.4, goodwill = 60, burnt = 0, funds = 1000, crews = [0], jobs = [], tick = 100 } = {}) {
+function mk({ n = 10, wet = 6, cover = 0.4, goodwill = 60, burnt = 0, funds = 1000, crews = [0], jobs = [], tick = 2 * 208 + 200, upgrades = {} } = {}) {
   const wt = new Float32Array(n).fill(0.8).fill(0.3, 0, wet);
   return {
     world: { n, wt, kind: new Uint8Array(n).fill(KIND.PEAT), cover: new Float32Array(n).fill(cover) },
-    level: { pass: { rewet: 60, reveg: 40, revit: 60 } },
+    level: { pass: { rewet: 60, reveg: 40, revit: 60 }, years: 3, elNinoYear: null }, upgrades,
     tick, funds, crews, jobs, goodwill,
     burnt: new Set(Array.from({ length: burnt }, (_, i) => i)),
     wt0: new Float32Array(n).fill(0.8),
@@ -68,12 +68,26 @@ test('early loss at 35% burnt, not 34%', () => {
   assert.equal(checkEarlyLoss(mk({ n: 100, burnt: 35 })), null);
 });
 
-test('early loss funds only when idle and broke', () => {
+test('early loss funds only when idle and broke', () => { // default tick: final year, dry season
   assert.equal(checkEarlyLoss(mk({ funds: 49 })), 'funds');
   assert.equal(checkEarlyLoss(mk({ funds: 50 })), null);
-  assert.equal(checkEarlyLoss(mk({ funds: 0, crews: [150] })), null);
+  assert.equal(checkEarlyLoss(mk({ funds: 0, crews: [9999] })), null);
   assert.equal(checkEarlyLoss(mk({ funds: 0, jobs: [{}] })), null);
   assert.equal(checkEarlyLoss(mk({ funds: 0, crews: [Infinity] })), null);
+});
+
+test('R25: no funds loss while a grant is still to come', () => {
+  assert.equal(checkEarlyLoss(mk({ funds: 0, tick: 45 })), null); // year 1
+  assert.equal(checkEarlyLoss(mk({ funds: 0, tick: 2 * 208 - 1 })), null); // last tick of year 2
+  assert.equal(checkEarlyLoss(mk({ funds: 0, tick: 2 * 208 })), 'funds'); // final year
+  assert.equal(checkEarlyLoss(mk({ funds: 0, tick: 3 * 208 })), null); // level over: the debrief judges the scores
+});
+
+test('R25: broke means below the cheapest action at today\'s price', () => {
+  const wet = 2 * 208 + 4; // final year, wet season: mound 50 x 0.8 = 40
+  assert.equal(checkEarlyLoss(mk({ funds: 45, tick: wet })), null);
+  assert.equal(checkEarlyLoss(mk({ funds: 39, tick: wet })), 'funds');
+  assert.equal(checkEarlyLoss(mk({ funds: 45 })), 'funds'); // dry season: mound 50
 });
 
 test('early loss goodwill', () => {

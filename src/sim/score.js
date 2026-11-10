@@ -1,26 +1,31 @@
 import { KIND, WET_WT } from './world.js';
-import { ACTIONS, freeCrews } from './game.js';
+import { ACTIONS, costOf, freeCrews } from './game.js';
 import { TICKS_PER_YEAR } from './season.js';
 
 const HA_PER_TILE = 0.25; // 50 m x 50 m
 const CROPLAND_TC_HA_YR = 14; // IPCC 2013 Wetlands Supplement, drained cropland
 const FIRE_TC_HA = 353 * 0.464; // t d.m./ha x C fraction
 
-export function evaluate(g) {
-  const { wt, kind, cover, n } = g.world;
+// % of peat tiles whose mean wt over the current/last dry season (dryWtHistory) is wet; current wt before the first dry season.
+export function dryWetPct(g) {
+  const { wt, kind, n } = g.world;
   const hist = g.dryWtHistory;
-  let peat = 0, wet = 0, cSum = 0, cN = 0;
+  let peat = 0, wet = 0;
   for (let i = 0; i < n; i++) {
-    const k = kind[i];
-    if (k === KIND.PEAT) {
-      peat++;
-      let m = wt[i];
-      if (hist.length) { m = 0; for (const s of hist) m += s[i]; m /= hist.length; }
-      if (m <= WET_WT) wet++;
-    }
-    if (k !== KIND.CANAL && k !== KIND.FARM) { cSum += cover[i]; cN++; }
+    if (kind[i] !== KIND.PEAT) continue;
+    peat++;
+    let m = wt[i];
+    if (hist.length) { m = 0; for (const s of hist) m += s[i]; m /= hist.length; }
+    if (m <= WET_WT) wet++;
   }
-  const rewetPct = peat ? (wet / peat) * 100 : 0;
+  return peat ? (wet / peat) * 100 : 0;
+}
+
+export function evaluate(g) {
+  const { kind, cover, n } = g.world;
+  let cSum = 0, cN = 0;
+  for (let i = 0; i < n; i++) if (kind[i] !== KIND.CANAL && kind[i] !== KIND.FARM) { cSum += cover[i]; cN++; }
+  const rewetPct = dryWetPct(g);
   const coverPct = cN ? (cSum / cN) * 100 : 0;
   const { goodwill } = g;
   const p = g.level.pass;
@@ -34,11 +39,14 @@ export function evaluate(g) {
   return { rewetPct, coverPct, goodwill, passed, stars, hints, loss };
 }
 
-const MIN_COST = Math.min(...Object.values(ACTIONS).map((a) => a.cost).filter((c) => c > 0));
+const PAID = Object.keys(ACTIONS).filter((id) => ACTIONS[id].cost > 0);
+export const cheapestCost = (g) => Math.min(...PAID.map((id) => costOf(g, id))); // season- and upgrade-aware
 
 export function checkEarlyLoss(g) {
   if (g.burnt.size > 0.35 * g.world.n) return 'fire';
-  if (g.funds < MIN_COST && g.jobs.length === 0 && freeCrews(g) === g.crews.length) return 'funds';
+  // broke only counts once no grant is left to come (final year), while play goes on, and the crews are idle
+  const end = g.level.years * TICKS_PER_YEAR, finalYear = g.tick >= end - TICKS_PER_YEAR && g.tick < end;
+  if (finalYear && g.funds < cheapestCost(g) && g.jobs.length === 0 && freeCrews(g) === g.crews.length) return 'funds';
   if (g.goodwill <= 0) return 'goodwill';
   return null;
 }

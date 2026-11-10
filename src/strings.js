@@ -90,10 +90,10 @@ export const DEBRIEF = {
   allMet: 'All goals met. Well done.',
   passed: 'Site restored.',
   failed: 'Site not restored.',
-  loss: { fire: 'Too much of the site burnt.', funds: 'Out of funds.', goodwill: 'The village lost its trust in you.' },
+  loss: { fire: 'Too much of the site burnt.', funds: 'Out of funds in the final year, with no grant left to come.', goodwill: 'The village lost its trust in you.' },
   lossHint: {
     fire: 'Wet peat does not burn. Block canals early so the water stays high through the dry season.',
-    funds: 'Spend in the wet season, when blocks and planting cost less, and block before you backfill.',
+    funds: 'Each year brings a new grant, but the last year has none. Spend in the wet season, when work costs less, and block before you backfill.',
     goodwill: 'Keep fire away from the village and build ponds, fire groups and paludiculture.',
   },
   menu: 'Menu',
