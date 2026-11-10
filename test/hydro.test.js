@@ -71,9 +71,9 @@ test('a 2.5 m canal drains less than a 5 m canal', () => {
 test('canal water drops in the dry season', () => {
   const { W, S } = canalWorld(5);
   for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 1 });
-  assert.ok(Math.abs(W.cWater[0] - 3.5) < 0.05, `dry ${W.cWater[0]}`);
+  assert.ok(Math.abs(W.cWater[0] - 4.5) < 0.05, `dry ${W.cWater[0]}`);
   for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 0 });
-  assert.ok(Math.abs(W.cWater[0] - 0.75) < 0.05, `wet ${W.cWater[0]}`);
+  assert.ok(Math.abs(W.cWater[0] - 2.75) < 0.05, `wet ${W.cWater[0]}`);
   assert.equal(W.cWater[1], 0, 'peat tile has no canal water');
 });
 
@@ -81,5 +81,5 @@ test('water stays higher behind a block', () => {
   const { W, S } = canalWorld(5);
   S[0] = 0.1;
   for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 1 });
-  assert.ok(Math.abs(W.cWater[0] - 0.1 * 3.5) < 0.05, `${W.cWater[0]}`);
+  assert.ok(Math.abs(W.cWater[0] - 0.1 * 4.5) < 0.05, `${W.cWater[0]}`);
 });

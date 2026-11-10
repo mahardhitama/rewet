@@ -3,7 +3,7 @@ import { DRAIN } from './drainage.js';
 export const HYDRO = { kDrain: 0.10, kLat: 0.02, eqDry: 0.9, eqWet: 0.5, farDry: 0.33, farWet: 0.06, kVert: 0.05, cutoffM: 400 };
 
 // Game values, NOT SOURCED: water fill as a part of cDepth, and the canal response per tick.
-export const CANAL = { depthRef: 5, fillWet: 0.15, fillDry: 0.7, k: 0.05 };
+export const CANAL = { depthRef: 5, fillWet: 0.55, fillDry: 0.9, k: 0.05 };
 
 const WT_MIN = -0.3, WT_MAX = 1.5, COVER_ET = 0.03, SUBSID = 0.001 / 208; // m per tick per cm of wt (0.1 x wt cm/yr)
 let delta = new Float32Array(0); // reused lateral-flow scratch

@@ -22,6 +22,10 @@ test('canal steps', () => {
   assert.equal(canalStep(3.5, 5), 2);
   assert.equal(canalStep(5, 5), 3);
   assert.equal(canalStep(1, 0), 0);
+  // open canal: narrow strip in the wet season (fill 0.55), near-empty bed in the dry season (fill 0.9); a blocked canal is full
+  assert.equal(canalStep(0.55 * 5, 5), 2);
+  assert.equal(canalStep(0.9 * 5, 5), 3);
+  assert.equal(canalStep(0.1 * 0.55 * 5, 5), 0);
   assert.deepEqual([4.9, 5, 8, 8.1].map(widthStep), [0, 1, 1, 2]);
 });
 
@@ -174,11 +178,17 @@ test('canal sprite: the top takes the bank colour of its step', (t) => {
   const count = (px, c) => px.slice(28 * SPRITE_W, 44 * SPRITE_W).filter(v => v === `rgb(${c})`).length;
   const seen = new Set();
   for (let bank = 0; bank < 4; bank++) {
-    const px = canalSprite(edgeKey(0, bank)).px, top = count(px, BANK_TOP[bank]);
+    const px = canalSprite(edgeKey(1, bank)).px, top = count(px, BANK_TOP[bank]); // water step 1: no seep line
     assert.ok(top > 100, `bank ${bank}: ${top} pixels of the bank colour`);
     seen.add(BANK_TOP[bank].join());
   }
   assert.equal(seen.size, 4);
+});
+
+test('canal sprite: a full canal (water step 0) soaks the bank, a lower canal does not', (t) => {
+  stubDocument(t);
+  const bankPx = (ws) => canalSprite(edgeKey(ws, 0)).px.filter(v => v === `rgb(${BANK_TOP[0]})`).length;
+  assert.ok(bankPx(0) < bankPx(1) - 15, `${bankPx(0)} vs ${bankPx(1)}`);
 });
 
 test('slidePos blends linearly', async () => {

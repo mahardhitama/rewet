@@ -56,6 +56,7 @@ export function canalZone(px, py, spec) {
   return c.d <= waterW(c.W, spec.ws) ? 3 : 2;
 }
 const WALL = mix(WET, BLACK, .45), MUD = mix(WET, DRY, .5); // MUD: the exposed wet bed
+const SEEP = mix(WATER, WET, .55); // the bank soaked by a full canal
 
 // For each canal tile: the 8-neighbour canal or river tile with the lowest z below its own z, or -1.
 export function downstream(w, h, z, kind) {
@@ -521,7 +522,10 @@ export function canalSprite(key, o = -1) {
     }
     for (let r = fy; r < fy + TH; r++) for (let dx = fx - rowW(r - fy); dx < fx + rowW(r - fy); dx++) {
       const zn = canalZone(dx, r, spec), v = hash(r * 61 + dx + 7);
-      if (!zn) continue;
+      if (!zn) { // full canal (a block holds the water): a wet seep line soaks the bank along the brim
+        if (spec.ws === 0 && chan(dx + .5, r + .5, spec).m > -2.2) { g.fillStyle = v > .88 ? rgb(mix(WATER, WHITE, .3)) : rgb(SEEP); g.fillRect(x + dx - fx, y + r - fy, 1, 1); }
+        continue;
+      }
       g.fillStyle = zn === 1 ? rgb(WALL) : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
         : canalZone(dx, r - 1, spec) !== 3 ? rgb(mix(WATER, WHITE, .3)) : v > .97 ? '#9fd4e8' : rgb(WATER);
       g.fillRect(x + dx - fx, y + r - fy, 1, 1); // a patch lies in the side tile frame
