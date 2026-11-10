@@ -1,11 +1,11 @@
-import { createWorld, KIND, BLOCK, WET_WT, idx } from './world.js';
+import { createWorld, KIND, BLOCK, WET_WT, idx, mulberry32 } from './world.js';
 import { generateTerrain } from './terrain.js';
 import { DRAIN, computeStrength, computeDistance, walkUp } from './drainage.js';
 import { seasonAt, TICKS_PER_YEAR } from './season.js';
 import { hydroTick, canalTick, canalTarget } from './hydro.js';
 import { ignite, fireTick } from './fire.js';
 import { BRANCH } from './mapgen.js';
-import { faunaTick } from './fauna.js';
+import { faunaTick, FAUNA_SALT } from './fauna.js';
 
 const TPW = 4; // ticks per week
 const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
@@ -82,7 +82,7 @@ export function createGame(level, upgrades = {}, world = placeLevel(level)) {
     dryWtHistory: [], wind: randWind(world.rng), events: [], S,
     wt0: Float32Array.from(world.wt), cover0: Float32Array.from(world.cover), wetTicks: new Uint16Array(world.n),
     wells: new Set(), mounds: new Set(), seedlings: new Map(), planted: new Map(), paluds: new Set(), ponds: new Set(), fireGroups: new Set(), // planted: tile -> tick it was last seeded
-    fauna: [], seen: new Set(), // wildlife (fauna.js): display only, no effect on the sim
+    fauna: [], seen: new Set(), faunaRng: mulberry32(world.seed ^ FAUNA_SALT), faunaNext: 0, // wildlife (fauna.js): display only, no effect on the sim
     dome: null, // lazy domeZ(level), for illegal-canal beds
     illegal: (level.illegalCanals || []).map(() => 0), // next path index per illegal canal; -1 = stopped
   };
