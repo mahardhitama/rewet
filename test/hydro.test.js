@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorld, mulberry32 } from '../src/sim/world.js';
-import { HYDRO, hydroTick } from '../src/sim/hydro.js';
+import { createWorld, mulberry32, KIND } from '../src/sim/world.js';
+import { computeStrength, computeDistance } from '../src/sim/drainage.js';
+import { HYDRO, hydroTick, canalTick } from '../src/sim/hydro.js';
 import { seasonAt, TICKS_PER_YEAR } from '../src/sim/season.js';
 
 const WET = { week: 10, dry: 0, L: 45 };
@@ -44,4 +45,41 @@ test('seasonAt ramps dry from 0 to 1', () => {
   assert.equal(seasonAt(25 * 4, { elNino: true }).dry, 1);
   assert.equal(seasonAt(25 * 4).dry, 0);
   assert.equal(seasonAt(TICKS_PER_YEAR + 10 * 4).week, 10);
+});
+
+const canalWorld = (depth) => {
+  const W = createWorld({ w: 16, h: 16, seed: 3 });
+  for (let y = 0; y < 16; y++) { W.kind[y * 16] = KIND.CANAL; W.cDepth[y * 16] = depth; }
+  const S = computeStrength(W);
+  computeDistance(W, S);
+  return { W, S };
+};
+
+test('a 5 m canal gives the same wt as a canal with no depth', () => {
+  const a = canalWorld(0), b = canalWorld(5);
+  for (let t = 0; t < TICKS_PER_YEAR; t++) { hydroTick(a.W, a.S, seasonAt(t)); hydroTick(b.W, b.S, seasonAt(t)); }
+  assert.deepEqual(b.W.wt, a.W.wt);
+});
+
+test('a 2.5 m canal drains less than a 5 m canal', () => {
+  const a = canalWorld(5), b = canalWorld(2.5);
+  for (let t = 0; t < TICKS_PER_YEAR; t++) { hydroTick(a.W, a.S, seasonAt(t)); hydroTick(b.W, b.S, seasonAt(t)); }
+  const mean = (W) => { let s = 0, c = 0; for (let i = 0; i < W.n; i++) if (W.dist[i] > 0 && W.dist[i] <= 200) { s += W.wt[i]; c++; } return s / c; };
+  assert.ok(mean(b.W) < mean(a.W), `${mean(b.W)} !< ${mean(a.W)}`);
+});
+
+test('canal water drops in the dry season', () => {
+  const { W, S } = canalWorld(5);
+  for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 1 });
+  assert.ok(Math.abs(W.cWater[0] - 3.5) < 0.05, `dry ${W.cWater[0]}`);
+  for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 0 });
+  assert.ok(Math.abs(W.cWater[0] - 0.75) < 0.05, `wet ${W.cWater[0]}`);
+  assert.equal(W.cWater[1], 0, 'peat tile has no canal water');
+});
+
+test('water stays higher behind a block', () => {
+  const { W, S } = canalWorld(5);
+  S[0] = 0.1;
+  for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 1 });
+  assert.ok(Math.abs(W.cWater[0] - 0.1 * 3.5) < 0.05, `${W.cWater[0]}`);
 });

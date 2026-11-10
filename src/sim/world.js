@@ -29,5 +29,9 @@ export function createWorld({ w, h, seed }) {
     fire: new Uint8Array(n),
     fireT: new Uint16Array(n),
     src: new Int32Array(n).fill(-1),
+    // canal size in m, 0 off canals; cWater = depth of the water surface below the bank
+    cWidth: new Float32Array(n),
+    cDepth: new Float32Array(n),
+    cWater: new Float32Array(n),
   };
 }

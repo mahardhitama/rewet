@@ -277,3 +277,24 @@ test('placeLevel reads canalZ and level.terrain when present', () => {
   canal.forEach(([x, y], k) => assert.ok(Math.abs(w.z[at(x, y)] - canalZ[k]) < 1e-6, `canal z at ${x},${y}`));
   assert.ok(free.z[at(0, 10)] > flat.z[at(0, 10)] + 0.5, 'tilt raises the high edge');
 });
+
+test('placeLevel copies canalW and canalD into the world', () => {
+  const canalW = canal.map((_, k) => 8 + k), canalD = canal.map((_, k) => 5 - 0.1 * k);
+  const w = placeLevel(lvl({ canalW, canalD }));
+  canal.forEach(([x, y], k) => {
+    const i = at(x, y);
+    assert.equal(w.cWidth[i], Math.fround(canalW[k]));
+    assert.equal(w.cDepth[i], Math.fround(canalD[k]));
+    assert.ok(Math.abs(w.cWater[i] - 0.7 * canalD[k]) < 1e-5, `dry water at ${x},${y}`);
+  });
+  assert.equal(w.cDepth[at(10, 10)], 0);
+});
+
+test('backfill sets cWater to 0', () => {
+  const g = createGame(lvl({ canalW: canal.map(() => 8), canalD: canal.map(() => 5) }));
+  const i = at(2, 6);
+  assert.ok(g.world.cWater[i] > 0);
+  applyAction(g, 'backfill', i);
+  for (let t = 0; t < 24; t++) step(g);
+  assert.equal(g.world.cWater[i], 0);
+});

@@ -1,17 +1,25 @@
+import { DRAIN } from './drainage.js';
+
 export const HYDRO = { kDrain: 0.10, kLat: 0.02, eqDry: 0.9, eqWet: 0.5, farDry: 0.33, farWet: 0.06, kVert: 0.05, cutoffM: 400 };
+
+// Game values, NOT SOURCED: water fill as a part of cDepth, and the canal response per tick.
+export const CANAL = { depthRef: 5, fillWet: 0.15, fillDry: 0.7, k: 0.05 };
 
 const WT_MIN = -0.3, WT_MAX = 1.5, COVER_ET = 0.03, SUBSID = 0.001 / 208; // m per tick per cm of wt (0.1 x wt cm/yr)
 let delta = new Float32Array(0); // reused lateral-flow scratch
 
 export function hydroTick(world, S, env, params = HYDRO) {
-  const { w, h, n, z, wt, cover, dist, src } = world;
+  const { w, h, n, z, wt, cover, dist, src, cDepth } = world;
   const { kDrain, kLat, kVert, cutoffM } = params;
   const far = params.farWet + (params.farDry - params.farWet) * env.dry;
   const eq = params.eqWet + (params.eqDry - params.eqWet) * env.dry;
   for (let i = 0; i < n; i++) {
     let v = wt[i] + kVert * (far - COVER_ET * cover[i] - wt[i]);
     const s = src[i];
-    if (s >= 0 && dist[i] <= cutoffM) v += kDrain * S[s] * Math.exp(-dist[i] / env.L) * (eq - v);
+    if (s >= 0 && dist[i] <= cutoffM) {
+      const e = cDepth[s] > 0 ? eq * (cDepth[s] / CANAL.depthRef) : eq; // a shallow canal drains less deep
+      v += kDrain * S[s] * Math.exp(-dist[i] / env.L) * (e - v);
+    }
     wt[i] = v;
   }
   if (delta.length !== n) delta = new Float32Array(n);
@@ -27,4 +35,12 @@ export function hydroTick(world, S, env, params = HYDRO) {
     wt[i] = v;
     if (v > 0) z[i] -= SUBSID * v * 100;
   }
+}
+
+export const canalTarget = (world, S, i, dry) =>
+  world.cDepth[i] * (CANAL.fillWet + (CANAL.fillDry - CANAL.fillWet) * dry) * Math.min(1, S[i] / DRAIN.canal);
+
+export function canalTick(world, S, env) {
+  const { n, cDepth, cWater } = world;
+  for (let i = 0; i < n; i++) if (cDepth[i] > 0) cWater[i] += CANAL.k * (canalTarget(world, S, i, env.dry) - cWater[i]);
 }

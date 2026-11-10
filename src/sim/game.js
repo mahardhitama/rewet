@@ -2,7 +2,7 @@ import { createWorld, KIND, BLOCK, WET_WT, idx } from './world.js';
 import { generateTerrain } from './terrain.js';
 import { DRAIN, computeStrength, computeDistance, walkUp } from './drainage.js';
 import { seasonAt, TICKS_PER_YEAR } from './season.js';
-import { hydroTick } from './hydro.js';
+import { hydroTick, canalTick, canalTarget } from './hydro.js';
 import { ignite, fireTick } from './fire.js';
 
 const TPW = 4; // ticks per week
@@ -51,8 +51,14 @@ export function placeLevel(level) {
   const dome = level.canalZ ? null : domeZ(level);
   const set = (list, k) => { for (const [x, y] of list || []) world.kind[idx(world.w, x, y)] = k; };
   set(level.rivers, KIND.RIVER); set(level.villages, KIND.VILLAGE); set(level.farms, KIND.FARM); set(level.canals, KIND.CANAL);
-  (level.canals || []).forEach(([x, y], k) => { const i = idx(world.w, x, y); world.z[i] = dome ? dome[i] : level.canalZ[k]; }); // monotone canal bed (R8)
-  computeDistance(world, computeStrength(world));
+  (level.canals || []).forEach(([x, y], k) => {
+    const i = idx(world.w, x, y);
+    world.z[i] = dome ? dome[i] : level.canalZ[k]; // monotone canal bed (R8)
+    if (level.canalW) { world.cWidth[i] = level.canalW[k]; world.cDepth[i] = level.canalD[k]; }
+  });
+  const S = computeStrength(world);
+  computeDistance(world, S);
+  for (let i = 0; i < world.n; i++) world.cWater[i] = canalTarget(world, S, i, 1); // buildLevelWorld ends in the dry season
   return world;
 }
 
@@ -113,7 +119,7 @@ function finish(g, { id, i }) {
   const wd = g.world;
   if (id === 'tempBlock') { wd.block[i] = BLOCK.TEMP; redrain(g); }
   else if (id === 'permBlock') { wd.block[i] = BLOCK.PERM; redrain(g); }
-  else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; redrain(g); }
+  else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; wd.cWater[i] = 0; redrain(g); }
   else if (id === 'well') g.wells.add(i);
   else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27); eligibility checked now, not at order time (R32)
     const can = plantable(wd, g);
@@ -159,6 +165,7 @@ export function step(g) {
 
   // 3. hydrology
   hydroTick(wd, g.S, env);
+  canalTick(wd, g.S, env);
   for (let i = 0; i < n; i++) if (wt[i] <= WET_WT) g.wetTicks[i]++;
   if (dry && g.tick % TPW === 0) {
     if (env.week === dryStart(g)) g.dryWtHistory = [];

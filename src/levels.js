@@ -33,7 +33,7 @@ export const LEVELS = [
     map: { trunks: 4, branches: 1, meander: 0.25, river: false, villages: 1, illegal: 1 },
   },
   {
-    id: 6, name: 'Full peat dome', size: 40, years: 5, seed: 610, grant: 3600, arson: 5, elNinoYear: 3,
+    id: 6, name: 'Full peat dome', size: 40, years: 5, seed: 622, grant: 3600, arson: 5, elNinoYear: 3,
     pass: pass(5), teaches: 'Everything, with higher pass lines',
     map: { trunks: 4, branches: 1, meander: 0.3, river: true, villages: 2, illegal: 2 },
   },
