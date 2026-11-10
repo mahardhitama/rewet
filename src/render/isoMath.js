@@ -25,9 +25,11 @@ export function clampPan(pan, bw, bh, w, h) {
   return { x: Math.max(-lx, Math.min(lx, pan.x)) || 0, y: Math.max(-ly, Math.min(ly && ly + HUD_PAD, pan.y)) || 0 };
 }
 
-// Scale = CSS px per buffer px. The largest scale at which the map box plus PAD fits between the insets (CSS px).
-export function fitScale(innerW, innerH, w, h, insets = { top: 0, bottom: 0 }) {
-  return Math.min(innerW / ((w + h) * TW / 2 + 2 * PAD), (innerH - insets.top - insets.bottom) / ((w + h) * TH / 2 + 2 * PAD));
+// Scale = CSS px per buffer px. Insets are CSS px: top, bottom, and side (the same on the left and the right).
+// The largest scale at which the map box plus PAD fits between the insets. MIN_SCALE stops a negative scale when the insets cover the window.
+export const MIN_SCALE = 0.1;
+export function fitScale(innerW, innerH, w, h, { top = 0, bottom = 0, side = 0 } = {}) {
+  return Math.max(MIN_SCALE, Math.min((innerW - 2 * side) / ((w + h) * TW / 2 + 2 * PAD), (innerH - top - bottom) / ((w + h) * TH / 2 + 2 * PAD)));
 }
 
 export const zoomSteps = fit => [fit, ...[1, 2, 3].filter(s => s > fit * 1.1)];
@@ -35,9 +37,10 @@ export const zoomSteps = fit => [fit, ...[1, 2, 3].filter(s => s > fit * 1.1)];
 export const nearestStep = (steps, scale) => steps.reduce((a, b) => Math.abs(b - scale) < Math.abs(a - scale) ? b : a);
 
 // Level-screen buffer: ceil(innerWidth/scale) x ceil(innerHeight/scale), map centred between the insets plus a clamped pan.
-export function cameraFor(innerW, innerH, w, h, pan = { x: 0, y: 0 }, scale, insets = { top: 0, bottom: 0 }) {
-  const bw = Math.ceil(innerW / scale), bh = Math.ceil(innerH / scale), top = insets.top / scale, bottom = insets.bottom / scale;
-  const p = clampPan(pan, bw, bh - top - bottom, w, h);
+export function cameraFor(innerW, innerH, w, h, pan = { x: 0, y: 0 }, scale, insets = {}) {
+  const bw = Math.ceil(innerW / scale), bh = Math.ceil(innerH / scale);
+  const top = (insets.top || 0) / scale, bottom = (insets.bottom || 0) / scale, side = (insets.side || 0) / scale;
+  const p = clampPan(pan, bw - 2 * side, bh - top - bottom, w, h);
   return { scale, bw, bh, w, h, pan: p,
     ox: Math.round(bw / 2 - (w - h) * TW / 4 + p.x), oy: Math.round((bh + top - bottom - (w + h) * TH / 2) / 2 + p.y) };
 }

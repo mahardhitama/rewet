@@ -4,23 +4,27 @@ import { drawWorld } from './iso.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
 const PINCH = 0.25; // a pinch zooms one step each time the finger distance changes by 25%
+const WHEEL_MS = 150; // a trackpad sends many wheel events for one gesture: at most one zoom step in this time
 
 export function createMapView(cv) {
   const ctx = cv.getContext('2d');
   let ptr = null, down = null; // last pointer client pos; drag start
-  const touches = new Map(); let pinch = 0; // active pointers; pinch distance at the last zoom step
+  const touches = new Map(); let pinch = 0, lastWheel = -Infinity, world = null; // active pointers; pinch distance at the last zoom step
   const gap = () => { const [a, b] = touches.values(); return Math.hypot(a.x - b.x, a.y - b.y); };
-  const shown = id => { const el = document.getElementById(id); return el && !el.hidden ? el : null; };
-  // CSS px that the HUD and the action bar cover at the top and the bottom of the window.
-  const insets = () => { const hud = shown('hud'), bar = shown('bar');
-    return { top: hud ? hud.offsetTop + hud.offsetHeight : 0, bottom: bar ? bar.offsetHeight : 0 }; };
+  // CSS px that the HUD, the action bar and the zoom buttons cover. A hidden element has a 0 px box.
+  // Cached: a read each frame forces a layout. The observer also sees show and hide, because [hidden] sets display: none.
+  const [hud, bar, zoomEl] = ['hud', 'bar', 'zoom'].map(id => document.getElementById(id));
+  let ins = { top: 0, bottom: 0, side: 0 };
+  const measure = () => { ins = { top: hud.offsetHeight && hud.offsetTop + hud.offsetHeight, bottom: bar.offsetHeight,
+    side: zoomEl.offsetWidth && innerWidth - zoomEl.offsetLeft }; };
+  if (hud && bar && zoomEl) { const ro = new ResizeObserver(measure); [hud, bar, zoomEl].forEach(el => ro.observe(el)); addEventListener('resize', measure); }
   const toBuffer = (cx, cy) => clientToBuffer(cx, cy, cv.getBoundingClientRect(), cv.width, cv.height);
   const v = {
     mode: 'normal', hover: null, cam: null, pan: { x: 0, y: 0 }, scale: null, steps: [], // scale null: open at the fit scale
     wasDrag: false, // true from the moment the current/last press became a drag; Task 12 click handler skips it
     // Size the canvas for the level screen; pan is re-clamped and the zoom step re-checked on every resize/rotation.
-    fit(world) {
-      const ins = insets();
+    fit(wd) {
+      world = wd;
       v.steps = zoomSteps(fitScale(innerWidth, innerHeight, world.w, world.h, ins));
       if (!v.steps.includes(v.scale)) v.scale = v.scale == null ? v.steps[0] : nearestStep(v.steps, v.scale);
       const c = cameraFor(innerWidth, innerHeight, world.w, world.h, v.pan, v.scale, ins);
@@ -34,12 +38,14 @@ export function createMapView(cv) {
       return t && t[1] * v.cam.w + t[0];
     },
     // dir +1 zooms in, -1 zooms out, 0 goes back to the fit scale. The map point under (clientX, clientY) stays in place.
-    zoom(dir, clientX = innerWidth / 2, clientY = innerHeight / 2) {
+    // With no point, the zoom keeps the centre of the band between the insets in place.
+    zoom(dir, clientX = innerWidth / 2, clientY = (innerHeight + ins.top - ins.bottom) / 2) {
       if (!v.cam) return;
       const i = v.steps.indexOf(v.scale), s = dir ? v.steps[Math.max(0, Math.min(v.steps.length - 1, i + dir))] : v.steps[0];
       if (s === v.scale) return;
-      v.pan = dir ? panForZoom(v.cam, s, clientX, clientY, innerWidth, innerHeight, insets()) : { x: 0, y: 0 };
-      v.scale = s; v.fit(v.cam);
+      v.pan = dir ? panForZoom(v.cam, s, clientX, clientY, innerWidth, innerHeight, ins) : { x: 0, y: 0 };
+      v.scale = s; v.fit(world);
+      if (down && ptr) down = { x: ptr.clientX, y: ptr.clientY, pan: v.pan }; // a drag continues from the new pan, so the map does not jump
     },
     panBy(dx, dy) { v.pan = { x: v.pan.x + dx, y: v.pan.y + dy }; },
     toggleMode() { v.mode = v.mode === 'data' ? 'normal' : 'data'; },
@@ -49,7 +55,7 @@ export function createMapView(cv) {
       ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, cv.width, cv.height);
       drawWorld(ctx, game, v.cam, v.mode, v.hover, now);
     },
-    leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; },
+    leave() { v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; touches.clear(); pinch = 0; },
     // Arrow keys pan; returns true when the key was used.
     key(e) {
       const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
@@ -59,14 +65,18 @@ export function createMapView(cv) {
   };
   cv.addEventListener('pointerdown', e => {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (touches.size === 2) { pinch = gap(); down = null; v.wasDrag = true; return; } // a pinch never picks a tile
+    if (touches.size >= 2) { pinch = gap(); down = null; v.wasDrag = true; return; } // a pinch never picks a tile
     down = { x: e.clientX, y: e.clientY, pan: v.pan }; v.wasDrag = false;
   });
-  cv.addEventListener('wheel', e => { e.preventDefault(); if (e.deltaY) v.zoom(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY); }, { passive: false });
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (!e.deltaY || e.timeStamp - lastWheel < WHEEL_MS) return;
+    lastWheel = e.timeStamp; v.zoom(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY);
+  }, { passive: false });
   addEventListener('pointermove', e => {
     ptr = { clientX: e.clientX, clientY: e.clientY };
     if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (touches.size === 2 && pinch) {
+    if (touches.size >= 2 && pinch) {
       const d = gap(), r = d / pinch, [a, b] = touches.values();
       if (Math.abs(r - 1) >= PINCH) { v.zoom(r > 1 ? 1 : -1, (a.x + b.x) / 2, (a.y + b.y) / 2); pinch = d; }
       return;

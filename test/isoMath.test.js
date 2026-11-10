@@ -21,7 +21,7 @@ const toClient = (bx, by, iw, ih, cam) => {
   const k = Math.max(iw / cam.bw, ih / cam.bh);
   return [bx * k + (iw - cam.bw * k) / 2, by * k + (ih - cam.bh * k) / 2];
 };
-const INSETS = { top: 56, bottom: 72 };
+const INSETS = { top: 56, bottom: 72, side: 56 }; // side: the zoom buttons, on each side so the map stays centred
 
 test('Review: inverse still exact after origin change (resize)', () => {
   roundTrip({ ox: -37, oy: 55, w: 40, h: 40 });
@@ -43,8 +43,9 @@ test('fit shows the full map', () => {
     for (const [x, y] of [[0, 0], [39, 0], [0, 39], [39, 39]]) {
       const [sx, sy] = tileToScreen(x, y, 0, cam);
       assert.ok(sx - TW / 2 >= 0 && sx + TW / 2 <= cam.bw && sy >= 0 && sy + TH <= cam.bh, `${iw}x${ih} tile ${x},${y} in buffer`);
-      const [, top] = toClient(sx, sy, iw, ih, cam), [, bottom] = toClient(sx, sy + TH, iw, ih, cam);
-      assert.ok(top >= INSETS.top && bottom <= ih - INSETS.bottom, `${iw}x${ih} tile ${x},${y} clear of the insets`);
+      const [left, top] = toClient(sx - TW / 2, sy, iw, ih, cam), [right, bottom] = toClient(sx + TW / 2, sy + TH, iw, ih, cam);
+      assert.ok(top >= INSETS.top && bottom <= ih - INSETS.bottom, `${iw}x${ih} tile ${x},${y} clear of the top and bottom insets`);
+      assert.ok(left >= INSETS.side && right <= iw - INSETS.side, `${iw}x${ih} tile ${x},${y} clear of the side insets`);
     }
   }
 });
@@ -52,6 +53,11 @@ test('fit shows the full map', () => {
 test('largest zoom gives tiles at least 48 x 24 CSS px on a 390 px screen', () => {
   const steps = zoomSteps(fitScale(390, 844, 40, 40, INSETS));
   assert.ok(TW * Math.max(...steps) >= 48 && TH * Math.max(...steps) >= 24);
+});
+
+test('fit scale stays positive when the insets cover the window', () => {
+  assert.ok(fitScale(667, 300, 40, 40, { top: 180, bottom: 130 }) > 0);
+  assert.ok(fitScale(100, 800, 40, 40, { top: 0, bottom: 0, side: 60 }) > 0);
 });
 
 test('zoom steps: the fit scale, then each of 1, 2 and 3 more than 10% above it', () => {

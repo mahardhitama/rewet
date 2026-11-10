@@ -40,7 +40,7 @@ export const ZOOM = {
   group: 'Zoom',
   in: ['+', 'Zoom in (+)'],
   out: ['−', 'Zoom out (-)'],
-  fit: ['ALL', 'Show the full map (0)'],
+  fit: ['ALL', 'All of the map (0)'], // the name starts with the visible word (WCAG 2.5.3)
 };
 
 export const R_NAMES = { rewet: 'Rewetting', reveg: 'Revegetation', revit: 'Revitalisation', defense: 'Defense' };
