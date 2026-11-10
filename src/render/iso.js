@@ -395,6 +395,8 @@ export function animalSprite(id, silhouette = false) {
   animals.set(key, c);
   return c;
 }
+// Pure. Hit radius in buffer px: 22 CSS px (half of a 44 px target), but at least the reach of the sprite from its centre.
+export const hitRadius = scale => Math.max(22 / scale, AS / 2 + 1);
 // Pure. The hit nearest to (bx, by) within maxD, or null.
 export function nearestHit(hits, bx, by, maxD) {
   let best = null, bd = maxD;
@@ -530,7 +532,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
       if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][vegVariant(i)], ax, ay);
     }
-    for (const a of at.get(i) ?? []) { // animals: 1 px idle step, slow; the feet are at the tile centre
+    const here = at.get(i);
+    if (here) for (const a of here) { // animals: 1 px idle step, slow; the feet are at the tile centre
       const by = sy + HH + 3, up = Math.sin(now / 700 + hash(a.id) * 6.28) > .7 ? 1 : 0;
       ctx.drawImage(animalSprite(a.species), sx - AS / 2, by - AS - up);
       hits.push({ species: a.species, bx: sx, by: by - AS / 2 });

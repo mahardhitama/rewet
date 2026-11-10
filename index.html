@@ -30,9 +30,9 @@ dialog label{display:flex;justify-content:space-between;align-items:center;margi
 dialog p{margin:6px 0;color:var(--dim)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14120e;border:2px solid var(--accent);padding:8px 14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px)}
 #toast.on{opacity:1}
-#findToast{position:fixed;left:50%;width:max-content;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#14120e;border:2px solid var(--accent);padding:4px 4px 4px 14px;max-width:calc(100% - 16px)}
+#findToast{position:fixed;left:50%;width:max-content;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#14120e;border:2px solid var(--accent);padding:4px 4px 4px 14px;max-width:calc(100% - 16px);pointer-events:none}
 #findMsg{min-width:0}
-#findOpen{flex:none;font-family:Silkscreen,monospace;font-size:14px;color:var(--ink);background:var(--panel);border:2px solid var(--line);min-width:44px;min-height:44px;padding:4px 12px;cursor:pointer}
+#findOpen{pointer-events:auto;flex:none;font-family:Silkscreen,monospace;font-size:14px;color:var(--ink);background:var(--panel);border:2px solid var(--line);min-width:44px;min-height:44px;padding:4px 12px;cursor:pointer}
 #findOpen:hover,#findOpen:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
 #bJrnMenu small{float:right;font-family:VT323,monospace;font-size:20px;color:var(--dim)}
 #levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:max(16px,6vw);top:50%;transform:translateY(-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}

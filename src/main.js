@@ -163,6 +163,7 @@ function boot() {
     if (e.key === 'Escape' && ['levelSelect', 'debrief'].includes(phase)) return toMenu();
     if (phase !== 'level') return;
     if (map.key(e)) return;
+    if (e.key === ' ' && e.target.closest?.('button')) return; // a focused button takes Space itself
     if (e.key === 'p' || e.key === 'P' || e.key === ' ') { e.preventDefault(); setSpeed(0); }
     else if (e.key === '1' || e.key === '2') setSpeed(+e.key);
     else if (e.key === 'd' || e.key === 'D') map.toggleMode();
@@ -186,7 +187,7 @@ function boot() {
   function openBook(page) {
     const was = { paused, speed };
     paused = true;
-    openJournal({ found: save.found, page, onClose: () => { ({ paused, speed } = was); } });
+    openJournal({ found: save.found, page, onClose: () => { ({ paused, speed } = was); if (page) $('bJournal').focus({ preventScroll: true }); } }); // the toast is gone, so focus goes to the HUD button
   }
   $('bJournal').onclick = e => { e.currentTarget.blur(); openBook(); };
   // A tap on an animal. The toast shows even when the save cannot be written: persist keeps the save in memory.

@@ -1,6 +1,6 @@
 // Level-screen view state (camera pan, data mode, hover). Lives outside the game; render-only.
 import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom, openStep } from './isoMath.js';
-import { drawWorld, nearestHit } from './iso.js';
+import { drawWorld, nearestHit, hitRadius } from './iso.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
 const PINCH = 0.25; // a pinch zooms one step each time the finger distance changes by 25%
@@ -39,11 +39,11 @@ export function createMapView(cv) {
       const t = screenToTile(...toBuffer(evt.clientX, evt.clientY), v.cam);
       return t && t[1] * v.cam.w + t[0];
     },
-    // The animal under a pointer/mouse event, or null. The radius is 22 CSS px: half of a 44 px touch target.
+    // The animal under a pointer/mouse event, or null. The radius is 22 CSS px, half of a 44 px touch target, and never less than the sprite reach.
     pickAnimal(evt) {
       if (!v.cam) return null;
       const [bx, by] = toBuffer(evt.clientX, evt.clientY);
-      return nearestHit(hits, bx, by, 22 / v.scale);
+      return nearestHit(hits, bx, by, hitRadius(v.scale));
     },
     // dir +1 zooms in, -1 zooms out, 0 goes back to the fit scale. The map point under (clientX, clientY) stays in place.
     // With no point, the zoom keeps the centre of the band between the insets in place.
