@@ -62,7 +62,7 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 ## Rendering and save notes
 
 - **Rendering:**
-  - The canvas has the size of the window divided by the map zoom, upscaled with `image-rendering: pixelated`. `src/render/view.js` sets it.
+  - The canvas has the size of the window divided by the map zoom, upscaled with `image-rendering: pixelated` and `object-fit: cover`. `src/render/view.js` sets it.
   - The intro and the menu draw a generated map (`src/render/introStory.js`) through the same view, at the fit zoom (`map.whole`).
   - All art is drawn with `fillRect`. Map sprites are built once into a cache in `src/render/iso.js`. No image or audio assets.
   - Sound is WebAudio synthesis in `src/audio.js`.
