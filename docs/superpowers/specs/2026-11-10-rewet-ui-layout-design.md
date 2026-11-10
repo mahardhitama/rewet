@@ -33,17 +33,17 @@ Success criteria:
 
 ## 2. Shared style (`index.html`)
 
-- Fonts do not change: Silkscreen for labels, buttons and headings; VT323 for body text and values.
+- Font: Silkscreen for all text (user change, 2026-11-10: VT323 is removed).
 - Text size tokens on `:root`. Every font size in the CSS uses one of these:
 
 | Token | Use | Value |
 |---|---|---|
 | `--fs-label` | Silkscreen labels and buttons | 14px |
-| `--fs-body` | VT323 body text and values | 22px |
+| `--fs-body` | body text and values | 16px |
 | `--fs-head` | Silkscreen headings in panels and dialogs | 24px |
 | `--fs-title` | the "REWET" title | clamp(64px, 14vw, 144px) |
 
-- A phone (max-width 600px) may use one smaller step for `--fs-body` (20px). It must not use more than one step.
+- A phone (max-width 600px) may use one smaller step for `--fs-body` (14px). It must not use more than one step.
 - Context colour tokens. Each one has at least 4.5:1 contrast on `#14120e`:
 
 | Token | Context |
@@ -134,7 +134,7 @@ Success criteria:
   4. Plants grow: ferns, then seedlings, shrubs and trees.
   5. Animals appear.
 - The 3 story lines in `LINES` keep their text and their timing.
-- The story line is centred on both axes, in `--fs-head` size VT323, on a `--panel` background with a 2 px `--line` border. It fades as now.
+- The story line is centred on both axes, in `--fs-head` size, on a `--panel` background with a 2 px `--line` border. It fades as now.
 - The Skip button stays at the bottom right, with an icon. The global click skip rule and the `stopPropagation()` rule do not change.
 - With `prefers-reduced-motion`, the intro goes to the menu at once, over the restored map.
 - The intro values (the start and end water tables, cover and fire) are art, not real-world values.

@@ -138,7 +138,7 @@ function chart(cv, data) {
   const y = v => pad + (Hh - 2 * pad) * (Math.max(min, Math.min(max, v)) - min) / (max - min); // depth grows downward
   ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, W, Hh);
   ctx.fillStyle = '#5ff0ff'; for (let x = 0; x < W; x += 6) ctx.fillRect(x, Math.round(y(WET_WT)), 3, 1);
-  ctx.font = '16px VT323'; ctx.fillText(REPORT.line40, pad + 2, y(WET_WT) + 14);
+  ctx.font = '12px Silkscreen'; ctx.fillText(REPORT.line40, pad + 2, y(WET_WT) + 14);
   ctx.strokeStyle = '#e8b04a'; ctx.lineWidth = 2; ctx.beginPath();
   data.forEach((v, k) => ctx[k ? 'lineTo' : 'moveTo'](pad + (W - 2 * pad) * k / Math.max(1, data.length - 1), y(v)));
   ctx.stroke();
