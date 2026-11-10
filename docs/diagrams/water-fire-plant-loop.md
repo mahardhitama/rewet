@@ -1,26 +1,22 @@
 # Water, fire and plant loop
 
-The core gameplay loop of one sim tick: blocks raise the water table, wet peat does not burn, and seedlings grow only on wet peat. Source: `step()` in `src/sim/game.js`, `fireTick()` and `ignitable()` in `src/sim/fire.js`. Constants are named, not copied. Related: the gameplay spec `docs/superpowers/specs/2026-11-10-rewet-gameplay-design.md`.
+How water, fire and plants affect each other in Rewet, in plain words for players. The code version of this loop is `step()` in `src/sim/game.js`. Related: the gameplay spec `docs/superpowers/specs/2026-11-10-rewet-gameplay-design.md`.
 
 ```mermaid
 flowchart TD
-  A["applyAction: the player orders a job"] --> B["finish: tempBlock / permBlock / backfill"]
-  A --> L["finish: plant (5x5 stamp) adds g.seedlings"]
-  A --> K["finish: fireCrew / well"]
-  B --> C["redrain: computeStrength + computeDistance give S"]
-  C --> D["hydroTick: wt moves to the drained depth, weight S x exp(-dist/L)"]
-  D --> E{"wt <= WET_WT ?"}
-  E -- "yes: wet peat" --> F["ignitable() is false: the tile cannot burn"]
-  E -- "yes: wet peat" --> M["inBand(wt): cover += SEEDLING_GROWTH, natural regrowth beside cover >= 0.6"]
-  E -- "no: dry peat" --> G["fireTick: ignite with FIRE.base x env.dry x (wt - WET_WT)"]
-  E -- "no: dry peat" --> O["seedling out of band for 12 ticks: it dies"]
-  H["arson in the dry season: level.arson x (1 - goodwill / 100)"] --> I
-  G --> I["onLit: cover = 0, seedlings lost, goodwill drops next to a village"]
-  I --> J["fireTick: spread FIRE.spreadP (x2 downwind), smoulder re-flares on dry peat"]
-  J --> G
-  K -- "puts out" --> J
-  L --> M
-  M -- "more cover, more wildlife and stars" --> A
+  A["You block the canals"] --> B["Less water drains away"]
+  B --> C["The water in the peat rises"]
+  C --> D{"Is the peat wet?<br/>(water within 40 cm of the surface)"}
+  D -- "yes" --> E["Wet peat does not burn"]
+  D -- "yes" --> F["Seedlings and forest grow"]
+  D -- "no" --> H["Seedlings die"]
+  D -- "no" --> G["Dry peat can catch fire,<br/>mostly in the dry season"]
+  L["You plant seedlings"] --> F
+  F --> W["More forest, more wildlife,<br/>more stars"]
+  I["People start fires.<br/>Fewer when villagers trust you"] --> J
+  G --> J["Fire burns the plants<br/>and spreads with the wind"]
+  K["You send fire crews<br/>and dig wells"] -- "put out" --> J
+  J --> X["Forest and stars are lost"]
 ```
 
 Render: [water-fire-plant-loop.png](water-fire-plant-loop.png)

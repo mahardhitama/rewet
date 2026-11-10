@@ -22,7 +22,7 @@ A doc links to its diagram file. Do not put the diagram source in the doc. One d
 ## Writing the diagram
 
 - Use `flowchart TD` or `sequenceDiagram`. Keep it to 15 nodes or fewer.
-- Use the function names from the code as node labels.
+- Write the labels in plain words that a player understands, not code names. Name the source functions in the line under the title.
 - Put quotes around labels that have parentheses, colons or slashes.
 
 ## Each diagram request gives 2 files
