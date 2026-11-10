@@ -5,13 +5,13 @@ import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { blip } from './audio.js';
-import { setText } from './icons.js';
+import { icon, setText } from './icons.js';
 import { SPECIES } from './journal.js';
 import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
 
 const $ = id => document.getElementById(id);
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
-let G = null, H = null, armed = null, bound = false;
+let G = null, H = null, armed = null, bound = false, short = null; // short: the media query that shortens the HUD time value
 let weeks = []; // weekly mean peat wt
 
 function meanPeatWt(wd) {
@@ -67,12 +67,20 @@ function bind() {
   const speed = { bPause: 0, bX1: 1, bX2: 2 };
   for (const [id, s] of Object.entries(speed)) { $(id).textContent = HUD[id.slice(1).toLowerCase()]; $(id).onclick = e => { H.setSpeed(s); e.currentTarget.blur(); }; }
   $('bData').onclick = e => { H.toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
+  // icon and text. The text hides on a phone, so the name goes in aria-label too. renderUI changes the data button text through setText.
+  $('bData').textContent = HUD.dataView;
+  for (const [id, name] of Object.entries({ bPause: 'pause', bX1: 'play', bX2: 'fast', bData: 'data', bJournal: 'journal' })) {
+    const b = $(id), t = Object.assign(document.createElement('span'), { className: 't', textContent: b.textContent });
+    b.replaceChildren(icon(name), t); b.setAttribute('aria-label', t.textContent);
+  }
+  for (const p of document.querySelectorAll('#hudRow .part')) p.prepend(icon(p.dataset.id));
   const [c0, c40, c150] = [0, WET_WT, 1.5].map(v => rgb(heatColor(v)));
   $('legendBar').style.background = `linear-gradient(90deg,${c0},${c40} ${(WET_WT / 1.5 * 100).toFixed(1)}%,${c150})`;
   $('legend').title = HUD.legendTitle;
   [...$('legend').querySelectorAll('i')].forEach((el, k) => { el.textContent = HUD.legend[k]; });
   $('legendMark').style.left = $('legend').querySelectorAll('i')[1].style.left = `${(WET_WT / 1.5 * 100).toFixed(1)}%`;
   $('hudKeys').textContent = HUD.keys;
+  short = matchMedia('(max-width:1599px), (max-height:500px)');
   for (const id of ['rpChart', 'dbChart']) $(id).setAttribute('aria-label', REPORT.chartAria);
   // canvas-only listener: clicks on HUD/panels never reach it; drags are pans, not taps
   H.canvas.addEventListener('click', e => {
@@ -104,15 +112,19 @@ export function renderUI(game, { paused, speed, data }) {
   const wd = game.world, year = Math.floor(game.tick / TICKS_PER_YEAR), { week } = seasonAt(game.tick);
   let peat = 0, wet = 0;
   for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; }
-  $('hudTime').textContent = HUD.time(Math.min(year + 1, game.level.years), game.level.years, isWetSeason(game), week + 1);
-  const stats = HUD.stats(game.funds, freeCrews(game), game.crews.length,
-    Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0,
-    game.dryWtHistory.length ? Math.round(dryWetPct(game)) : null); // scored measure: none before the first dry season
-  const hs = $('hudStats');
-  if (hs.children.length !== stats.length) hs.replaceChildren(...stats.map(() => document.createElement('span')));
-  stats.forEach((t, k) => { if (hs.children[k].textContent !== t) hs.children[k].textContent = t; });
+  const parts = HUD.parts({ year: Math.min(year + 1, game.level.years), years: game.level.years, wet: isWetSeason(game), week: week + 1 },
+    game.funds, freeCrews(game), game.crews.length, Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0,
+    game.dryWtHistory.length ? Math.round(dryWetPct(game)) : null, short.matches); // scored measure: none before the first dry season
+  for (const p of parts) {
+    const el = $('hudRow').querySelector(`[data-id=${p.id}]`), l = el.querySelector('.l'), v = el.querySelector('.v');
+    if (l.textContent !== p.label) l.textContent = p.label;
+    if (v.textContent !== p.value) v.textContent = p.value;
+    if (el.title !== p.full) { el.title = p.full; el.setAttribute('aria-label', p.full); }
+  }
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
-  $('bData').textContent = data ? HUD.mapView : HUD.dataView;
+  const dt = data ? HUD.mapView : HUD.dataView;
+  if ($('bData').lastChild.textContent !== dt) { setText($('bData'), dt); $('bData').setAttribute('aria-label', dt); }
+  $('legend').hidden = !data;
   for (const b of $('barGroups').querySelectorAll('button')) {
     const id = b.dataset.id, c = costOf(game, id);
     b.lastChild.textContent = actionMeta(c, ACTIONS[id].weeks);

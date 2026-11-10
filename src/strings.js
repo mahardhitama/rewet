@@ -24,9 +24,22 @@ export const UPGRADES = {
 
 export const HUD = {
   time: (year, years, wet, week) => `Year ${year}/${years} · ${wet ? 'Wet' : 'Dry'} season · wk ${week}`,
-  // one item each: a row wraps only between items
-  stats: (funds, crews, total, goodwill, wetNow, wetDry) =>
-    [`Funds ${funds}`, `Crews ${crews}/${total}`, `Goodwill ${goodwill}`, `Wet now ${wetNow}%`, `Dry-season wet ${wetDry == null ? '–' : `${wetDry}%`} (scored)`],
+  timeShort: (year, years, wet, week) => `${year}/${years} · ${wet ? 'Wet' : 'Dry'} · wk ${week}`, // phone: labels hidden
+  // 6 parts, each { id, label, value, full }. full is the text for the screen reader and the tooltip.
+  // time is { year, years, wet, week }. short is true when the labels are hidden.
+  parts: (time, funds, crews, total, goodwill, wetNow, wetDry, short) => {
+    const t = HUD.time(time.year, time.years, time.wet, time.week);
+    const dry = wetDry == null ? '–' : `${wetDry}%`;
+    const p = (id, label, value, full = `${label} ${value}`) => ({ id, label, value, full });
+    return [
+      p('time', '', short ? HUD.timeShort(time.year, time.years, time.wet, time.week) : t, t),
+      p('funds', 'Funds', `${funds}`),
+      p('crew', 'Crews', `${crews}/${total}`),
+      p('goodwill', 'Goodwill', `${goodwill}`),
+      p('wet', 'Wet now', `${wetNow}%`),
+      p('score', 'Dry-season wet', dry, `Dry-season wet ${dry} (scored)`),
+    ];
+  },
   pause: 'Pause', x1: '×1', x2: '×2',
   legend: ['0 m', '40 cm', '1.5 m'], // water table below the surface
   legendTitle: 'Water table depth (data view). Wet = at or above 40 cm.',
