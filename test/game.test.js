@@ -60,10 +60,10 @@ test('wet season discount 0.8', () => {
   g.tick = 31 * 4; // dry
   assert.equal(costOf(g, 'tempBlock'), 100);
   g.tick = 25 * 4; // wet normally
-  assert.equal(costOf(g, 'plant'), 48);
+  assert.equal(costOf(g, 'plant'), 96);
   const n = createGame(lvl({ elNinoYear: 0 }));
   n.tick = 25 * 4; // El Nino year: dry from week 21
-  assert.equal(costOf(n, 'plant'), 60);
+  assert.equal(costOf(n, 'plant'), 120);
   const c = createGame(lvl(), { cheapBlocks: true });
   assert.equal(costOf(c, 'tempBlock'), 60);
   assert.equal(costOf(c, 'well'), 64);
@@ -163,6 +163,19 @@ test('mound lifts the tile above the water without adding water', () => {
   assert.ok(Math.abs(a.world.wt[i] - b.world.wt[i] - 0.2) < 0.02, `wt diff ${a.world.wt[i] - b.world.wt[i]}`);
   assert.ok(a.world.wt[i] > wt0 + 0.15);
   assert.ok(Math.abs(head(a) - head(b)) < 0.02, `head diff ${head(a) - head(b)}`);
+});
+
+test('R27: plant seeds a 3x3 patch of peat, skipping canals, cover 1 and existing seedlings', () => {
+  const g = createGame(lvl());
+  g.world.cover[at(2, 7)] = 1;
+  g.seedlings.set(at(3, 7), 5);
+  assert.equal(applyAction(g, 'plant', at(2, 7)).ok, true); // centre has cover 1: still a valid tap
+  for (let t = 0; t < 4; t++) step(g);
+  for (const [x, y] of [[1, 7], [1, 8], [2, 8], [3, 8]]) assert.ok(g.seedlings.has(at(x, y)), `${x},${y}`);
+  for (const x of [1, 2, 3]) assert.ok(!g.seedlings.has(at(x, 6)), 'canal row skipped');
+  assert.ok(!g.seedlings.has(at(2, 7)), 'cover 1 skipped');
+  assert.equal(g.seedlings.size, 5); // (3,7) kept, not re-seeded
+  assert.ok(g.seedlings.has(at(3, 7)));
 });
 
 test('crewed fire re-lit by a neighbour is capped and put out', () => {

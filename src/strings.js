@@ -43,7 +43,7 @@ export const ACTION_TEXT = {
   permBlock: ['Perm block', 'Permanent block: tap a temporary block to make it permanent.'],
   backfill: ['Backfill', 'Backfill: tap a canal tile to fill it with peat. Removes the drainage.'],
   well: ['Deep well', 'Deep well: fire crews within 3 tiles put fires out 2× faster.'],
-  plant: ['Plant', 'Plant seedlings: tap peat. They survive only at 0–40 cm water depth.'],
+  plant: ['Plant', 'Plant seedlings on a 3×3 patch around the tapped peat. They survive only at 0–40 cm water depth.'],
   mound: ['Mound', 'Planting mound: raises a peat tile 20 cm, out of floodwater.'],
   palud: ['Paludiculture', 'Paludiculture: tap a wet peat tile next to the village.'],
   pond: ['Fish pond', 'Fish pond: tap an open canal tile upstream of a block.'],

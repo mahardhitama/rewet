@@ -82,6 +82,15 @@ test('fixture l1-cascade passes level 1 through the sim-run code path', () => {
   assert.equal(r.evaluate.passed, true, `rewet ${r.evaluate.rewetPct.toFixed(1)}%`);
 });
 
+test('R27: fixture l1-reveg (cascade, then a 3x3-spaced planting grid) reaches the L1 revegetation star', () => {
+  const plan = JSON.parse(readFileSync(new URL('./fixtures/l1-reveg.json', import.meta.url)));
+  const r = runPlan(1, plan);
+  assert.deepEqual(r.refused, []);
+  assert.equal(r.loss, null);
+  assert.ok(r.evaluate.coverPct >= LEVELS[0].pass.reveg, `cover ${r.evaluate.coverPct.toFixed(1)}%`);
+  assert.equal(r.evaluate.stars, 2);
+});
+
 // C3: PERM blocks set directly on the world before the run; 1 year, no threats (hydrology only).
 function wetAfterYear(level, blocks) {
   const wd = buildLevelWorld(level);

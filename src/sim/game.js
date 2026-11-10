@@ -25,7 +25,7 @@ export const ACTIONS = {
   permBlock: { cost: 250, weeks: 3, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i) && wd.block[i] === BLOCK.TEMP) },
   backfill: { cost: 600, weeks: 6, r: 'rewet', valid: (wd, i) => ok(isCanal(wd, i)) },
   well: { cost: 80, weeks: 1, r: 'defense', valid: (_wd, i, g) => ok(!g.wells.has(i)) },
-  plant: { cost: 60, weeks: 1, r: 'reveg', valid: (wd, i, g) => ok(wd.kind[i] === KIND.PEAT && !g.seedlings.has(i)) },
+  plant: { cost: 120, weeks: 1, r: 'reveg', valid: (wd, i, g) => ok(wd.kind[i] === KIND.PEAT && !g.seedlings.has(i)) },
   mound: { cost: 50, weeks: 1, r: 'reveg', valid: (wd, i) => ok(wd.kind[i] === KIND.PEAT) },
   palud: {
     cost: 200, weeks: 2, r: 'revit',
@@ -108,7 +108,14 @@ function finish(g, { id, i }) {
   else if (id === 'permBlock') { wd.block[i] = BLOCK.PERM; redrain(g); }
   else if (id === 'backfill') { wd.block[i] = BLOCK.FILLED; wd.kind[i] = KIND.PEAT; redrain(g); }
   else if (id === 'well') g.wells.add(i);
-  else if (id === 'plant') g.seedlings.set(i, 0);
+  else if (id === 'plant') { // a 3x3 patch around the tapped tile (R27)
+    const { w, h } = wd, x = i % w, y = (i / w) | 0;
+    for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++)
+      for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
+        const j = yy * w + xx;
+        if (wd.kind[j] === KIND.PEAT && !g.seedlings.has(j) && wd.cover[j] < 1) g.seedlings.set(j, 0);
+      }
+  }
   else if (id === 'mound') { wd.z[i] += 0.2; wd.wt[i] = Math.min(WT_MAX, Math.max(WT_MIN, wd.wt[i] + 0.2)); } // head z - wt unchanged
   else if (id === 'palud') g.paluds.add(i);
   else if (id === 'pond') g.ponds.add(i);
