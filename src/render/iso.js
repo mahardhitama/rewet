@@ -1,6 +1,7 @@
 // Iso map renderer. Reads game state only; never writes it.
 import { KIND, BLOCK, WET_WT, VEG, vegOf } from '../sim/world.js';
 import { TW, TH, tileToScreen } from './isoMath.js';
+import { TICKS_PER_YEAR } from '../sim/season.js';
 
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -15,8 +16,40 @@ const rowW = (r, hh = HH) => r < hh ? (r + 1) * 2 : (2 * hh - r) * 2;
 // Canal sprite steps. Water step 0: the water is at the bank. Water step 3: the water is at the bed.
 export const canalStep = (cWater, cDepth) => cDepth > 0 ? Math.max(0, Math.min(3, Math.round(cWater / cDepth * 3))) : 0;
 export const widthStep = cWidth => cWidth < 5 ? 0 : cWidth <= 8 ? 1 : 2;
-const HOLE = [3, 4, 6]; // half-height in px of the channel for each width step
-const dropPx = (ws, cs) => Math.round(ws * (2 * HOLE[cs] - 1) / 3); // px from the bank down to the water surface
+// ---- joined canal channel. Ground units: the tile is [0,16] x [0,16]; pixel (px, py) from the top vertex is a = py + px/2, b = py - px/2.
+// Neighbour directions; bit k of a canal mask is DIRS[k].
+export const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [-1, -1], [1, -1]];
+const isWater = k => k === KIND.CANAL || k === KIND.RIVER;
+// Mask of the neighbours that a canal tile joins: each canal or river neighbour on a side, and a corner neighbour only when no side tile already joins the two.
+export function canalMask(w, h, kind, i) {
+  const x = i % w, y = (i - x) / w, at = (dx, dy) => x + dx >= 0 && y + dy >= 0 && x + dx < w && y + dy < h && isWater(kind[i + dy * w + dx]);
+  let m = 0;
+  DIRS.forEach(([dx, dy], k) => { if (at(dx, dy) && (k < 4 || (!at(dx, 0) && !at(0, dy)))) m |= 1 << k; });
+  return m;
+}
+const CW = [3.6, 4.5, 5.5]; // channel half-width in ground units for each width step
+// Water half-width for each water step: full, low, dry (a thin stream), nearly empty.
+const waterW = (W, ws) => [W, W - 1, Math.max(1.2, W * .3), .5][ws];
+// spec = { cs, ws, arms: [[dx, dy, neighbour width step], ...] }. Each arm runs from the tile centre to the neighbour centre.
+// Its width tapers from this tile's width at the centre to the mean of both widths at the tile edge, so two neighbours meet without a seam.
+function chan(px, py, spec) {
+  const a = py + px / 2 - 8, b = py - px / 2 - 8, W0 = CW[spec.cs];
+  let d0 = Math.hypot(a, b), best = { m: W0 - d0, d: d0, W: W0 };
+  for (const [dx, dy, ncs] of spec.arms) {
+    const t = Math.max(0, Math.min(1, (a * dx + b * dy) / (16 * (dx * dx + dy * dy))));
+    const d = Math.hypot(a - 16 * dx * t, b - 16 * dy * t), We = (W0 + CW[ncs]) / 2, W = t >= .5 ? We : W0 + (We - W0) * t * 2;
+    if (W - d > best.m) best = { m: W - d, d, W };
+  }
+  return best;
+}
+// Zone of the pixel at (px, py) from the tile top vertex: 0 bank, 1 cut wall (1 row, on the far side), 2 wet bed, 3 water.
+export function canalZone(px, py, spec) {
+  const c = chan(px + .5, py + .5, spec);
+  if (c.m < 0) return 0;
+  if (spec.ws > 0 && chan(px + .5, py - .5, spec).m < 0) return 1;
+  return c.d <= waterW(c.W, spec.ws) ? 3 : 2;
+}
+const WALL = mix(WET, BLACK, .45), MUD = mix(WET, DRY, .5); // MUD: the exposed wet bed
 
 // For each canal tile: the 8-neighbour canal or river tile with the lowest z below its own z, or -1.
 export function downstream(w, h, z, kind) {
@@ -106,46 +139,39 @@ function buildCache() {
       g.fillStyle = '#9fd4e8'; g.fillRect(x - 8, y + 5, 3, 1); g.fillRect(x + 5, y + 10, 2, 1);
     }
   });
-  // Canal: bank, then the channel cut into it. The wet bed shows above the water surface.
-  const canal = [0, 1, 2, 3].map(ws => [0, 1, 2].map(cs => both((g, x, y, d) => {
-    block(g, x, y, BANK, d); texture(g, x, y, BANK, 40);
-    const hh = HOLE[cs], top = y + HH - hh, drop = dropPx(ws, cs);
-    for (let r = 0; r < 2 * hh; r++) {
-      const w = rowW(r, hh);
-      g.fillStyle = rgb(r < 2 ? mix(WET, BLACK, .45) : mix(WET, WATER, .25)); g.fillRect(x - w, top + r, w * 2, 1);
-      if (r - drop < 0) continue;
-      const ww = Math.min(w, rowW(r - drop, hh));
-      g.fillStyle = rgb(r === drop ? mix(WATER, WHITE, .3) : WATER); g.fillRect(x - ww, top + r, ww * 2, 1);
-    }
-    g.fillStyle = '#9fd4e8'; if (drop + 2 < 2 * hh) g.fillRect(x - 2, top + hh + (drop >> 1), 3, 1);
-  })));
   const cache = {
     ground,
     heat: Array.from({ length: HEAT_BINS }, (_, b) => both((g, x, y, d) => block(g, x, y, heatColor(b / (HEAT_BINS - 1) * 1.5), d))),
-    canal,
-    pond: both((g, x, y, d) => { // round pool with a fish cage: not a diamond channel
-      block(g, x, y, BANK, d); texture(g, x, y, BANK, 41);
-      pool(g, x, y + HH, 12, rgb(mix(WET, BLACK, .45))); pool(g, x, y + HH + 1, 11, rgb(WATER));
+    // Overlays for a block or a backfill. drawWorld draws them on top of the tile sprite.
+    // [axis]: the sprite for a channel along AXES[axis]. A block lies across the channel.
+    overlay: {
+      [BLOCK.TEMP]: AXES.map((_, ax) => sprite((g, x, y) => { // sandbags in two rows
+        for (const [s0, up] of [[-6, 0], [-4.75, 2]]) for (let s = s0; s <= -s0; s += 2.5) {
+          const [bx, by] = across(ax, s, x, y);
+          g.fillStyle = '#8f7a4f'; g.fillRect(bx - 2, by - up + 1, 4, 1); g.fillStyle = '#c9b07a'; g.fillRect(bx - 2, by - up - 1, 4, 2);
+          g.fillStyle = '#e0cc98'; g.fillRect(bx - 1, by - up - 1, 2, 1);
+        }
+      })),
+      [BLOCK.PERM]: AXES.map((_, ax) => sprite((g, x, y) => { // plank wall with posts, taller than the sandbags
+        for (let s = -6.5; s <= 6.5; s += .5) {
+          const [bx, by] = across(ax, s, x, y);
+          for (let r = 0; r < 6; r++) { g.fillStyle = r ? r % 2 ? '#7a5432' : '#8c6239' : '#b5874f'; g.fillRect(bx, by - 5 + r, 2, 1); }
+        }
+        for (const s of [-7, -2.3, 2.3, 7]) {
+          const [bx, by] = across(ax, s, x, y);
+          g.fillStyle = '#3e3328'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#6a5a48'; g.fillRect(bx, by - 8, 2, 1);
+        }
+      })),
+      [BLOCK.FILLED]: [sprite((g, x, y) => { // backfilled canal (sim sets kind PEAT): low peat mound with fill seams
+        pool(g, x, y + HH + 1, 11, '#6a4e30'); pool(g, x, y + HH, 10, '#8a6a44');
+        g.fillStyle = '#6a4e30'; g.fillRect(x - 7, y + HH - 1, 14, 1); g.fillRect(x - 4, y + HH + 2, 8, 1);
+      })],
+    },
+    pond: sprite((g, x, y) => { // round pool with a fish cage, over the channel
+      pool(g, x, y + HH, 12, rgb(WALL)); pool(g, x, y + HH + 1, 11, rgb(WATER));
       g.fillStyle = '#9fd4e8'; g.fillRect(x - 8, y + HH, 3, 1);
       g.fillStyle = '#d8c69a'; g.fillRect(x - 4, y + HH - 2, 9, 1); g.fillRect(x - 4, y + HH + 2, 9, 1); g.fillRect(x - 4, y + HH - 2, 1, 5); g.fillRect(x + 4, y + HH - 2, 1, 5);
       g.fillStyle = '#e8a040'; g.fillRect(x - 1, y + HH, 2, 1); g.fillRect(x + 6, y + HH + 3, 2, 1); // fish
-    }),
-    // Overlays for a block or a backfill. drawWorld draws them on top of the tile sprite.
-    [BLOCK.TEMP]: sprite((g, x, y) => { // sandbags in two rows
-      for (const [r, n, x0] of [[HH + 1, 4, -10], [HH - 1, 3, -7]]) for (let k = 0; k < n; k++) {
-        const bx = x + x0 + k * 5;
-        g.fillStyle = '#8f7a4f'; g.fillRect(bx, y + r + 1, 4, 1); g.fillStyle = '#c9b07a'; g.fillRect(bx, y + r - 1, 4, 2);
-        g.fillStyle = '#e0cc98'; g.fillRect(bx + 1, y + r - 1, 2, 1);
-      }
-    }),
-    [BLOCK.PERM]: sprite((g, x, y) => { // plank wall with posts, taller than the sandbags
-      for (let r = 0; r < 6; r++) { g.fillStyle = r % 2 ? '#7a5432' : '#8c6239'; g.fillRect(x - 10, y + HH - 4 + r, 20, 1); }
-      g.fillStyle = '#b5874f'; g.fillRect(x - 10, y + HH - 4, 20, 1);
-      for (const px of [-11, -4, 3, 10]) { g.fillStyle = '#3e3328'; g.fillRect(x + px, y + HH - 7, 2, 11); g.fillStyle = '#6a5a48'; g.fillRect(x + px, y + HH - 7, 2, 1); }
-    }),
-    [BLOCK.FILLED]: sprite((g, x, y) => { // backfilled canal (sim sets kind PEAT): low peat mound with fill seams
-      pool(g, x, y + HH + 1, 11, '#6a4e30'); pool(g, x, y + HH, 10, '#8a6a44');
-      g.fillStyle = '#6a4e30'; g.fillRect(x - 7, y + HH - 1, 14, 1); g.fillRect(x - 4, y + HH + 2, 8, 1);
     }),
     river: both((g, x, y, d) => {
       block(g, x, y + 4, [40, 84, 110], d - 4);
@@ -176,6 +202,38 @@ function buildCache() {
   return cache;
 }
 
+// Channel axes (ground directions) and the screen point at ground distance s across the channel from the tile centre.
+const AXES = [[1, 0], [0, 1], [1, 1], [1, -1]];
+const axisOf = k => k < 4 ? k & 1 : k === 4 || k === 6 ? 2 : 3; // DIRS index to AXES index
+function across(ax, s, x, y) {
+  const [ux, uy] = AXES[ax], n = Math.hypot(ux, uy), a = 8 - uy / n * s, b = 8 + ux / n * s;
+  return [x + Math.round(a - b), y + Math.round((a + b) / 2)];
+}
+// Canal sprite key: 2 bits per direction (0 = no arm, else 1 + the neighbour width step), then the width step, water step and map-edge flag.
+// A patch (o >= 0) draws only the channel pixels that fall in the side tile DIRS[o] of the canal tile, where a corner join crosses it.
+const canalSprites = new Map();
+function canalSprite(key, o = -1) {
+  const id = key + (o + 1) * (1 << 21);
+  let c = canalSprites.get(id);
+  if (c) return c;
+  const arms = [];
+  DIRS.forEach(([dx, dy], k) => { const v = (key >> 2 * k) & 3; if (v) arms.push([dx, dy, v - 1]); });
+  const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD);
+  const [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
+  c = sprite((g, x, y) => {
+    if (o < 0) { block(g, x, y, BANK, key >> 20 ? EDGE : D); texture(g, x, y, BANK, 40); }
+    for (let r = fy; r < fy + TH; r++) for (let dx = fx - rowW(r - fy); dx < fx + rowW(r - fy); dx++) {
+      const zn = canalZone(dx, r, spec), v = hash(r * 61 + dx + 7);
+      if (!zn) continue;
+      g.fillStyle = zn === 1 ? rgb(WALL) : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
+        : canalZone(dx, r - 1, spec) !== 3 ? rgb(mix(WATER, WHITE, .3)) : v > .97 ? '#9fd4e8' : rgb(WATER);
+      g.fillRect(x + dx - fx, y + r - fy, 1, 1); // a patch lies in the side tile frame
+    }
+  });
+  canalSprites.set(id, c);
+  return c;
+}
+
 // Micro-relief for the z offset: z minus its 3x3 mean (cheap local trend; the sim's dome is not exported).
 function zMicro(w, h, z, x, y) {
   let s = 0, n = 0;
@@ -196,23 +254,42 @@ function edges(ctx, sx, sy, which) {
 }
 
 // The sim makes a new drainage strength array (game.S) at each drainage change. Then drawWorld finds the downstream tiles again.
-let flow = null, flowS = null;
+// shortcut: subsidence changes z inside a year without a new game.S, so the flow can be up to 1 year out of date. Rebuild on a z change if that shows.
+let flow = null, flowS = null, flowYear = -1, canalBase = null, axis = null, patches = null;
 export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 0) {
   cache ??= buildCache();
   const wd = game.world, { w, h, z, wt, cover, kind, block: blk, fire, cWidth, cDepth, cWater } = wd, data = mode === 'data';
   const bw = view.bw ?? ctx.canvas.width, bh = view.bh ?? ctx.canvas.height;
-  if (game.S !== flowS || flow?.length !== w * h) { flow = downstream(w, h, z, kind); flowS = game.S; }
+  const year = Math.floor(game.tick / TICKS_PER_YEAR);
+  if (game.S !== flowS || year !== flowYear || flow?.length !== w * h) {
+    flow = downstream(w, h, z, kind); flowS = game.S; flowYear = year;
+    canalBase = new Int32Array(w * h); axis = new Uint8Array(w * h); patches = new Map(); // side tile -> [[canal tile, DIRS index of the side tile]]
+    for (let i = 0; i < w * h; i++) if (kind[i] === KIND.CANAL) {
+      const m = canalMask(w, h, kind, i), cs = widthStep(cWidth[i]);
+      let key = cs << 16;
+      DIRS.forEach(([dx, dy], k) => { if (m >> k & 1) key |= (1 + (kind[i + dy * w + dx] === KIND.CANAL ? widthStep(cWidth[i + dy * w + dx]) : cs)) << 2 * k; });
+      canalBase[i] = key; axis[i] = m ? axisOf(31 - Math.clz32(m & -m)) : 0;
+      for (let k = 4; k < 8; k++) if (m >> k & 1) for (const o of [DIRS[k][0] > 0 ? 0 : 2, DIRS[k][1] > 0 ? 1 : 3]) {
+        const f = i + DIRS[o][1] * w + DIRS[o][0];
+        if (!patches.has(f)) patches.set(f, []);
+        patches.get(f).push([i, o]);
+      }
+    }
+  }
   const jobs = new Set(game.jobs.map(j => j.i));
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // row-major is back-to-front for this iso layout
-    const i = y * w + x, [sx, sy] = tileToScreen(x, y, zMicro(w, h, z, x, y), view), e = x === w - 1 || y === h - 1 ? 1 : 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
+    const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
     pos[2 * i] = sx; pos[2 * i + 1] = sy;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // row-major is back-to-front for this iso layout
+    const i = y * w + x, sx = pos[2 * i], sy = pos[2 * i + 1], e = x === w - 1 || y === h - 1 ? 1 : 0;
     if (sx + HW < 0 || sx - HW > bw || sy - HEAD + SH < 0 || sy - HEAD > bh) continue;
     shown[i] = 1;
     const k = kind[i];
     let spr;
     if (data) spr = cache.heat[Math.round(Math.max(0, Math.min(1, wt[i] / 1.5)) * (HEAT_BINS - 1))];
-    else if (k === KIND.CANAL) spr = game.ponds.has(i) ? cache.pond : cache.canal[canalStep(cWater[i], cDepth[i])][widthStep(cWidth[i])];
+    else if (k === KIND.CANAL) { const c = canalSprite(canalBase[i] | canalStep(cWater[i], cDepth[i]) << 18 | e << 20); spr = [c, c]; }
     else if (k === KIND.RIVER) spr = cache.river;
     else if (k === KIND.VILLAGE) spr = cache.village;
     else if (k === KIND.FARM) spr = cache.farm;
@@ -220,7 +297,13 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     const ax = sx - SW / 2, ay = sy - HEAD;
     ctx.drawImage(spr[e], ax, ay);
     if (data) continue;
-    if (cache[blk[i]]) ctx.drawImage(cache[blk[i]], ax, ay); // block or backfill overlay
+    for (const [c, o] of patches.get(i) ?? []) { // a corner join crosses this tile: line up its channel pixels with the canal tile
+      const [ox, oy] = DIRS[o];
+      ctx.drawImage(canalSprite(canalBase[c] | canalStep(cWater[c], cDepth[c]) << 18, o), pos[2 * c] + (ox - oy) * HW - SW / 2, pos[2 * c + 1] + (ox + oy) * HH - HEAD);
+    }
+    if (k === KIND.CANAL && game.ponds.has(i)) ctx.drawImage(cache.pond, ax, ay);
+    const ov = cache.overlay[blk[i]];
+    if (ov) ctx.drawImage(ov[axis[i]] ?? ov[0], ax, ay);
     if (k === KIND.PEAT && !fire[i]) {
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
       if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][hash(i) > .5 ? 1 : 0], ax, ay);
@@ -248,7 +331,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     for (let i = 0; i < w * h; i++) {
       const n = flow[i];
       if (n < 0 || !shown[i] || kind[i] !== KIND.CANAL || blk[i] !== BLOCK.NONE || blk[n] !== BLOCK.NONE) continue;
-      const cx = pos[2 * i], cy = pos[2 * i + 1] + HH + (dropPx(canalStep(cWater[i], cDepth[i]), widthStep(cWidth[i])) >> 1);
+      const cx = pos[2 * i], cy = pos[2 * i + 1] + HH;
       for (let m = 0; m < 2; m++) {
         const t = (now / 600 + hash(i) + m / 2) % 1;
         ctx.fillRect(cx + Math.round((pos[2 * n] - pos[2 * i]) * t), cy + Math.round((pos[2 * n + 1] - pos[2 * i + 1]) * t), 1, 1);

@@ -2,10 +2,12 @@
 
 ## How sprites work
 
-- Tile grid: `TW = 32`, `TH = 16` (`src/render/isoMath.js`). Buffer: 320×180, upscaled with `image-rendering: pixelated`.
+- Tile grid: `TW = 32`, `TH = 16` (`src/render/isoMath.js`). On the level screen, the buffer size comes from `cameraFor()`: the window size divided by the zoom scale. One buffer pixel is one map pixel at each scale.
 - `src/render/iso.js` builds a sprite cache once (`buildCache()`). Each sprite is an offscreen canvas made with `sprite(draw)`. The anchor is the top vertex of the tile: `(SW/2, HEAD)`.
-- Helpers: `block` (tile side faces), `blob`, `tree`, and `canal()` for canal-type tiles.
-- `drawWorld()` picks one cached sprite per tile, then draws small markers on top.
+- Helpers: `block` (tile side faces), `texture` (peat shades and specks), `blob`, `pool` (flat ellipse), `tree`, `shrub`, `seedling` and `fern`.
+- Canal tiles join their canal and river neighbours. `canalMask()` gives the joined neighbours. `canalZone()` gives the bank, wall, wet bed or water for each pixel. `canalSprite(key)` builds a canal sprite the first time a key is used, then keeps it in a cache.
+- A canal that joins on a corner crosses the two side tiles. Each side tile draws a patch with the channel pixels.
+- `drawWorld()` draws one cached sprite per tile, then the overlays (patch, pond, block, vegetation), then small markers.
 - Draw with `fillRect` only. No image files.
 
 ## Palette

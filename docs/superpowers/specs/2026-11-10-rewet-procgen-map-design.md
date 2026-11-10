@@ -140,9 +140,14 @@ With 32×16 tiles, each sprite has four times the pixels. The sprite cache stays
   - `SHRUB`: a low round bush.
   - `SEEDLING`: 2 or 3 small stems with leaves.
   - `FERN`: a low fan of fronds.
-- **Canal:** banks of a lighter peat colour, a channel with a width in pixels from `cWidth`, and a water surface that sits `cWater` below the bank. Draw the exposed wet bed between the bank and the water. Cache the canal sprites in 4 water-level steps × 3 width steps. The flow markers show the direction, so the sprites do not join to their neighbours.
+- **Canal:** banks of a lighter peat colour and a channel with a width from `cWidth`. Each canal tile joins its canal and river neighbours, so a canal shows as one continuous stream.
+  - A tile joins each canal or river tile on a side. It joins a tile on a corner only when no side tile joins the two.
+  - The channel runs from the tile centre to each joined neighbour. A corner join crosses the corners of the two side tiles, so each side tile draws those channel pixels.
+  - The water step is `round(cWater / cDepth × 3)`: full, low, dry and nearly empty. The exposed wet bed shows on the two long sides of the channel, between the bank and the water. On the far side, a 1-pixel cut wall shows at each step above 0.
+  - Two neighbours with the same steps meet without a seam. When the width steps differ, the channel tapers inside the tile. When the water steps differ, a small step shows at the join.
+  - Water tiles do not use the micro-relief offset, so a channel has no vertical steps at the joins.
 - **Flow:** small light pixels move along each canal in the flow direction (from higher bed to lower bed). Draw them each frame. They are markers, so the data view (`D` key) does not show them.
-- **Blocks:** a temporary block shows sandbags. A permanent block shows a plank wall with posts. Each one has a shape that differs from a pond and a backfill.
+- **Blocks:** a temporary block shows sandbags. A permanent block shows a plank wall with posts. Each one lies across the channel and has a shape that differs from a pond and a backfill.
 
 ### 3.4 Performance
 
