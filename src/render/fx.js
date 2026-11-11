@@ -143,30 +143,49 @@ function diamond(ctx, x, y, s) {
 const stepAlpha = t => Math.ceil((1 - t) * 4) / 4; // 4 alpha steps, not a smooth fade
 
 // ---- weather and life, in screen space (rain, cloud shadows) and on tiles (fireflies, embers)
-let cloudSpr = null;
-function cloudSprite() { // a dithered blob: a checker of dark pixels inside a lumpy ellipse
-  const c = document.createElement('canvas'); c.width = 120; c.height = 48;
-  const g = c.getContext('2d'); g.fillStyle = '#000';
-  for (let y = 0; y < 48; y++) for (let x = 0; x < 120; x++) {
-    const dx = (x - 60) / 60, dy = (y - 24) / 24, lump = .82 + .18 * Math.sin(x * .19) * Math.cos(y * .31);
-    if (dx * dx + dy * dy < lump && (x + y) % 2 === 0) g.fillRect(x, y, 1, 1);
+// ---- clouds: generated cumulus shapes. Each cloud floats ALT px above its shadow; the shadow is the same shape, solid and squashed onto the ground.
+const CLOUD_N = 6, ALT = 28;
+const CLOUD_FAIR = ['#ffffff', '#eef2f2', '#c3ccd2'], CLOUD_RAIN = ['#c4cacd', '#9ea6ab', '#747d83']; // top light, body, flat underside
+let clouds = null, hoverAt = null; const fade = [];
+function cloudShape(seed) { // a row of puffs on a flat base, the biggest near the middle, and a smaller row on top: a fair-weather cumulus
+  const r = k => hash(seed * 7.13 + k * 1.31), n = 3 + (r(0) * 4 | 0), P = [];
+  let x = 6;
+  for (let i = 0; i < n; i++) {
+    const mid = 1 - Math.abs(i - (n - 1) / 2) / n, rad = Math.round((9 + r(i + 1) * 8) * (.55 + mid * .7));
+    x += Math.round(rad * .7); P.push({ x, rad, up: 0 }); x += Math.round(rad * (.45 + r(i + 9) * .35));
   }
-  return c;
+  for (let i = 1; i < n - 1; i++) if (r(i + 20) < .7) P.push({ x: P[i].x + Math.round((r(i + 30) - .5) * P[i].rad), rad: Math.round(P[i].rad * (.55 + r(i + 40) * .3)), up: Math.round(P[i].rad * .9) });
+  const W = x + 10, H = Math.max(...P.map(p => p.rad * 1.55 + p.up + p.rad)) + 4 | 0, base = H - 2;
+  const inside = (px, py) => py <= base && P.some(p => (px - p.x) ** 2 + (py - (base - p.rad * .55 - p.up)) ** 2 <= p.rad * p.rad);
+  const paint = cols => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) if (inside(px, py)) {
+      g.fillStyle = py >= base - 2 || !inside(px + 1, py + 2) ? cols[2] : !inside(px - 1, py - 2) ? cols[0] : cols[1]; g.fillRect(px, py, 1, 1);
+    }
+    return c;
+  };
+  const sh = document.createElement('canvas'); sh.width = W; sh.height = Math.ceil(H / 2); const g = sh.getContext('2d'); g.fillStyle = '#000';
+  for (let py = 0; py < sh.height; py++) for (let px = 0; px < W; px++) if (inside(px, py * 2) || inside(px, py * 2 + 1)) g.fillRect(px, py, 1, 1);
+  return { W, H, fair: paint(CLOUD_FAIR), rain: paint(CLOUD_RAIN), shadow: sh };
+}
+// Cloud k at time now, in map coordinates (offsets from tile 0): it drifts east and wraps around the map box.
+function cloudAt(k, game, now) {
+  const { w, h } = game.world, x0 = -h * HW - 80, span = (w + h) * HW + 160, c = clouds[k % CLOUD_N];
+  const x = x0 + ((hash(k + 3.3) * span + now / 1000 * (2 + hash(k + 4.4) * 3)) % span), y = (.1 + .8 * hash(k + 5.5)) * (w + h) * HH;
+  return [Math.round(x - c.W / 2), Math.round(y), c];
 }
 function weather(ctx, game, pos, bw, bh, now) {
   const want = game.level && isWetSeason(game) && hash(((game.tick ?? 0) / 6 | 0) + game.world.seed) < .55 ? 1 : 0; // showers come and go every 1.5 weeks
   rain += (want - rain) * .02;
   if (REDUCED) return;
-  cloudSpr ??= cloudSprite();
-  const { w, h } = game.world, c = (i, dx, dy) => [pos[2 * i] + dx, pos[2 * i + 1] + dy];
+  clouds ??= Array.from({ length: CLOUD_N }, (_, k) => cloudShape(k + 1));
+  const { w, h } = game.world, c = (i, dx, dy) => [pos[2 * i] + dx, pos[2 * i + 1] + dy], ox = pos[0], oy = pos[1];
+  const count = Math.round(3 + (w + h) / 30 + rain * 3);
   ctx.save(); ctx.beginPath(); // rain and cloud shadows fall on the map only, not on the backdrop
   for (const [x, y] of [c(0, 0, 0), c(w - 1, HW, HH), c(w * h - 1, 0, TH), c((h - 1) * w, -HW, HH)]) ctx.lineTo(x, y);
   ctx.clip();
-  ctx.globalAlpha = .1 + rain * .08;
-  for (let k = 0; k < 3; k++) { // slow cloud shadows
-    const span = bw + 160, x = ((now / 1000 * (3 + k) + hash(k) * span) % span) - 140, y = hash(k + 5) * bh * .8 + ((now / 1000 * 1.2) % 40) - 20;
-    ctx.drawImage(cloudSpr, Math.round(x), Math.round(y));
-  }
+  ctx.globalAlpha = .28 + rain * .08;
+  for (let k = 0; k < count; k++) { const [x, y, cl] = cloudAt(k, game, now); ctx.drawImage(cl.shadow, ox + x, oy + y); }
   if (rain > .05) {
     const n = Math.round(bw * bh / 700 * rain);
     ctx.globalAlpha = .45; ctx.fillStyle = '#b8d4ec';
@@ -177,7 +196,16 @@ function weather(ctx, game, pos, bw, bh, now) {
       else { const s = Math.round(x0 - L * .3); ctx.fillRect(s - 2, Math.round(y0 + L) + 3, 1, 1); ctx.fillRect(s + 1, Math.round(y0 + L) + 3, 1, 1); } // splash
     }
   }
-  ctx.globalAlpha = 1; ctx.restore();
+  ctx.restore();
+  for (let k = 0; k < count; k++) { // the clouds themselves, above their shadows: see-through, so the tiles under them still read
+    const [x, y, cl] = cloudAt(k, game, now), cx = ox + x, cy = oy + y - ALT - cl.H;
+    if (cx > bw || cy > bh || cx + cl.W < 0 || cy + cl.H < 0) continue;
+    const a = hoverAt && hoverAt[0] > cx - 8 && hoverAt[0] < cx + cl.W + 8 && hoverAt[1] > cy - 8 && hoverAt[1] < cy + cl.H + 24 ? .2 : .85; // a cloud over the cursor fades, so it never hides the tile in play
+    fade[k] = (fade[k] ?? a) + (a - (fade[k] ?? a)) * .15;
+    ctx.globalAlpha = fade[k] * (1 - rain); ctx.drawImage(cl.fair, cx, cy);
+    ctx.globalAlpha = fade[k] * rain; ctx.drawImage(cl.rain, cx, cy);
+  }
+  ctx.globalAlpha = 1;
 }
 let flock = null, nextFlock = 0;
 function life(ctx, game, pos, shown, now) {
@@ -236,7 +264,7 @@ function cursor(ctx, game, pos, hover, now) {
 
 // Draws all effects. Called at the end of drawWorld. pos: screen point of each tile top; shown: 1 for tiles on screen.
 export function drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, live) {
-  lastPos = pos;
+  lastPos = pos; hoverAt = hover == null ? null : [pos[2 * hover], pos[2 * hover + 1]];
   if (live) diffTick(game, pos, now);
   if (!data) { life(ctx, game, pos, shown, now); weather(ctx, game, pos, bw, bh, now); }
   const ox = pos[0], oy = pos[1];
@@ -294,4 +322,25 @@ export function backdrop(ctx, bw, bh) {
     bgPat = ctx.createPattern(c, 'repeat-x'); bgH = bh;
   }
   ctx.fillStyle = bgPat; ctx.fillRect(0, 0, bw, bh);
+}
+
+// ---- edge arrows: a fire outside the view gets a pulsing arrow at the edge that points to it. box: the visible band in buffer px.
+export function fireArrows(ctx, game, box, now) {
+  const pos = lastPos, fire = game.world?.fire; if (!pos || !fire || !game.level) return;
+  const m = 7, l = box.l + m, t = box.t + m, r = box.r - m, b = box.b - m, used = new Set();
+  const on = REDUCED || (now / 300 | 0) % 2;
+  for (let i = 0; i < fire.length; i++) if (fire[i]) {
+    const x = pos[2 * i], y = pos[2 * i + 1] + HH;
+    if (x >= box.l && x <= box.r && y >= box.t && y <= box.b) continue;
+    const cx = Math.max(l, Math.min(r, x)), cy = Math.max(t, Math.min(b, y)), key = `${cx / 24 | 0},${cy / 24 | 0}`; // one arrow per 24 px of edge
+    if (used.has(key)) continue; used.add(key);
+    const d = Math.hypot(x - cx, y - cy) || 1, ux = (x - cx) / d, uy = (y - cy) / d;
+    for (const [col, o] of [[DARK, 1], [on ? '#ff6a3a' : BAD, 0]]) { // a 1 px dark shadow, like the pixel text
+      ctx.fillStyle = col;
+      for (let py = -5; py <= 5; py++) for (let px = -5; px <= 5; px++) { // a triangle: tip 5 px ahead, base 3 px behind
+        const a = px * ux + py * uy, s = -px * uy + py * ux;
+        if (a <= 5 && a >= -3 && Math.abs(s) <= (5 - a) / 2) ctx.fillRect(cx + px + o, cy + py + o, 1, 1);
+      }
+    }
+  }
 }
