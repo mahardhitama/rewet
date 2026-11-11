@@ -187,7 +187,7 @@ export const STRINGS = {
     found: name => `Baru di jurnalmu: ${name}`, openEntry: 'Buka', notFound: 'Belum ditemukan', unknown: '?',
     hidden: (k, n) => `Satwa tak dikenal ${k} dari ${n}, belum ditemukan`,
     status: { LC: 'Risiko Rendah', NT: 'Hampir Terancam', VU: 'Rentan', EN: 'Genting', CR: 'Kritis' },
-    statusLabel: 'Status IUCN', habitatLabel: 'Habitat', protectedNote: 'Dilindungi di Indonesia.', endemicNote: 'Hanya hidup di Pulau Borneo.', sources: 'Sumber', openSource: 'Buka sumber', hint: 'Panah Kiri dan Kanan membalik halaman. Esc menutup.',
+    statusLabel: 'Status IUCN', habitatLabel: 'Habitat', protectedNote: 'Dilindungi di Indonesia.', endemicNote: 'Spesies ini hanya hidup di Pulau Borneo.', sources: 'Sumber', openSource: 'Buka sumber', hint: 'Panah Kiri dan Kanan membalik halaman. Esc menutup.',
   },
   // the static text in index.html: 'selector' sets the first text of the element, 'selector@attribute' sets the attribute
   PAGE: {
