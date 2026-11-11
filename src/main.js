@@ -312,7 +312,7 @@ function boot() {
     const b = $(id); b.title = ZOOM[key][1]; b.setAttribute('aria-label', b.title); b.replaceChildren(icon(name));
     b.onclick = () => map.zoom(dir);
   }
-  if (new URLSearchParams(location.search).has('debug')) globalThis.rewet = { get game() { return game; } }; // ?debug: console access, e.g. replaying a sim-run plan
+  if (new URLSearchParams(location.search).has('debug')) globalThis.rewet = { get game() { return game; }, map }; // ?debug: console access, e.g. replaying a sim-run plan, or the press-kit camera
 }
 
 if (typeof document !== 'undefined') boot();

@@ -171,9 +171,10 @@ function air(ctx, game, bw, bh) {
   for (let i = 0; i < n; i++) if (fire[i]) burn++;
   haze += (Math.min(1, burn / 25) - haze) * .03; // eased, so the haze builds up and clears slowly
   warm += ((game.level && !isWetSeason(game) ? 1 : 0) - warm) * .01;
+  ctx.globalCompositeOperation = 'source-atop'; // tint only drawn pixels: a clear backdrop stays clear
   if (warm > .01) { ctx.globalAlpha = .07 * warm; ctx.fillStyle = '#f0a040'; ctx.fillRect(0, 0, bw, bh); }
   if (haze > .01) { ctx.globalAlpha = .38 * haze; ctx.fillStyle = '#8a7356'; ctx.fillRect(0, 0, bw, bh); }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 }
 // The sky box: the map is its floor, and its walls rise BOX_UP px above the map's top vertex. Clouds, rain and birds stay inside it.
 const BOX_UP = 110;
@@ -294,7 +295,7 @@ export function drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, live) {
   }
   ctx.globalAlpha = 1;
   if (hover != null) cursor(ctx, game, pos, hover, now);
-  if (banner) seasonBanner(ctx, bw, bh, now);
+  if (banner && showBanner) seasonBanner(ctx, bw, bh, now);
 }
 
 // ---- season banner: a band with big pixel words that slides across when the season turns.
@@ -309,21 +310,31 @@ function seasonBanner(ctx, bw, bh, now) {
   ctx.save(); ctx.translate(x, y); ctx.scale(k, k); pixelText(ctx, banner.text, 0, 0, banner.col); ctx.restore();
 }
 
-// ---- the backdrop behind the map: dark bands with an ordered dither between them, built once for each buffer height.
-const BANDS = ['#0b0d0c', '#0d1312', '#0f1916', '#11201b'];
+// ---- the backdrop behind the map: grey paper bands with an ordered dither between them, built once for each buffer height.
+// It is plain paper at the top and takes a faint season tint toward the bottom: forest green when wet, sand khaki when dry.
+// The dry pattern fades in over the wet one with the same eased `warm` value as the dry-season air tint.
+const BANDS = {
+  wet: ['#c4c0b6', '#bebcb0', '#b6b8a8', '#adb29e', '#a2aa92', '#97a186'],
+  dry: ['#c6c0b4', '#c1b9ab', '#bbb19e', '#b4a68e', '#ac9b7f', '#a38f6e'],
+};
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-let bgPat = null, bgH = -1;
-export function backdrop(ctx, bw, bh) {
-  if (bh !== bgH || !bgPat) {
-    const c = document.createElement('canvas'); c.width = 4; c.height = bh;
-    const g = c.getContext('2d');
-    for (let y = 0; y < bh; y++) for (let x = 0; x < 4; x++) {
-      const f = y / Math.max(1, bh - 1) * (BANDS.length - 1), b = Math.floor(f), up = (f - b) * 16 > BAYER[(y % 4) * 4 + x];
-      g.fillStyle = BANDS[Math.min(BANDS.length - 1, b + up)]; g.fillRect(x, y, 1, 1);
-    }
-    bgPat = ctx.createPattern(c, 'repeat-x'); bgH = bh;
+let bgPat = null, bgH = -1, showBackdrop = true, showBanner = true;
+export const setBackdrop = on => { showBackdrop = on; }; // off: a clear buffer, for the press images with a transparent background
+export const setBanner = on => { showBanner = on; }; // off: no season banner, for the season press image
+function bandPattern(ctx, bands, bh) {
+  const c = document.createElement('canvas'); c.width = 4; c.height = bh;
+  const g = c.getContext('2d');
+  for (let y = 0; y < bh; y++) for (let x = 0; x < 4; x++) {
+    const f = y / Math.max(1, bh - 1) * (bands.length - 1), b = Math.floor(f), up = (f - b) * 16 > BAYER[(y % 4) * 4 + x];
+    g.fillStyle = bands[Math.min(bands.length - 1, b + up)]; g.fillRect(x, y, 1, 1);
   }
-  ctx.fillStyle = bgPat; ctx.fillRect(0, 0, bw, bh);
+  return ctx.createPattern(c, 'repeat-x');
+}
+export function backdrop(ctx, bw, bh) {
+  if (!showBackdrop) { ctx.clearRect(0, 0, bw, bh); return; }
+  if (bh !== bgH || !bgPat) { bgPat = { wet: bandPattern(ctx, BANDS.wet, bh), dry: bandPattern(ctx, BANDS.dry, bh) }; bgH = bh; }
+  ctx.fillStyle = bgPat.wet; ctx.fillRect(0, 0, bw, bh);
+  if (warm > .01) { ctx.globalAlpha = warm; ctx.fillStyle = bgPat.dry; ctx.fillRect(0, 0, bw, bh); ctx.globalAlpha = 1; }
 }
 
 // ---- edge arrows: a fire outside the view gets a pulsing arrow at the edge that points to it. box: the visible band in buffer px.
