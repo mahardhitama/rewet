@@ -149,11 +149,11 @@ const CLOUD_N = 6, SKY = 6; // SKY: px between the north corner and the base of 
 const CLOUD_FAIR = ['#ffffff', '#f1f4f4', '#d9e0e3', '#b7c2c9', '#8f9ba4'], CLOUD_RAIN = ['#d0d5d8', '#b0b8bc', '#949da2', '#788188', '#5d656b']; // light to dark
 const SUN = (() => { const v = [-.45, -.75, .5], l = Math.hypot(...v); return v.map(c => c / l); })(); // light from the upper left, towards the viewer
 let clouds = null;
-function cloudShape(seed) { // 14 to 21 round puffs inside a dome on a flat base; each pixel takes the shading of the puff in front, like a cauliflower
-  const r = k => hash(seed * 7.13 + k * 1.31), W = 70 + r(0) * 50 | 0, cx = W / 2, hw = W / 2 - 8, domeH = 10 + r(1) * 10 | 0, H = domeH + 24, base = H - 3, P = [];
-  const m = 14 + (r(2) * 8 | 0);
+function cloudShape(seed) { // 22 to 31 round puffs inside a dome on a flat base; each pixel takes the shading of the puff in front, like a cauliflower
+  const r = k => hash(seed * 7.13 + k * 1.31), W = 130 + r(0) * 90 | 0, cx = W / 2, hw = W / 2 - 12, domeH = 16 + r(1) * 14 | 0, H = domeH + 36, base = H - 3, P = [];
+  const m = 22 + (r(2) * 10 | 0);
   for (let j = 0; j < m; j++) {
-    const t = r(10 + j) * 2 - 1, env = Math.sqrt(1 - t * t), rad = 4 + r(30 + j) * 5 + env * 6;
+    const t = r(10 + j) * 2 - 1, env = Math.sqrt(1 - t * t), rad = 6 + r(30 + j) * 8 + env * 10;
     P.push({ x: cx + t * hw * .9, y: base - rad * .6 - env * domeH * (.3 + .7 * r(50 + j)), r: rad });
   }
   const front = (px, py) => { // the visible puff at a pixel: the one whose sphere surface is nearest the viewer
@@ -207,8 +207,8 @@ function weather(ctx, game, pos, bw, bh, now) {
   for (let k = 0; k < count; k++) { // the clouds themselves, in the sky above the north corner, straight above their shadows
     const [x, , cl] = cloudAt(k, game, now), cx = ox + x, cy = oy - SKY - cl.H - Math.round(hash(k + 6.6) * 10);
     if (cx > bw || cy > bh || cx + cl.W < 0 || cy + cl.H < 0) continue;
-    ctx.globalAlpha = .95 * (1 - rain); ctx.drawImage(cl.fair, cx, cy);
-    ctx.globalAlpha = .95 * rain; ctx.drawImage(cl.rain, cx, cy);
+    ctx.globalAlpha = .6 * (1 - rain); ctx.drawImage(cl.fair, cx, cy); // see-through: the sky shows behind
+    ctx.globalAlpha = .6 * rain; ctx.drawImage(cl.rain, cx, cy);
   }
   ctx.globalAlpha = 1;
 }
