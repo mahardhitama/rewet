@@ -191,7 +191,11 @@ function boot() {
   for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));
-  document.querySelectorAll('.btn').forEach(b => { b.addEventListener('mouseenter', () => !b.disabled && blip(660, 0.03)); b.addEventListener('click', () => blip(880, 0.06)); });
+  document.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => blip(880, 0.06)));
+  document.addEventListener('mouseover', e => { // delegated: the level select builds its buttons later
+    const b = e.target.closest?.('.btn, .hb, .slot');
+    if (b && !b.disabled && !b.contains(e.relatedTarget)) blip(660, 0.03, 'square', b.classList.contains('slot') ? 0.012 : 0.035); // action slots are fainter: the player sweeps over them often
+  });
   $('bNew').onclick = toLevelSelect;
   $('bCont').onclick = () => hasProgress(save) ? toLevelSelect() : toast(TOAST.noSave);
   // The journal pauses a level. On close, the speed and the paused state come back. The intro hides both buttons, so no click can reach it.
