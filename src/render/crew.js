@@ -85,8 +85,8 @@ export const CREW = {
 };
 
 // Clothes: 4 palettes, 2 skin tones and 4 hat types. The fire crew always wears yellow and a red helmet.
-const SHIRTS = ['#3a6aa0', '#c05a3a', '#e6dcc4', '#4a7a4a'], TROUSERS = ['#3a3430', '#4a4a5a', '#5a4632', '#2e3a4a'];
-const SKIN = ['#c88a5a', '#a26840'], HATS = ['straw', 'cap', 'scarf', 'none'], HAT_COL = { straw: '#d8c078', cap: '#2a5a8a', scarf: '#a03a5a', none: '#2a2018', helmet: '#d23a2a' };
+const SHIRTS = ['#3c7ec8', '#e2683e', '#f6eed8', '#4e9e4e'], TROUSERS = ['#3a3430', '#4a4a5a', '#5a4632', '#2e3a4a'];
+const SKIN = ['#d8955e', '#b07244'], HATS = ['straw', 'cap', 'scarf', 'none'], HAT_COL = { straw: '#f0d47c', cap: '#2e6aa8', scarf: '#c8406a', none: '#2a2018', helmet: '#d23a2a' };
 const TOOLS = { t: '#8a5a32', m: '#9aa0a4', w: '#8ad0f0', g: '#5aa040', b: '#c8b088', e: '#4a3424' };
 
 // Pure. The pal for person k of the job with key seed: { k, s, p, h, hat }.

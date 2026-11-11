@@ -22,6 +22,29 @@ const timeShort = (year, years, wet, week) => `${year}/${years} · ${wet ? 'Huja
 export const STRINGS = {
   LINES: [[0, 'Rawa gambut ini dulu basah.'], [2.8, 'Kanal mengeringkannya. Lalu ia terbakar.'], [5.6, 'Sekat kanal. Basahi gambut. Tanam kembali.']],
   FX: { cascade: 'BERJENJANG', dry: 'MUSIM KEMARAU' },
+  NOTES: {
+    dryIn: n => `Musim kemarau mulai dalam ${n} minggu. Biaya kerja 20% lebih murah sampai saat itu, jadi selesaikan sekat sekarang.`,
+    dry: 'Musim kemarau. Kanal kini mengeringkan gambut lebih cepat, dan gambut kering bisa terbakar.',
+    fire: 'Api! Permainan dijeda. Pilih Regu pemadam, lalu ketuk api.',
+    washout: 'Banjir merusak sekat sementara. Sekat permanen (Sekat+) tidak rusak.',
+    arsonWet: 'Seseorang mencoba menyalakan api, tetapi gambut terlalu basah untuk terbakar.',
+    villageFire: 'Api mencapai desa. Dukungan turun 10.',
+  },
+  INSPECT: {
+    kind: ['Gambut', 'Kanal', 'Sungai', 'Desa', 'Ladang'],
+    depth: cm => cm < 0 ? `air ${-cm} cm di atas permukaan` : `muka air tanah ${cm} cm di bawah`,
+    trees: pct => `pohon ${pct}%`,
+    seedlings: 'bibit',
+    block: ['terbuka', 'sekat sementara', 'sekat permanen'],
+    fire: 'Terbakar. Pilih Regu pemadam, lalu ketuk.',
+    flooded: 'Tergenang. Bibit tenggelam di sini. Gundukan menaikkan petak.',
+    wet: 'Basah: 40 cm atau kurang. Tidak terbakar, dan bibit tumbuh.',
+    dry: 'Kering: lebih dari 40 cm. Bisa terbakar, dan gambut kehilangan karbon.',
+    canal: ['Kanal ini mengeringkan gambut di dekatnya. Sekat kanal ini.', 'Banjir bisa merusak sekat sementara.', 'Sekat menahan air di dalam gambut.'],
+    river: 'Sungai, bukan kanal. Sungai tidak bisa disekat.',
+    village: 'Bantu desa untuk mendapat dukungan. Jauhkan api dari desa.',
+    farm: 'Ladang. Ladang kering bisa terbakar.',
+  },
   TOAST: { noSave: 'Tidak ada simpanan.', saveDeleted: 'Simpanan dihapus.', wet: n => `${n}% gambut sekarang basah!` },
   SELECT: {
     title: 'Pilih lokasi', back: 'Kembali', years: n => `${n} tahun`,
@@ -38,6 +61,7 @@ export const STRINGS = {
     fastCrew: ['Regu pemadam cepat', 'Regu pemadam memadamkan api lebih cepat.'],
   },
   HUD: {
+    dryIn: n => ` · kemarau dalam ${n} mg`,
     time, timeShort,
     parts: (t, funds, crews, total, goodwill, wetNow, wetDry, short) => {
       const full = time(t.year, t.years, t.wet, t.week);
@@ -188,7 +212,7 @@ export const STRINGS = {
     title: 'Jurnal', open: 'Jurnal', close: 'Tutup', prev: 'Sebelum', next: 'Lanjut', home: 'Awal',
     pos: (a, b, n) => (a === b ? `Halaman ${a} dari ${n}` : `Halaman ${a}-${b} dari ${n}`),
     contentsTiles: 'Isi: petak', contentsConcepts: 'Isi: gagasan', actionsHere: 'Aksi di petak ini', seeAlso: 'Lihat juga', contentsWildlife: (x, n) => `Isi: satwa (${x}/${n})`,
-    found: name => `Baru di jurnalmu: ${name}`, openEntry: 'Buka', notFound: 'Belum ditemukan', unknown: '?',
+    newFind: 'Temuan baru!', findHint: 'Kamu menemukan spesies baru. Sekarang ia ada di jurnalmu.', openJournal: 'Buka jurnal', cont: 'Lanjut', notFound: 'Belum ditemukan', unknown: '?',
     hidden: (k, n) => `Satwa tak dikenal ${k} dari ${n}, belum ditemukan`,
     status: { LC: 'Risiko Rendah', NT: 'Hampir Terancam', VU: 'Rentan', EN: 'Genting', CR: 'Kritis' },
     statusLabel: 'Status IUCN', habitatLabel: 'Habitat', protectedNote: 'Dilindungi di Indonesia.', endemicNote: 'Spesies ini hanya hidup di Pulau Borneo.', sources: 'Sumber', openSource: 'Buka sumber', hint: 'Panah Kiri dan Kanan membalik halaman. Esc menutup.',

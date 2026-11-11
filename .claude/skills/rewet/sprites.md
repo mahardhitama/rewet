@@ -11,6 +11,7 @@
   - Seedling: 2 original forms, a group of 5 tiny seedlings and `sapling` (taller stem with 2 leaf tiers).
   - Fern: 2 original forms, `tuft` (sedge blades) and one large fern with 2 small ones.
   - Keep the tallest tree inside `HEAD` (28 px above the tile top).
+- Canal water: `canalStep()` picks 1 of 4 water steps from the water depth below the bank in metres (0.1 m, the 40 cm line, 1 m). Behind a block, `canalTarget()` in `src/sim/hydro.js` sets the water to the water-table depth of the peat beside the canal, so the canal and the peat change together.
 - Canal tiles join their canal and river neighbours. `canalMask()` gives the joined neighbours. `canalZone()` gives the bank, wall, wet bed or water for each pixel. `canalSprite(key)` builds a canal sprite the first time a key is used, then keeps it in a cache.
 - A canal that joins on a corner crosses the two side tiles. Each side tile draws a patch with the channel pixels.
 - Flow: `rippleSprite(key, o, d, f)` builds light dashes on the water pixels of a canal sprite and keeps them in a cache. `d` is the `DIRS` index of the downstream tile. `f` is one of 8 frames.
@@ -18,6 +19,7 @@
   - The ripple period (8 ground units) divides the tile size (16), so the dashes line up across the tile joins.
   - With reduced motion, the ripples stay on frame 0.
 - `drawWorld()` draws one cached sprite per tile, then the overlays (patch, pond, block, vegetation), then small markers.
+- Animals draw in their own pass after the tiles. After each animal, `drawWorld()` draws the plants of its tile and of the tiles in front of it again (`frontTiles()`, `vegSprite()`), so a forest hides its wildlife. The tap area does not change.
 - Draw with `fillRect` only. No image files.
 - Fire: `cache.flame[size][variant][frame]` (3 sizes, 3 variants, 4 frames), `cache.ember[variant][frame]` for smouldering peat, and `cache.cool[variant][frame]` for 2 weeks after a fire goes out. Ember and cool sprites cover the whole tile top. `fireSize()` gives the size from the ticks since the tile was lit. `trackFire()` in `iso.js` records those ticks on the render side, so the sim does not change.
 - Work crews (`src/render/crew.js`): 1 to 3 people at each job tile, and 1 guard at each fire group post. They are display only.

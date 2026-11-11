@@ -33,7 +33,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'rewet-gif-'));
 const click = id => `document.getElementById(${JSON.stringify(id)}).click()`;
 const css = (id, rules) => `document.getElementById(${JSON.stringify(id)})?.remove();
   ${rules ? `document.head.insertAdjacentHTML('beforeend', ${JSON.stringify(`<style id="${id}">${rules}</style>`)})` : ''}`;
-const NO_UI = '#hud,#bar,#findToast,#toast{display:none!important}';
+const NO_UI = '#hud,#bar,#toast{display:none!important}';
 // In the page: press.go(t) runs the sim to tick t at once; press.live() applies the plan while the game runs.
 const INSTALL = `(async () => {
   const { applyAction, step } = await import('/src/sim/game.js');

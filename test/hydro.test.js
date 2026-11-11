@@ -77,9 +77,17 @@ test('canal water drops in the dry season', () => {
   assert.equal(W.cWater[1], 0, 'peat tile has no canal water');
 });
 
-test('water stays higher behind a block', () => {
+test('water behind a block follows the water table of the peat beside it', () => {
   const { W, S } = canalWorld(5);
-  S[0] = 0.1;
-  for (let t = 0; t < 100; t++) canalTick(W, S, { dry: 1 });
-  assert.ok(Math.abs(W.cWater[0] - 0.1 * 4.5) < 0.05, `${W.cWater[0]}`);
+  S[0] = 0.1; // tile (0,0): its peat neighbours are (1,0) and (1,1)
+  W.wt[1] = W.wt[17] = 0.5;
+  for (let t = 0; t < 200; t++) canalTick(W, S, { dry: 1 });
+  assert.ok(Math.abs(W.cWater[0] - 0.5) < 0.01, `dry ${W.cWater[0]}`);
+  W.wt[1] = W.wt[17] = 0.1;
+  for (let t = 0; t < 200; t++) canalTick(W, S, { dry: 0 });
+  assert.ok(Math.abs(W.cWater[0] - 0.1) < 0.01, `wet ${W.cWater[0]}`);
+  W.wt[1] = W.wt[17] = -0.2; // flooded peat: the canal is full to the bank, not above it
+  for (let t = 0; t < 200; t++) canalTick(W, S, { dry: 0 });
+  assert.ok(W.cWater[0] >= 0 && W.cWater[0] < 0.01, `flooded ${W.cWater[0]}`);
+  assert.ok(W.cWater[0] < W.cWater[16], 'the water stays higher than in the open canal');
 });

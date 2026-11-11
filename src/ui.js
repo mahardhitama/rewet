@@ -1,14 +1,14 @@
 // Level HUD, 3R action bar, year report and debrief. DOM only: reads game state, changes it only via applyAction.
 import { ACTIONS, applyAction, costOf, isWetSeason, freeCrews, plantWeeks, PLANT_R } from './sim/game.js';
 import { evaluate, co2Estimate, dryWetPct, seedlingSurvival } from './sim/score.js';
-import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
-import { KIND, WET_WT } from './sim/world.js';
+import { seasonAt, dryStart, TICKS_PER_YEAR } from './sim/season.js';
+import { KIND, BLOCK, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { placed, denied, setArmed } from './render/fx.js';
 import { blip, sfx } from './audio.js';
 import { icon, setText, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
-import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
+import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS, HOWTO, INSPECT } from './strings.js';
 
 const $ = id => document.getElementById(id);
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -27,13 +27,44 @@ function tip(msg, x, y) {
   clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2000);
 }
 
-// The name line shows the hovered or focused slot, else the selected action, else the idle hint.
-// The line under it shows the how-to text of that action.
+// The actions that the how-to dialogs of this level and the earlier levels teach. The sandbox (no dialog) gets all of them.
+export const taught = levelId => new Set(Object.entries(HOWTO.items).filter(([k]) => +k <= levelId).flatMap(([, xs]) => xs.map(x => x.icon)).filter(x => ACTIONS[x]));
+
+// The tile readout: [name line, meaning line] for tile i.
+export function inspect(g, i) {
+  const wd = g.world, k = wd.kind[i], cm = Math.round(wd.wt[i] * 100), parts = [INSPECT.kind[k]];
+  if (k === KIND.CANAL) {
+    const b = Math.min(wd.block[i], BLOCK.PERM);
+    return [[...parts, INSPECT.block[b]].join(' · '), INSPECT.canal[b]];
+  }
+  if (k === KIND.RIVER) return [parts[0], INSPECT.river];
+  if (k === KIND.VILLAGE) return [parts[0], INSPECT.village];
+  parts.push(INSPECT.depth(cm));
+  if (wd.cover[i] >= 0.05) parts.push(INSPECT.trees(Math.round(wd.cover[i] * 100)));
+  if (g.seedlings.has(i)) parts.push(INSPECT.seedlings);
+  const why = wd.fire[i] ? INSPECT.fire : k === KIND.FARM ? INSPECT.farm : cm < 0 ? INSPECT.flooded : wd.wt[i] <= WET_WT ? INSPECT.wet : INSPECT.dry;
+  return [parts.join(' · '), why];
+}
+
+// Why the armed action cannot go on tile i now, or null when it can.
+function refusal(id, i) {
+  const v = ACTIONS[id].valid(G.world, i, G);
+  if (v !== true) return REASON[v];
+  if (G.jobs.some(j => j.i === i) && id !== 'fireCrew') return REASON.busy;
+  if (!freeCrews(G)) return REASON.crew;
+  return costOf(G, id) > G.funds ? REASON.funds : null;
+}
+
+// The name line shows the hovered or focused slot, else the selected action, else the tile under the pointer, else the idle hint.
+// The line under it shows the how-to text of that action, or why the selected action cannot go on the tile under the pointer.
 const metaOf = (id, c) => id === 'plant' ? actionMeta(c, plantWeeks((2 * PLANT_R + 1) ** 2), true) : actionMeta(c, ACTIONS[id].weeks);
 let hover = null;
 function showName() {
-  const id = hover ?? armed, n = $('barName'), h = $('barHint');
-  const t = id ? BAR.name(ACTION_TEXT[id][0], metaOf(id, costOf(G, id))) : SELECT_HINT[0], how = id ? ACTION_TEXT[id][1] : SELECT_HINT[1];
+  const id = hover ?? armed, n = $('barName'), h = $('barHint'), tile = H.map.hover;
+  let t, how;
+  if (id) { t = BAR.name(ACTION_TEXT[id][0], metaOf(id, costOf(G, id))); how = (!hover && tile != null && refusal(id, tile)) || ACTION_TEXT[id][1]; }
+  else if (tile != null) [t, how] = inspect(G, tile);
+  else [t, how] = SELECT_HINT;
   if (n.textContent !== t) n.textContent = t;
   if (h.textContent !== how) h.textContent = how;
   n.classList.toggle('sel', !!id);
@@ -102,6 +133,11 @@ export function initUI(game, handlers) {
   G = game; H = handlers; weeks = [];
   if (!bound) bind();
   armed = null; hover = null; arm(null); // clears the selection
+  const show = taught(game.level.id);
+  for (const row of $('slots').children) {
+    for (const b of row.children) b.style.display = show.has(b.dataset.id) ? '' : 'none';
+    row.style.display = [...row.children].some(b => show.has(b.dataset.id)) ? '' : 'none';
+  }
 }
 
 // After every sim step: one mean-wt sample per week for the year-report chart.
@@ -125,6 +161,8 @@ export function renderUI(game, { paused, speed, data }) {
   const parts = HUD.parts({ year: Math.min(year + 1, game.level.years), years: game.level.years, wet: isWetSeason(game), week: week + 1 },
     game.funds, freeCrews(game), game.crews.length, Math.round(game.goodwill), peat ? Math.round(wet / peat * 100) : 0,
     game.dryWtHistory.length ? Math.round(dryWetPct(game)) : null, short.matches); // scored measure: none before the first dry season
+  const dryIn = dryStart(game) - week;
+  if (isWetSeason(game) && dryIn <= 6) parts[0].full += HUD.dryIn(dryIn); // in the tooltip only: the HUD widths are measured on the text without it
   for (const p of parts) {
     const el = $('hudRow').querySelector(`[data-id=${p.id}]`), l = el.querySelector('.l'), v = el.querySelector('.v');
     if (l.textContent !== p.label) l.textContent = p.label;

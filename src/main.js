@@ -1,6 +1,6 @@
 import { LANG } from './i18n.js'; // first: it merges the Indonesian copy before any module reads the text
 import { createGame, step, scenicStep, ACTIONS, isWetSeason } from './sim/game.js';
-import { TICKS_PER_YEAR } from './sim/season.js';
+import { TICKS_PER_YEAR, seasonAt, dryStart } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
@@ -9,21 +9,24 @@ import { takeFxEvents, rainLevel, shake, celebrate, setArmed } from './render/fx
 import { KIND, WET_WT } from './sim/world.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
-import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE } from './strings.js';
+import { LINES, INTRO, TOAST, NOTES, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
-import { openJournal } from './journalView.js';
+import { openJournal, speciesPage } from './journalView.js';
 import { icon, withIcon, setText, sourceLink, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief, table } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
-const TICKS_PER_MS = TICKS_PER_YEAR / 75000;
+const TICKS_PER_MS = TICKS_PER_YEAR / 120000; // x1: 120 s a year, so a week is about 2.3 s. x2: 60 s a year.
+
+// How long a toast stays: about 0.4 s a word, from 3 s to 9 s.
+export const noteMs = msg => Math.min(9000, Math.max(3000, msg.split(/\s+/).length * 400));
 
 // Pure. speed 0 (paused) returns the carry untouched. A frame gap over the cap (hidden tab) drops the backlog.
 export function ticksForFrame(dtMs, speed, carry) {
   if (!speed) return { ticks: 0, carry };
   const acc = carry + dtMs * TICKS_PER_MS * speed;
-  const ticks = Math.floor(acc + 1e-9); // epsilon: 75 s must give exactly 208
+  const ticks = Math.floor(acc + 1e-9); // epsilon: 120 s must give exactly 208
   return ticks > MAX_TICKS_PER_FRAME ? { ticks: MAX_TICKS_PER_FRAME, carry: 0 } : { ticks, carry: Math.max(0, acc - ticks) };
 }
 
@@ -47,6 +50,7 @@ function boot() {
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const newStory = () => { story = buildStory(Math.floor(Math.random() * 2 ** 31)); map.leave(); };
   let game = null, paused = false, speed = 1, carry = 0;
+  const notes = []; // the toast queue (see toast()); declared here because toMenu() can run at boot
 
   // phase is one of intro | menu | levelSelect | level | yearReport | debrief
   function show(p) {
@@ -59,12 +63,12 @@ function boot() {
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
     $('scenic').hidden = p !== 'scenic';
-    $('findToast').hidden = true;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; shot.zoom = 1; shot.pan = 0; newStory(); show('intro'); }
   function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)], { label: MENU.label }); }
   function toMenu() {
     if (phase === 'menu') return;
+    clearNotes(); // no level note may show on the menu
     show('menu'); game = null; map.leave(); panTo = Math.random() < 0.5 ? -PAN : PAN; // leave: a level's pan must not carry into the menu
     $('bCont').disabled = !hasProgress(save);
     menuStats();
@@ -117,6 +121,7 @@ function boot() {
     const level = resolveLevel(L);
     game = createGame(level, save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave(); mile = null; wetFrac = 0;
+    clearNotes(); noted.clear(); wasBurning = false; fireYear = -1; wasWet = true;
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
@@ -157,6 +162,7 @@ function boot() {
   }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
   function toDebrief() {
+    clearNotes();
     showDebrief(game); // evaluate() decides loss itself
     setArmed(null);
     const stars = evaluate(game).stars;
@@ -172,6 +178,24 @@ function boot() {
   }
   function toScenic() { if (map.mode === 'data') map.toggleMode(); show('scenic'); $('scBack').focus({ preventScroll: true }); }
   function backToDebrief() { show('debrief'); $('dbView').focus({ preventScroll: true }); }
+  // Field notes: what happened and why, once for each level. The first fire of each year also pauses the game.
+  const noted = new Set();
+  let wasBurning = false, fireYear = -1, wasWet = true;
+  const note = key => { if (!noted.has(key)) { noted.add(key); toast(NOTES[key]); } };
+  function fieldNotes(ev) {
+    const wd = game.world, y = Math.floor(game.tick / TICKS_PER_YEAR), wet = isWetSeason(game), dryIn = dryStart(game) - seasonAt(game.tick).week;
+    if (wet && dryIn <= 4 && !noted.has('dryIn')) { noted.add('dryIn'); toast(NOTES.dryIn(dryIn)); }
+    if (wasWet && !wet) note('dry');
+    wasWet = wet;
+    for (const e of ev) {
+      if (e.type === 'washout') note('washout');
+      else if (e.type === 'villageFire') note('villageFire');
+      else if (e.type === 'arson' && !e.lit && (wd.kind[e.i] === KIND.PEAT || wd.kind[e.i] === KIND.FARM) && wd.wt[e.i] <= WET_WT) note('arsonWet');
+    }
+    const burning = wd.fire.some(f => f);
+    if (burning && !wasBurning && fireYear !== y) { fireYear = y; paused = true; toast(NOTES.fire, true); }
+    wasBurning = burning;
+  }
   function tickLevel(dt) {
     const r = ticksForFrame(dt, paused ? 0 : speed, carry);
     carry = r.carry;
@@ -184,6 +208,7 @@ function boot() {
     const yearEnd = ev.some(e => e.type === 'yearEnd');
     for (const e of ev) if (!(yearEnd && e.type === 'elNinoWarning')) cue(e.type); // the year report shows the warning; one sound at a time
     for (const e of ev) if (e.type === 'arson' || e.type === 'villageFire') shake(2, 300); else if (e.type === 'washout') shake(1, 250);
+    fieldNotes(ev);
     if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief();
     if (checkEarlyLoss(game)) return toDebrief(); // triggers the early end; evaluate() in the debrief re-derives the cause
     const ye = yearEnd && ev.find(e => e.type === 'yearEnd');
@@ -254,8 +279,17 @@ function boot() {
 
   // ---- menu actions
   // The toast sits above the action bar in a level (a hidden bar has 0 height).
-  function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.bottom = `${($('bar').offsetHeight || 0) + 24}px`; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
-  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
+  // Toasts wait in a queue, so a field note is not lost under the next one.
+  // urgent: it replaces the toast on the screen now (the fire pause must say why at once).
+  function toast(msg, urgent = false) { if (urgent && notes.length) { notes[0] = msg; return showNote(); } notes.push(msg); if (notes.length === 1) showNote(); }
+  function showNote() {
+    const t = $('toast'), msg = notes[0];
+    if (msg == null) return t.classList.remove('on');
+    t.textContent = msg; t.style.bottom = `${($('bar').offsetHeight || 0) + 24}px`; t.classList.add('on');
+    clearTimeout(t._h); t._h = setTimeout(() => { notes.shift(); showNote(); }, noteMs(msg));
+  }
+  function clearNotes() { notes.length = 0; clearTimeout($('toast')._h); $('toast').classList.remove('on'); }
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', fJournal: 'journal', fGo: 'play', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));
   document.addEventListener('mouseover', e => { // delegated: the level select builds its buttons later
@@ -274,17 +308,22 @@ function boot() {
     openJournal({ found: save.found, page, onClose: () => { ({ paused, speed } = was); if (page) $('bJournal').focus({ preventScroll: true }); } }); // the toast is gone, so focus goes to the HUD button
   }
   $('bJournal').onclick = e => { e.currentTarget.blur(); openBook(); };
-  // A tap on an animal. The toast shows even when the save cannot be written: persist keeps the save in memory.
-  let findTimer;
+  // A tap on a new animal opens the find card with its journal page. The card pauses the level, as the journal does.
+  // It shows even when the save cannot be written: persist keeps the save in memory.
   function onFind(id) {
     const r = recordFind(save, id);
     if (!r.isNew) return;
     persist(r.save); sfx('find');
-    const t = $('findToast'); $('findMsg').textContent = JOURNAL.found(SPECIES.find(s => s.id === id).name);
-    setText($('findOpen'), JOURNAL.openEntry);
-    $('findOpen').onclick = () => { t.hidden = true; openBook(id); };
-    t.style.bottom = `${$('bar').offsetHeight + 8}px`; t.hidden = false;
-    clearTimeout(findTimer); findTimer = setTimeout(() => { t.hidden = true; }, 8000);
+    const dlg = $('dFind'), was = { paused, speed };
+    let book = false; // Open journal: the journal opens after the card closes, so it pauses from the restored state
+    $('fTitle').textContent = JOURNAL.newFind; $('fHint').textContent = JOURNAL.findHint;
+    $('fBody').replaceChildren(speciesPage(SPECIES.find(s => s.id === id)));
+    setText($('fJournal'), JOURNAL.openJournal); setText($('fGo'), JOURNAL.cont);
+    $('fJournal').onclick = () => { book = true; dlg.close(); };
+    $('fGo').onclick = () => dlg.close();
+    dlg.onclose = () => { dlg.onclose = null; ({ paused, speed } = was); if (book) openBook(id); };
+    paused = true;
+    dlg.showModal(); dlg.scrollTop = 0;
   }
   $('bSet').onclick = () => { $('snd').ariaPressed = String(!isMuted()); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
