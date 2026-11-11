@@ -673,14 +673,37 @@ function notch(g, sx, sy, k, spec, bank) {
 // Bits 24-25 hold the bank step. The sprite id adds the patch index (o + 1) in bits 21-23.
 // A patch (o >= 0) draws only the channel pixels that fall in the side tile DIRS[o] of the canal tile, where a corner join crosses it.
 const canalSprites = new Map();
+function specOf(key) {
+  const arms = [];
+  DIRS.forEach(([dx, dy], k) => { const v = (key >> 2 * k) & 3; if (v) arms.push([dx, dy, v - 1]); });
+  return { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 };
+}
+// Flow ripples: light dashes on the water pixels of a canal sprite that move toward DIRS[d]. RIP_F frames move them 1 period.
+// The period (8 ground units) divides the tile size (16), so ripples line up across the tile joins.
+const ripples = new Map(), RIP_F = 8, RIP_P = 8, RIPPLE = rgb(mix(WATER, WHITE, .45));
+export function rippleSprite(key, o, d, f) {
+  const id = canalId(key, o) * 64 + d * 8 + f;
+  let c = ripples.get(id);
+  if (c) return c;
+  const spec = specOf(key), [ux, uy] = DIRS[d], n = Math.hypot(ux, uy), [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
+  c = sprite((g, x, y) => {
+    g.fillStyle = RIPPLE;
+    for (let r = fy; r < fy + TH; r++) for (let dx = fx - rowW(r - fy); dx < fx + rowW(r - fy); dx++) {
+      if (canalZone(dx, r, spec) !== 3) continue;
+      const a = r + .5 + (dx + .5) / 2, b = r + .5 - (dx + .5) / 2; // ground units, as in chan()
+      const jit = hash(Math.floor((b * ux - a * uy) / 3) * 7 + d) * RIP_P; // cells across the flow get their own offset, so the ripples break into dashes
+      if (((a * ux + b * uy - f * RIP_P / RIP_F - jit) % RIP_P + RIP_P) % RIP_P < n) g.fillRect(x + dx - fx, y + r - fy, 1, 1);
+    }
+  });
+  ripples.set(id, c);
+  return c;
+}
 export const canalId = (key, o = -1) => key + (o + 1) * (1 << 21);
 export function canalSprite(key, o = -1) {
   const id = canalId(key, o);
   let c = canalSprites.get(id);
   if (c) return c;
-  const arms = [];
-  DIRS.forEach(([dx, dy], k) => { const v = (key >> 2 * k) & 3; if (v) arms.push([dx, dy, v - 1]); });
-  const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD), bank = BANK_TOP[(key >> 24) & 3], edge = (key >> 20) & 1;
+  const spec = specOf(key), bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD), bank = BANK_TOP[(key >> 24) & 3], edge = (key >> 20) & 1;
   const wall = rgb(mix(bank, BLACK, .25)); // the cut wall: a shade of its own bank, so a drained canal does not draw a black line
   const [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
   c = sprite((g, x, y) => {
@@ -809,6 +832,14 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     pos[2 * i] = sx; pos[2 * i + 1] = sy;
   }
   originX = pos[0]; originY = pos[1];
+  // Flow direction of each open canal tile (DIRS index), or -1 where a block stops the water at this tile or downstream.
+  const flowDir = new Int8Array(w * h).fill(-1), rf = REDUCED ? 0 : Math.floor(now / 150) % RIP_F;
+  if (!data) for (let i = 0; i < w * h; i++) {
+    const n = flow[i];
+    if (n < 0 || kind[i] !== KIND.CANAL || blk[i] !== BLOCK.NONE || blk[n] !== BLOCK.NONE) continue;
+    const dx = n % w - i % w, dy = ((n / w) | 0) - ((i / w) | 0);
+    flowDir[i] = DIRS.findIndex(([a, b]) => a === dx && b === dy);
+  }
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // row-major is back-to-front for this iso layout
     const i = y * w + x, sx = pos[2 * i], sy = pos[2 * i + 1], e = x === w - 1 || y === h - 1 ? 1 : 0;
     if (sx + HW < 0 || sx - HW > bw || sy - HEAD + SH < 0 || sy - HEAD > bh) continue;
@@ -824,9 +855,11 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     const ax = sx - SW / 2, ay = sy - HEAD;
     ctx.drawImage(spr[e], ax, ay);
     if (data) continue;
+    if (k === KIND.CANAL && flowDir[i] >= 0) ctx.drawImage(rippleSprite(canalBase[i] | canalStep(cWater[i], cDepth[i]) << 18, -1, flowDir[i], rf), ax, ay);
     for (const [c, o] of patches.get(i) ?? []) { // a corner join crosses this tile: line up its channel pixels with the canal tile
-      const [ox, oy] = DIRS[o];
-      ctx.drawImage(canalSprite(canalBase[c] | canalStep(cWater[c], cDepth[c]) << 18, o), pos[2 * c] + (ox - oy) * HW - SW / 2, pos[2 * c + 1] + (ox + oy) * HH - HEAD);
+      const [ox, oy] = DIRS[o], px = pos[2 * c] + (ox - oy) * HW - SW / 2, py = pos[2 * c + 1] + (ox + oy) * HH - HEAD, ck = canalBase[c] | canalStep(cWater[c], cDepth[c]) << 18;
+      ctx.drawImage(canalSprite(ck, o), px, py);
+      if (flowDir[c] >= 0) ctx.drawImage(rippleSprite(ck, o, flowDir[c], rf), px, py);
     }
     if (k === KIND.CANAL && game.ponds.has(i)) ctx.drawImage(cache.pond, ax, ay);
     const ov = cache.overlay[blk[i]];
@@ -847,18 +880,6 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       nFire++; ctx.drawImage(cache.ember[fv][REDUCED ? 0 : ((now / 400 + hash(i) * 2) | 0) % 2], ax, ay); emitSmoke(i, sx, sy + HH, 2, now);
     }
     if (jobs.has(i)) { ctx.fillStyle = '#efe6cf'; ctx.fillRect(sx - 1, sy - 10, 2, 16); ctx.fillStyle = '#e8b04a'; ctx.fillRect(sx + 1, sy - 10, 8, 4); } // work flag
-  }
-  if (!data) { // flow markers: 2 light pixels move from the tile centre to the downstream tile centre
-    ctx.fillStyle = '#d8f0fa';
-    for (let i = 0; i < w * h; i++) {
-      const n = flow[i];
-      if (n < 0 || !shown[i] || kind[i] !== KIND.CANAL || blk[i] !== BLOCK.NONE || blk[n] !== BLOCK.NONE) continue;
-      const cx = pos[2 * i], cy = pos[2 * i + 1] + HH;
-      for (let m = 0; m < 2; m++) {
-        const t = (now / 600 + hash(i) + m / 2) % 1;
-        ctx.fillRect(cx + Math.round((pos[2 * n] - pos[2 * i]) * t), cy + Math.round((pos[2 * n + 1] - pos[2 * i + 1]) * t), 1, 1);
-      }
-    }
   }
   const dbg = globalThis.rewet; // ?debug only
   if (!data) { // animals: their own pass, sorted by drawn y, so a slide keeps the depth order. The feet are at the tile centre.
