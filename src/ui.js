@@ -139,9 +139,9 @@ function chart(cv, data) {
   const ctx = cv.getContext('2d'), W = cv.width, Hh = cv.height, pad = 6, min = -0.3, max = Math.max(1, ...data); // wt clamp floor -0.3
   const y = v => pad + (Hh - 2 * pad) * (Math.max(min, Math.min(max, v)) - min) / (max - min); // depth grows downward
   ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, 0, W, Hh);
-  ctx.fillStyle = '#5ff0ff'; for (let x = 0; x < W; x += 6) ctx.fillRect(x, Math.round(y(WET_WT)), 3, 1);
+  ctx.fillStyle = '#e8b04a'; for (let x = 0; x < W; x += 6) ctx.fillRect(x, Math.round(y(WET_WT)), 3, 1);
   ctx.font = '12px Silkscreen'; ctx.fillText(REPORT.line40, pad + 2, y(WET_WT) + 14);
-  ctx.strokeStyle = '#e8b04a'; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.strokeStyle = '#5ff0ff'; ctx.lineWidth = 2; ctx.beginPath();
   data.forEach((v, k) => ctx[k ? 'lineTo' : 'moveTo'](pad + (W - 2 * pad) * k / Math.max(1, data.length - 1), y(v)));
   ctx.stroke();
 }
@@ -162,7 +162,7 @@ export function table(el, rows, { head, label, labelledby } = {}) {
     const row = document.createElement('tr');
     cells.forEach((c, k) => {
       const cell = document.createElement(tag);
-      if (tag === 'td' && k === 1) cell.append(...`${c}`.split(/(\d[\d.,]*%?)/).map((s, j) => j % 2 ? Object.assign(document.createElement('span'), { className: 'num', textContent: s }) : s)); // game values in the result column show in the accent colour
+      if (tag === 'td' && k === 1) cell.append(...`${c}`.split(/(?<![A-Za-z])(\d[\d.,]*%?)/).map((s, j) => j % 2 ? Object.assign(document.createElement('span'), { className: 'num', textContent: s }) : s)); // game values in the result column show in the accent colour
       else cell.textContent = c;
       if (tag === 'th') cell.scope = 'col';
       if (cells.length === 1 && cols > 1) cell.colSpan = cols;
