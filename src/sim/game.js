@@ -215,12 +215,20 @@ export function step(g) {
     g.dryWtHistory.push(Float32Array.from(wt));
   }
 
-  // 4. fire; crewed timers are capped every tick (also after a re-light), put out at <= 1, 2x with a well within 3 tiles
+  // 4. fire; a crew fights every burning tile in the 3x3 square around its fire (once per tile, even where crews overlap):
+  // timers are capped every tick (also after a re-light), put out at <= 1, 2x with a well within 3 tiles
+  const fought = new Set();
   for (const j of g.jobs) {
-    if (j.id !== 'fireCrew' || !fire[j.i]) continue;
-    fireT[j.i] = Math.min(fireT[j.i], crewCap(g, fire[j.i]));
-    if (fireT[j.i] > 1 && near(wd, j.i, 3, (k) => g.wells.has(k))) fireT[j.i]--;
-    if (fireT[j.i] <= 1) { fire[j.i] = 0; fireT[j.i] = 0; }
+    if (j.id === 'fireCrew' && fire[j.i]) near(wd, j.i, 1, (k) => { if (fire[k]) fought.add(k); return false; });
+  }
+  for (const k of fought) {
+    fireT[k] = Math.min(fireT[k], crewCap(g, fire[k]));
+    if (fireT[k] > 1 && near(wd, k, 3, (m) => g.wells.has(m))) fireT[k]--;
+    if (fireT[k] <= 1) { fire[k] = 0; fireT[k] = 0; }
+  }
+  // when a crew's own fire is out, every fire in its 3x3 square goes out with it
+  for (const j of g.jobs) {
+    if (j.id === 'fireCrew' && !fire[j.i]) near(wd, j.i, 1, (k) => { fire[k] = 0; fireT[k] = 0; return false; });
   }
   const { burnt } = fireTick(wd, env, g.wind);
   for (const i of burnt) onLit(g, i);

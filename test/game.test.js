@@ -287,6 +287,33 @@ test('crewed fire re-lit by a neighbour is capped and put out', () => {
   assert.equal(g.crews.filter((t) => t > g.tick).length, 0);
 });
 
+test('fire crew fights every burning tile in the 3x3 square around its fire', () => {
+  const g = createGame(lvl());
+  const i = at(8, 8), nb = at(9, 9), out = at(10, 8);
+  g.world.wt.fill(-0.3); // nothing can catch or re-light
+  for (const k of [i, nb, out]) { g.world.fire[k] = 2; g.world.fireT[k] = 50; }
+  assert.equal(applyAction(g, 'fireCrew', i).ok, true);
+  step(g);
+  assert.ok(g.world.fireT[nb] <= 8, 'neighbour capped like the crewed tile');
+  assert.ok(g.world.fireT[out] > 8, 'tile 2 away not fought');
+  for (let t = 0; t < 10; t++) step(g);
+  assert.equal(g.world.fire[i], 0);
+  assert.equal(g.world.fire[nb], 0);
+});
+
+test('fire crew puts out its whole 3x3 square when its fire goes out', () => {
+  const g = createGame(lvl());
+  const i = at(8, 8), nb = at(7, 9), out = at(10, 8);
+  g.world.wt.fill(-0.3); // nothing can catch or re-light
+  g.world.fire[i] = 1; g.world.fireT[i] = 8; // surface fire: cap 1, out in the first tick
+  for (const k of [nb, out]) { g.world.fire[k] = 2; g.world.fireT[k] = 50; }
+  assert.equal(applyAction(g, 'fireCrew', i).ok, true);
+  step(g);
+  assert.equal(g.world.fire[i], 0);
+  assert.equal(g.world.fire[nb], 0, 'smouldering neighbour out with it');
+  assert.equal(g.world.fire[out], 2, 'tile 2 away still burns');
+});
+
 test('arson ignition runs fire side effects (village goodwill, spotting, seedling loss)', () => {
   const villages = [];
   for (let y = 0; y < S; y += 2) for (let x = 0; x < S; x += 2) villages.push([x, y]); // every other tile is next to a village

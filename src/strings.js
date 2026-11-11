@@ -76,7 +76,7 @@ export const ACTION_TEXT = {
   palud: ['Paludiculture', 'Tap wet peat by the village.', 'Farm'],
   pond: ['Fish pond', 'Tap a canal upstream of a block.', 'Fish'],
   fireGroup: ['Fire group', 'Tap the village. Halves arson.', 'Watch'],
-  fireCrew: ['Fire crew', 'Tap a fire. Stays until out.', 'Fire'],
+  fireCrew: ['Fire crew', 'Tap a fire. Puts out 3×3.', 'Fire'],
 };
 export const actionMeta = (cost, weeks, perTile = false) => weeks === Infinity ? 'until out' : perTile ? `${cost}/tile · 1–${weeks}w` : `${cost} · ${weeks}w`; // perTile: weeks is the longest job
 export const SELECT_HINT = ['Pick an action, then tap a tile.', 'Tap the action again to cancel.']; // 2 lines, as the name and how-to lines of an action
