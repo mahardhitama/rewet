@@ -12,6 +12,33 @@ export const TOAST = {
   wet: n => `${n}% of the peat is wet now!`, // a milestone in a level
 };
 
+// Field notes: a toast that says what happened in a level and why. Each shows once for each level, except fire.
+export const NOTES = {
+  dryIn: n => `The dry season starts in ${n} weeks. Work costs 20% less until then, so finish the blocks now.`,
+  dry: 'Dry season. Canals now drain the peat faster, and dry peat can burn.',
+  fire: 'Fire! The game is paused. Pick Fire crew, then tap the fire.',
+  washout: 'A flood broke a temp block. A permanent block (Dam+) does not break.',
+  arsonWet: 'Someone tried to light a fire, but the peat was too wet to burn.',
+  villageFire: 'Fire reached the village. Goodwill fell by 10.',
+};
+
+// The tile readout in the action bar: line 1 names the tile, line 2 tells what it means.
+export const INSPECT = {
+  kind: ['Peat', 'Canal', 'River', 'Village', 'Farm'], // index: KIND
+  depth: cm => cm < 0 ? `water ${-cm} cm above the surface` : `water table ${cm} cm down`,
+  trees: pct => `trees ${pct}%`,
+  seedlings: 'seedlings',
+  block: ['open', 'temp block', 'permanent block'], // index: BLOCK
+  fire: 'On fire. Pick Fire crew, then tap it.',
+  flooded: 'Flooded. Seedlings drown here. A mound raises the tile.',
+  wet: 'Wet: 40 cm or less. It does not burn, and seedlings grow.',
+  dry: 'Dry: deeper than 40 cm. It can burn, and the peat loses carbon.',
+  canal: ['It drains the peat near it. Block it.', 'A flood can break a temp block.', 'The block holds the water in the peat.'],
+  river: 'A river, not a canal. You cannot block it.',
+  village: 'Help the village to earn goodwill. Keep fire away from it.',
+  farm: 'Farm land. Dry farm land can burn.',
+};
+
 export const SELECT = {
   title: 'Choose a site', back: 'Back', years: n => `${n} ${n === 1 ? 'year' : 'years'}`,
   best: n => `${n} of 3 stars`,
@@ -29,6 +56,7 @@ export const UPGRADES = {
 };
 
 export const HUD = {
+  dryIn: n => ` · dry season in ${n} wk`, // added to the time tooltip
   time: (year, years, wet, week) => `Year ${year}/${years} · ${wet ? 'Wet' : 'Dry'} season · wk ${week}`,
   timeShort: (year, years, wet, week) => `${year}/${years} · ${wet ? 'Wet' : 'Dry'} · wk ${week}`, // phone: labels hidden
   // 6 parts, each { id, label, value, full }. full is the text for the screen reader and the tooltip.
