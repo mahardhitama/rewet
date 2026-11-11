@@ -112,6 +112,12 @@ test('avoided CO2: only tiles that started dry and end wet', () => {
   assert.ok(Math.abs(co2Estimate(g).avoidedTC - 14 * 0.25 * 2) < 1e-9);
 });
 
+test('t CO2 = t C x 44/12 (IPCC 2006 Vol 4 section 2.2.3)', () => {
+  const e = co2Estimate(mk({ burnt: 1 }));
+  assert.ok(Math.abs(e.fireTCO2 - e.fireTC * 44 / 12) < 1e-9);
+  assert.ok(Math.abs(e.avoidedTCO2 - e.avoidedTC * 44 / 12) < 1e-9);
+});
+
 test('seedlingSurvival counts every seeded tile since a tick; alive = seedling or full cover', () => {
   const g = mk({ n: 4 });
   g.planted = new Map([[0, 10], [1, 10], [2, 300], [3, 300]]);

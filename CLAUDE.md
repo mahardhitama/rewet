@@ -53,7 +53,7 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
   - C2 must reproduce that paper's dam result: 1.12 m before blocking, 0.37 m after.
   - C3: a cascade of blocks must beat a single block.
   - If a rule change breaks these tests, re-tune the constants; don't loosen the tolerances.
-- **Units:** `wt` is the water-table depth in metres, positive below the surface. Wet/healthy means `wt ≤ 0.40`. Carbon is shown as **t C**; don't show t CO2 until the 44/12 factor is sourced.
+- **Units:** `wt` is the water-table depth in metres, positive below the surface. Wet/healthy means `wt ≤ 0.40`. The sim calculates carbon in t C. The debrief shows **t CO2** = t C × 44/12 (IPCC 2006 Guidelines Vol 4, Section 2.2.3, key `IPCC06` in `docs/references/peat-hydrology-and-emissions.md`).
 
 ## Domain facts
 

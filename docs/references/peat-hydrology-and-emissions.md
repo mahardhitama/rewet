@@ -8,6 +8,7 @@ Checked 2026-11-10. Every value below was read in the opened document named next
 |---|---|---|
 | R14 | Ritzema, H.P. et al. (2014). "Canal blocking strategies for hydrological restoration of degraded tropical peatlands in Central Kalimantan, Indonesia". *Catena* 114, 11–20. DOI 10.1016/j.catena.2013.10.009. Page numbers are post-print numbers. | PDF opened: https://edepot.wur.nl/282926 |
 | IPCC13 | IPCC (2014). *2013 Supplement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories: Wetlands*. | PDF opened: https://www.ipcc.ch/site/assets/uploads/2018/03/Wetlands_Supplement_Entire_Report.pdf |
+| IPCC06 | IPCC (2006). *2006 IPCC Guidelines for National Greenhouse Gas Inventories*, Volume 4 (AFOLU), Chapter 2 "Generic methodologies applicable to multiple land-use categories". | PDF opened 2026-11-11: https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_02_Ch2_Generic.pdf |
 | PP57 | Peraturan Pemerintah No. 57 Tahun 2016 (Lembaran Negara 2016 No. 260). It changes PP 71/2014. | PDF opened 2026-11-10: https://peraturan.go.id/files/pp57-2016bt.pdf |
 
 Every value in section 1 comes from R14 or IPCC13. On 2026-11-10 we read these again: R14 pages 2, 10 and 11, and IPCC13 Table 2.1 (oil palm and sago rows), Table 2.6 and Table 3.1. We read the other values in an earlier session. See `peat-restoration-concepts.md` for more facts with these keys.
@@ -67,6 +68,13 @@ Source: Table 3.1, p.3.12.
 - Table 2.6, p.2.40: fuel consumption for a tropical "Wildfire (drained peat)" is 353 t d.m. ha⁻¹ (95% CI 170–536).
 - Table 2.7, p.2.41: emission factors for a tropical organic-soil fire, in g kg⁻¹ dry matter burnt: 464 (column "CO2-C"), CO 210, CH4 21.
 
+### C to CO2 conversion (IPCC 2006 Guidelines)
+
+- IPCC06 Vol 4 Section 2.2.3, p.2.11: "The conversion to CO2 from C, is based on the ratio of molecular weights (44/12)."
+- Value: 1 t C = 44/12 t CO2 ≈ 3.667 t CO2. Example: 1 burnt tile = 0.25 ha × 353 t d.m. ha⁻¹ × 0.464 = 40.95 t C = 40.95 × 44/12 = 150.1 t CO2.
+- Conditions (same section): if a large part of the carbon goes out as CO or CH4, subtract that carbon first. The game converts only CO2-C values (Table 2.1 and the Table 2.7 "CO2-C" column), so no subtraction applies.
+- Current version: 2019 Refinement, Vol 4 Chapter 2, Section 2.2.3, p.2.13 has the same text (opened 2026-11-11).
+
 **Scope:** Tier 1 defaults. Table 2.1 covers on-site CO2 only; DOC (dissolved organic carbon), CH4 and N2O are separate.
 
 **Current version:** 2013 Wetlands Supplement (IPCC). The 2019 Refinement was NOT CHECKED for changes to wetlands organic-soil factors.
@@ -74,6 +82,7 @@ Source: Table 3.1, p.3.12.
 ## 2. Cite lines
 
 - Ritzema, H.P.; Limin, S.; Kusin, K.; Jauhiainen, J.; Wösten, H. (2014). Canal blocking strategies for hydrological restoration of degraded tropical peatlands in Central Kalimantan, Indonesia. Catena 114, 11–20. https://doi.org/10.1016/j.catena.2013.10.009. Post-print (WUR eDepot): Table 4 p.25; text pp.2, 8, 10, 11.
+- IPCC (2006). 2006 IPCC Guidelines for National Greenhouse Gas Inventories, Volume 4, Chapter 2, Section 2.2.3, p.2.11: C to CO2 by the ratio of molecular weights, 44/12.
 - IPCC (2014). 2013 Supplement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories: Wetlands. Table 2.1 pp.2.12–2.14; Table 2.6 p.2.40; Table 2.7 p.2.41; Table 3.1 p.3.12.
 
 ## 3. Not sourced
@@ -83,7 +92,7 @@ Source: Table 3.1, p.3.12.
   - Article 23(3)(b) adds exposed pyrite or quartz sediment under the peat.
   - Source: https://peraturan.go.id/files/pp57-2016bt.pdf (the earlier attempt used the wrong file name). The text applies to the cultivation function only.
   - Not checked: a later amendment of the article.
-- **C-to-CO2 conversion (44/12):** NOT SOURCED here. It isn't stated in the opened Wetlands Supplement text. Needed if the game shows CO2 rather than CO2-C.
+- **C-to-CO2 conversion (44/12):** SOURCED on 2026-11-11 (IPCC06 Vol 4 Section 2.2.3, p.2.11). See section 1.
 - **Exponential decay fit** (L ≈ 100 m dry, ≈ 45 m wet): my own fit to Table 4, not a published parameter.
 - **How leaky a blocked canal is** (fraction of drainage kept): game tuning. Calibrated against the 1.12 → 0.37 m result above, not a published value.
 
@@ -92,6 +101,8 @@ Source: Table 3.1, p.3.12.
 - https://edepot.wur.nl/282926: downloaded 2026-11-10, read with `pdftotext -layout`.
 - https://www.ipcc.ch/site/assets/uploads/2018/03/Wetlands_Supplement_Entire_Report.pdf: downloaded 2026-11-10, read with `pdftotext -layout`; pages confirmed from the page footers.
 - https://faolex.fao.org/docs/pdf/ins174419.pdf: downloaded 2026-11-10, read with `pdftotext`.
+- https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_02_Ch2_Generic.pdf: downloaded 2026-11-11, read with `pdftotext -layout`; page from the page footer.
+- https://www.ipcc-nggip.iges.or.jp/public/2019rf/pdf/4_Volume4/19R_V4_Ch02_Generic%20Methods.pdf: downloaded 2026-11-11, read with `pdftotext -layout`; page from the table of contents.
 - https://peraturan.go.id/files/pp57-2016bt.pdf: downloaded 2026-11-10, read with `pdftotext -layout`. Article 23 is on PDF page 11.
 - Tried and failed: https://peraturan.bpk.go.id/Details/5768/pp-no-57-tahun-2016 (bot check), https://peraturan.go.id/files/pp57-2016.pdf (returned an HTML page, not the PDF).
 - Search used to find the sources (not cited): Mongabay, "Catatan Hukum Peraturan Gambut: Lama vs Baru" (2016).

@@ -5,6 +5,7 @@ import { TICKS_PER_YEAR } from './season.js';
 const HA_PER_TILE = 0.25; // 50 m x 50 m
 const CROPLAND_TC_HA_YR = 14; // IPCC 2013 Wetlands Supplement, drained cropland
 const FIRE_TC_HA = 353 * 0.464; // t d.m./ha x C fraction
+const CO2_PER_C = 44 / 12; // ratio of molecular weights, IPCC 2006 Guidelines Vol 4 section 2.2.3 p.2.11
 
 // % of peat tiles whose mean wt over the current/last dry season (dryWtHistory) is wet; current wt before the first dry season.
 export function dryWetPct(g) {
@@ -72,5 +73,6 @@ export function co2Estimate(g) {
     if (g.wt0[i] > WET_WT && wt[i] <= WET_WT)
       avoidedTC += CROPLAND_TC_HA_YR * HA_PER_TILE * (g.wetTicks[i] / TICKS_PER_YEAR);
   }
-  return { avoidedTC, fireTC: g.burnt.size * HA_PER_TILE * FIRE_TC_HA };
+  const fireTC = g.burnt.size * HA_PER_TILE * FIRE_TC_HA;
+  return { avoidedTC, fireTC, avoidedTCO2: avoidedTC * CO2_PER_C, fireTCO2: fireTC * CO2_PER_C };
 }

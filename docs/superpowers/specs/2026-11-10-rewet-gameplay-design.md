@@ -193,7 +193,7 @@ Judged at the end of the last dry season:
 - A CO2 estimate, which uses only the sourced IPCC 2013 Wetlands Supplement values:
   - **Drainage avoided:** each tile that was drained at the start and is wet at the end avoids the Table 2.1 factor for its land use, e.g. "Cropland and fallow, drained" 14 t CO2-C ha⁻¹ yr⁻¹ (p.2.13). Rewetted tropical soil = 0 (Table 3.1, p.3.12).
   - **Fire:** burnt tiles count fuel consumption 353 t d.m. ha⁻¹ (Table 2.6, p.2.40) × 464 g kg⁻¹ (Table 2.7, p.2.41).
-  - Shown as **"estimate, t C"** until the 44/12 C-to-CO2 factor is sourced (see section 8).
+  - Shown as **t CO2**: t C × 44/12, the ratio of molecular weights (IPCC 2006 Guidelines Vol 4, Section 2.2.3, p.2.11).
 - A bonus for leftover funds.
 
 **Debrief:**
@@ -270,7 +270,7 @@ scripts/sim-run.js  headless run of a level plus a plan file, printing 3R result
 ## 8. Open items
 
 1. **0.4 m regulation text:** need the PP 57/2016 PDF to cite Art. 23. Until then the game cites fire risk at > 0.40 m from Ritzema 2014.
-2. **44/12 conversion:** source it (IPCC 2006 Guidelines) before showing "t CO2". Until then show "t C".
+2. **44/12 conversion:** RESOLVED on 2026-11-11. Sourced from IPCC 2006 Guidelines Vol 4, Section 2.2.3, p.2.11. The debrief shows t CO2.
 3. **2019 Refinement:** check whether the 2019 Refinement changes wetlands organic-soil factors.
 4. **Initial tuning numbers:** costs, times, `S_block`, `maxHeadTiles`, `k_*`. Set them through calibration tests C1–C3 and play testing.
 5. **`S_block` perm = 0.1 (was 0.2):** set by C2 (Task 5). With 0.2 the Ritzema cascade case ends at 0.536 m mean, above the 0.30–0.45 m target. With 0.1 it ends at 0.407 m (start 1.127 m, dry-season max 0.547 m). The C2 degraded site uses a test-only override: `eqDry 2.5`, `eqWet 2.0` (deep canal), default far-field. `temp` stays 0.35 (not calibrated yet).

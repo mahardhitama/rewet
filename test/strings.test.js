@@ -36,9 +36,9 @@ test('DEBRIEF rows have 3 cells', () => {
     ['Revitalisation', 'village goodwill is 50'],
   ]);
   assert.equal(DEBRIEF.figureHead.length, 2);
-  assert.deepEqual(DEBRIEF.dataRows({ avoidedTC: 1.25, fireTC: 0 }, { alive: 1, planted: 2 }), [
-    ['Drainage emissions avoided', '1.3 (estimate, t C)'],
-    ['Fire emissions', '0.0 (estimate, t C)'],
+  assert.deepEqual(DEBRIEF.dataRows({ avoidedTCO2: 4.25, fireTCO2: 0 }, { alive: 1, planted: 2 }), [
+    ['Drainage emissions avoided', '4.3 t CO2'],
+    ['Fire emissions', '0.0 t CO2'],
     ['Seedling survival', '1/2'],
   ]);
 });

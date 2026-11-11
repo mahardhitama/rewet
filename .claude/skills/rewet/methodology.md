@@ -17,7 +17,7 @@ Rewet teaches real restoration practice. A real-world number in the game must co
 
 1. Write a failing test first (`superpowers:test-driven-development`).
 2. Put the value in one named constant. Add a one-line comment with the source and table.
-3. Keep units the same as the source. Convert only with a sourced factor. Example: no t CO2 until the 44/12 factor is sourced.
+3. Keep units the same as the source. Convert only with a sourced factor. Example: t CO2 uses the 44/12 factor from IPCC 2006 Vol 4 Section 2.2.3 (key `IPCC06`).
 4. Run `npm test`. Calibration tests C1, C2 and C3 must pass. If a change breaks them, tune the constants. Do not loosen the tolerances.
 5. Update the spec: the section that uses the value, and section 8 (open items) for each tuned value or open question.
 

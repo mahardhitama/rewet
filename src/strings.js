@@ -122,8 +122,8 @@ export const DEBRIEF = {
   goalsTitle: 'Goal status',
   dataTitle: 'Data',
   dataRows: (co2, sv) => [
-    ['Drainage emissions avoided', `${co2.avoidedTC.toFixed(1)} (estimate, t C)`],
-    ['Fire emissions', `${co2.fireTC.toFixed(1)} (estimate, t C)`],
+    ['Drainage emissions avoided', `${co2.avoidedTCO2.toFixed(1)} t CO2`],
+    ['Fire emissions', `${co2.fireTCO2.toFixed(1)} t CO2`],
     ['Seedling survival', sv.planted ? `${sv.alive}/${sv.planted}` : 'none planted'],
   ],
   allMet: 'All goals met. Well done.',
