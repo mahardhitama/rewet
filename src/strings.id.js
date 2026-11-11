@@ -212,7 +212,7 @@ export const STRINGS = {
     title: 'Jurnal', open: 'Jurnal', close: 'Tutup', prev: 'Sebelum', next: 'Lanjut', home: 'Awal',
     pos: (a, b, n) => (a === b ? `Halaman ${a} dari ${n}` : `Halaman ${a}-${b} dari ${n}`),
     contentsTiles: 'Isi: petak', contentsConcepts: 'Isi: gagasan', actionsHere: 'Aksi di petak ini', seeAlso: 'Lihat juga', contentsWildlife: (x, n) => `Isi: satwa (${x}/${n})`,
-    found: name => `Baru di jurnalmu: ${name}`, openEntry: 'Buka', notFound: 'Belum ditemukan', unknown: '?',
+    newFind: 'Temuan baru!', findHint: 'Kamu menemukan spesies baru. Sekarang ia ada di jurnalmu.', openJournal: 'Buka jurnal', cont: 'Lanjut', notFound: 'Belum ditemukan', unknown: '?',
     hidden: (k, n) => `Satwa tak dikenal ${k} dari ${n}, belum ditemukan`,
     status: { LC: 'Risiko Rendah', NT: 'Hampir Terancam', VU: 'Rentan', EN: 'Genting', CR: 'Kritis' },
     statusLabel: 'Status IUCN', habitatLabel: 'Habitat', protectedNote: 'Dilindungi di Indonesia.', endemicNote: 'Spesies ini hanya hidup di Pulau Borneo.', sources: 'Sumber', openSource: 'Buka sumber', hint: 'Panah Kiri dan Kanan membalik halaman. Esc menutup.',

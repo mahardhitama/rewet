@@ -11,7 +11,7 @@ import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
 import { LINES, INTRO, TOAST, NOTES, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
-import { openJournal } from './journalView.js';
+import { openJournal, speciesPage } from './journalView.js';
 import { icon, withIcon, setText, sourceLink, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief, table } from './ui.js';
@@ -63,7 +63,6 @@ function boot() {
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
     $('scenic').hidden = p !== 'scenic';
-    $('findToast').hidden = true;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; shot.zoom = 1; shot.pan = 0; newStory(); show('intro'); }
   function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)], { label: MENU.label }); }
@@ -290,7 +289,7 @@ function boot() {
     clearTimeout(t._h); t._h = setTimeout(() => { notes.shift(); showNote(); }, noteMs(msg));
   }
   function clearNotes() { notes.length = 0; clearTimeout($('toast')._h); $('toast').classList.remove('on'); }
-  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', fJournal: 'journal', fGo: 'play', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));
   document.addEventListener('mouseover', e => { // delegated: the level select builds its buttons later
@@ -309,17 +308,22 @@ function boot() {
     openJournal({ found: save.found, page, onClose: () => { ({ paused, speed } = was); if (page) $('bJournal').focus({ preventScroll: true }); } }); // the toast is gone, so focus goes to the HUD button
   }
   $('bJournal').onclick = e => { e.currentTarget.blur(); openBook(); };
-  // A tap on an animal. The toast shows even when the save cannot be written: persist keeps the save in memory.
-  let findTimer;
+  // A tap on a new animal opens the find card with its journal page. The card pauses the level, as the journal does.
+  // It shows even when the save cannot be written: persist keeps the save in memory.
   function onFind(id) {
     const r = recordFind(save, id);
     if (!r.isNew) return;
     persist(r.save); sfx('find');
-    const t = $('findToast'); $('findMsg').textContent = JOURNAL.found(SPECIES.find(s => s.id === id).name);
-    setText($('findOpen'), JOURNAL.openEntry);
-    $('findOpen').onclick = () => { t.hidden = true; openBook(id); };
-    t.style.bottom = `${$('bar').offsetHeight + 8}px`; t.hidden = false;
-    clearTimeout(findTimer); findTimer = setTimeout(() => { t.hidden = true; }, 8000);
+    const dlg = $('dFind'), was = { paused, speed };
+    let book = false; // Open journal: the journal opens after the card closes, so it pauses from the restored state
+    $('fTitle').textContent = JOURNAL.newFind; $('fHint').textContent = JOURNAL.findHint;
+    $('fBody').replaceChildren(speciesPage(SPECIES.find(s => s.id === id)));
+    setText($('fJournal'), JOURNAL.openJournal); setText($('fGo'), JOURNAL.cont);
+    $('fJournal').onclick = () => { book = true; dlg.close(); };
+    $('fGo').onclick = () => dlg.close();
+    dlg.onclose = () => { dlg.onclose = null; ({ paused, speed } = was); if (book) openBook(id); };
+    paused = true;
+    dlg.showModal(); dlg.scrollTop = 0;
   }
   $('bSet').onclick = () => { $('snd').ariaPressed = String(!isMuted()); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();

@@ -250,7 +250,7 @@ export const JOURNAL = {
   title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next', home: 'Home',
   pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
   contentsTiles: 'Contents: tiles', contentsConcepts: 'Contents: ideas', actionsHere: 'Actions on this tile', seeAlso: 'See also', contentsWildlife: (x, n) => `Contents: wildlife (${x}/${n})`,
-  found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
+  newFind: 'New find!', findHint: 'You found a new species. It is in your journal now.', openJournal: 'Open journal', cont: 'Continue', notFound: 'Not found yet', unknown: '?',
   hidden: (k, n) => `Unknown species ${k} of ${n}, not found yet`,
   status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
   statusLabel: 'IUCN status', habitatLabel: 'Habitat', protectedNote: 'Protected in Indonesia.', endemicNote: 'This species lives only on Borneo.', sources: 'Sources', openSource: 'Open source', hint: 'Left and Right arrows turn pages. Esc closes.',

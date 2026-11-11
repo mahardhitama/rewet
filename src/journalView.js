@@ -15,6 +15,21 @@ const sources = e => {
   return s;
 };
 
+// The page of a found species: name, sprite, names, IUCN status, habitat, fact and sources. The journal and the find card show it.
+export function speciesPage(e) {
+  const p = el('section', 'jPage'), box = el('div', 'jSprite');
+  p.dataset.id = e.id;
+  box.dataset.id = e.id; box.append(art(e.id, false)); // the alt text is the name in the heading above
+  const line = el('p'); if (e.local) line.append(`${e.local} · `); line.append(el('em', '', e.sci));
+  const st = el('p'); st.append(`${T.statusLabel}: `, el('span', 'jSt', `${e.status} ${T.status[e.status]}`));
+  const hab = el('p'); hab.append(`${T.habitatLabel}: `, e.habitat);
+  const notes = [e.protected && T.protectedNote, e.endemic && T.endemicNote].filter(Boolean).join(' ');
+  p.append(el('h3', '', e.name), box, line, st, hab, el('p', '', e.fact));
+  if (notes) p.append(el('p', '', notes));
+  p.append(sources(e));
+  return p;
+}
+
 // found: species ids. page: a concept or species id, or null for the contents. onClose runs when the dialog closes, by any way.
 export function openJournal({ found = [], page = null, onClose } = {}) {
   const $ = id => document.getElementById(id), dlg = $('dJournal'), has = new Set(found);
@@ -28,6 +43,7 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
     const e = byId(id), p = el('section', 'jPage');
     p.dataset.id = id;
     if (!e) return p; // never: ids come from `pages`
+    if (SPECIES.includes(e) && has.has(id)) return speciesPage(e);
     p.append(el('h3', '', SPECIES.includes(e) ? (has.has(id) ? e.name : T.unknown) : e.title));
     if (TILES.includes(e)) {
       const box = el('div', 'jTiles'); box.setAttribute('aria-hidden', 'true'); box.append(...e.art.map(([n, cap]) => { const f = el('span'); f.append(tileArt(n)); if (cap) f.append(el('small', '', cap)); return f; })); // the heading names the tile
@@ -36,18 +52,9 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
       p.append(box, el('p', '', e.body), el('h4', '', T.actionsHere), ul, el('h4', '', T.seeAlso));
       for (const id of e.see) { const b = el('button', 'jc', byId(id).title); b.type = 'button'; b.dataset.go = id; p.append(b); }
     } else if (CONCEPTS.includes(e)) { p.insertAdjacentHTML('beforeend', conceptArt(e.id, e.alt)); p.append(el('p', '', e.body), sources(e)); } // the SVG is our own text, not user input
-    else if (!has.has(id)) {
+    else { // a species not found yet
       const box = el('div', 'jSprite'); box.setAttribute('aria-hidden', 'true'); box.append(art(id, true));
       p.append(box, el('p', '', T.notFound));
-    } else {
-      const box = el('div', 'jSprite'); box.dataset.id = id; box.append(art(id, false)); // the alt text is the name in the heading above
-      const line = el('p'); if (e.local) line.append(`${e.local} · `); line.append(el('em', '', e.sci));
-      p.append(box, line);
-      const st = el('p'); st.append(`${T.statusLabel}: `, el('span', 'jSt', `${e.status} ${T.status[e.status]}`));
-      const hab = el('p'); hab.append(`${T.habitatLabel}: `, e.habitat);
-      const notes = [e.protected && T.protectedNote, e.endemic && T.endemicNote].filter(Boolean).join(' ');
-      p.append(st, hab, el('p', '', e.fact)); if (notes) p.append(el('p', '', notes));
-      p.append(sources(e));
     }
     return p;
   }
