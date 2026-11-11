@@ -18,7 +18,7 @@ export const frontTiles = (w, h, i) => {
   return out;
 };
 const tileVariant = i => Math.floor(hash(i + .37) * 4) % 4; // ground art variant, not linked to the plant variant
-const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
+const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [44, 128, 172], SOAK = [52, 108, 136]; // SOAK: the water tint in soaked peat, so the soil keeps its colour
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
 const FLAME = ['#c8321e', '#f08a2c', '#ffd25a', '#fff1b0'], CHAR = '#3a2a22', SMOKE = [205, 200, 192]; // flame layers, outer to core
 const HW = TW / 2, HH = TH / 2;
@@ -68,7 +68,7 @@ export function canalZone(px, py, spec) {
   return c.d <= waterW(c.W, spec.ws) ? 3 : 2;
 }
 const WALL = mix(WET, BLACK, .45), MUD = mix(WET, DRY, .5); // MUD: the exposed wet bed
-const SEEP = mix(WATER, WET, .55); // the bank soaked by a full canal
+const SEEP = mix(SOAK, WET, .55); // the bank soaked by a full canal
 
 // For each canal tile: the 8-neighbour canal or river tile with the lowest z below its own z, or -1.
 export function downstream(w, h, z, kind) {
@@ -130,7 +130,7 @@ function eachTop(g, sx, sy, f) {
   }
 }
 // A stilt house. (hx, hy): the left foot. hw: wall width. roof: [main, eave shadow].
-function house(g, hx, hy, hw, roof, wall = '#d8c69a') {
+function house(g, hx, hy, hw, roof, wall = '#f0dcaa') {
   g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(hx, hy + 1, hw + 2, 1); // shadow on the ground
   g.fillStyle = '#3a2a1e'; g.fillRect(hx + 1, hy - 1, 1, 2); g.fillRect(hx + hw - 2, hy - 1, 1, 2); // stilts
   g.fillStyle = wall; g.fillRect(hx, hy - 6, hw, 5);
@@ -142,7 +142,7 @@ function house(g, hx, hy, hw, roof, wall = '#d8c69a') {
   if (hw > 8) { g.fillStyle = '#5a4630'; g.fillRect(hx + 2, hy - 5, 2, 2); } // window
 }
 const hexRgb = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
-const ROOF = { tile: ['#9a4a2a', '#7a3a20'], zinc: ['#8a949a', '#646c72'], thatch: ['#a8884a', '#7e6434'] };
+const ROOF = { tile: ['#cc5a3c', '#963e2a'], zinc: ['#a0b8c8', '#6e8698'], thatch: ['#d4ac58', '#9c7c3c'] };
 function blob(g, cx, cy, rad, col) {
   g.fillStyle = col;
   for (let dy = -rad; dy <= rad; dy++) { const w = Math.round(Math.sqrt(rad * rad - dy * dy)); g.fillRect(cx - w, cy + dy, w * 2 + 1, 1); }
@@ -154,10 +154,10 @@ function pool(g, cx, cy, rx, col) {
 }
 const SHADOW = 'rgba(0,0,0,0.25)';
 // Tree palettes, dark to light: [shade, mid, lit, glint].
-const GREENS = ['#1f4a26', '#2f6b33', '#4f8d3f', '#7fb85a'], OLIVE = ['#38422a', '#525c38', '#747c4c', '#9a9e6a'], BLUE_GREEN = ['#1c4232', '#2a5e44', '#3e7c58', '#62a074'];
-const DARK = ['#14321c', '#204628', '#305e36', '#4a7c44'], LIME = ['#3a5a20', '#567e28', '#7aa63a', '#a8d05a'], PUCUK = ['#1f4a26', '#2f6b33', '#4f8d3f', '#b86a4a']; // PUCUK: red young leaves
-const JELUTONG = ['#28502a', '#3a7434', '#5e9844', '#8cc060'], GELAM = ['#2e4836', '#48644a', '#6a8660', '#8ea67a'];
-const BARK = ['#6a4a32', '#4a3324'], PALE_BARK = ['#b8ab90', '#857a66']; // [lit side, shade side]
+const GREENS = ['#24603a', '#3a8a3e', '#62b04a', '#a4dc62'], OLIVE = ['#3e5a32', '#5e7e3a', '#86a44c', '#bcd06e'], BLUE_GREEN = ['#1e5a4a', '#2e7c5c', '#46a06e', '#7ccc8c'];
+const DARK = ['#1a4632', '#28603a', '#3c8044', '#62a654'], LIME = ['#467224', '#66982c', '#92c23c', '#c8e862'], PUCUK = ['#24603a', '#3a8a3e', '#62b04a', '#ec866a']; // PUCUK: red young leaves
+const JELUTONG = ['#2e6834', '#46923a', '#72b84a', '#acda68'], GELAM = ['#365c46', '#527e5a', '#7ca66e', '#aacc90'];
+const BARK = ['#8c603c', '#5e3e2a'], PALE_BARK = ['#dacca8', '#9e9076']; // [lit side, shade side]
 // A lumpy crown: a centre clump and a ring of n clumps. Each pixel takes its shade from its own clump, lit from the top left,
 // so the crown reads as many leaf masses, not one disc. holes: the chance to drop an edge pixel, for a ragged outline.
 function crown(g, cx, cy, rx, ry, pal, seed, holes = .3, n = 5) {
@@ -230,38 +230,38 @@ function mixed(g, bx, by, dark, light, seed) { // a dark crown with a light flus
 }
 function shrub(g, bx, by, rad) {
   pool(g, bx + 1, by + 1, rad + 1, SHADOW);
-  for (const [dx, dy, r, c] of [[0, 0, rad, '#2f6b33'], [-1, -1, rad - 1, '#3d7a3a'], [-2, -2, rad - 3, '#5c9a45']])
+  for (const [dx, dy, r, c] of [[0, 0, rad, '#3a8a3e'], [-1, -1, rad - 1, '#50a446'], [-2, -2, rad - 3, '#80c658']])
     if (r > 0) { g.fillStyle = c; for (let y = -r; y <= 0; y++) { const w = Math.round(Math.sqrt(r * r - y * y)); g.fillRect(bx + dx - w, by + dy + y, w * 2 + 1, 1); } }
 }
 function seedling(g, bx, by, tall) {
-  g.fillStyle = '#6f9a3a'; g.fillRect(bx, by - tall, 1, tall);
-  g.fillStyle = '#a7c95e'; g.fillRect(bx - 2, by - tall, 2, 1); g.fillRect(bx + 1, by - tall + 1, 2, 1); g.fillRect(bx, by - tall - 1, 1, 1);
+  g.fillStyle = '#7cb83e'; g.fillRect(bx, by - tall, 1, tall);
+  g.fillStyle = '#bee668'; g.fillRect(bx - 2, by - tall, 2, 1); g.fillRect(bx + 1, by - tall + 1, 2, 1); g.fillRect(bx, by - tall - 1, 1, 1);
 }
 function fern(g, bx, by, len) { // a fan of fronds from one base
-  for (const [ux, c] of [[-2, '#4f7a34'], [-1, '#7aa84a'], [0, '#7aa84a'], [1, '#7aa84a'], [2, '#4f7a34']])
+  for (const [ux, c] of [[-2, '#4c9238'], [-1, '#84c44e'], [0, '#84c44e'], [1, '#84c44e'], [2, '#4c9238']])
     for (let k = 1; k <= len - Math.abs(ux); k++) { g.fillStyle = c; g.fillRect(bx + ux * k, by - k + (Math.abs(ux) > 1 ? k >> 1 : 0), 1, 1); }
 }
 function sapling(g, bx, by, tall) { // a thin stem with 2 tiers of leaves
-  g.fillStyle = '#6f9a3a'; g.fillRect(bx, by - tall, 1, tall);
-  g.fillStyle = '#a7c95e';
+  g.fillStyle = '#7cb83e'; g.fillRect(bx, by - tall, 1, tall);
+  g.fillStyle = '#bee668';
   for (const t of [tall, tall >> 1]) { g.fillRect(bx - 2, by - t, 2, 1); g.fillRect(bx + 1, by - t - 1, 2, 1); }
   g.fillRect(bx, by - tall - 1, 1, 1);
 }
 function tuft(g, bx, by) { // a sedge tuft: thin straight blades of different heights
-  for (const [dx, h, c] of [[-3, 3, '#4f7a34'], [-2, 5, '#7aa84a'], [-1, 4, '#7aa84a'], [0, 6, '#a7c95e'], [1, 4, '#7aa84a'], [2, 5, '#4f7a34'], [3, 3, '#4f7a34']]) {
+  for (const [dx, h, c] of [[-3, 3, '#4c9238'], [-2, 5, '#84c44e'], [-1, 4, '#84c44e'], [0, 6, '#bee668'], [1, 4, '#84c44e'], [2, 5, '#4c9238'], [3, 3, '#4c9238']]) {
     g.fillStyle = c; g.fillRect(bx + dx, by - h, 1, h);
   }
 }
 function lowShrub(g, bx, by, rx) { // a wide flat mound with pale flower specks
   pool(g, bx + 1, by + 1, rx + 1, SHADOW);
-  pool(g, bx, by, rx, '#2f6b33'); pool(g, bx - 1, by - 1, rx - 2, '#3d7a3a');
-  g.fillStyle = '#e8d870'; g.fillRect(bx - 3, by - 2, 1, 1); g.fillRect(bx + 2, by - 1, 1, 1); g.fillRect(bx, by - 3, 1, 1);
+  pool(g, bx, by, rx, '#3a8a3e'); pool(g, bx - 1, by - 1, rx - 2, '#50a446');
+  g.fillStyle = '#ffe46a'; g.fillRect(bx - 3, by - 2, 1, 1); g.fillRect(bx + 2, by - 1, 1, 1); g.fillRect(bx, by - 3, 1, 1);
 }
 const COVER_BINS = 5, HEAT_BINS = 16;
 // wt heatmap: 0 m deep blue -> WET_WT bright blue, then a hard step to amber -> 1.5 m dark red. The step makes the wet/dry split read at a glance.
 export const heatColor = wt => wt <= WET_WT ? mix([20, 60, 200], [70, 150, 240], Math.max(0, wt) / WET_WT)
   : mix([245, 185, 40], [150, 30, 20], Math.min(1, (wt - WET_WT) / (1.5 - WET_WT)));
-const GROUND_BASE = [mix(WET, WATER, .55), WET, DRY]; // [flooded, wet, dry]
+const GROUND_BASE = [mix(WET, SOAK, .55), WET, DRY]; // [flooded, wet, dry]
 const groundTop = (s, b) => mix(GROUND_BASE[s], b > 2 ? FOREST : GREEN, b / (COVER_BINS - 1) * 0.8);
 // Canal bank top for each bank step: dry, damp, wet, green. Each one is a ground colour of the peat sprites.
 export const BANK_TOP = [groundTop(2, 0), mix(groundTop(2, 0), groundTop(1, 0), .5), groundTop(1, 0), groundTop(1, 3)];
@@ -346,7 +346,7 @@ function buildCache() {
     if (s === 2 && b < 2) cracks(g, x, y, top, seed, b ? v >> 1 : 1 + (v >> 1)); // bare dry peat cracks; cover hides them
     if (s === 0) { // water patches with sheen
       pool(g, x - 6, y + 6, 4, rgb(mix(WATER, top, .3))); pool(g, x + 6, y + 10, 3, rgb(mix(WATER, top, .3)));
-      g.fillStyle = '#9fd4e8'; g.fillRect(x - 8, y + 5, 3, 1); g.fillRect(x + 5, y + 10, 2, 1);
+      g.fillStyle = '#b4e8f8'; g.fillRect(x - 8, y + 5, 3, 1); g.fillRect(x + 5, y + 10, 2, 1);
     }
   }));
   const cache = {
@@ -383,20 +383,20 @@ function buildCache() {
         for (const [s0, up] of [[-6, 0], [-4.75, 2]]) for (let s = s0; s <= -s0; s += 2.5) {
           const [bx, by] = across(ax, s, x, y);
           if (!up) { g.fillStyle = SHADOW; g.fillRect(bx - 2, by + 2, 5, 1); } // shadow under the front row
-          g.fillStyle = '#8f7a4f'; g.fillRect(bx - 2, by - up + 1, 4, 1); g.fillStyle = '#c9b07a'; g.fillRect(bx - 2, by - up - 1, 4, 2);
-          g.fillStyle = '#e0cc98'; g.fillRect(bx - 1, by - up - 1, 2, 1);
+          g.fillStyle = '#a88a54'; g.fillRect(bx - 2, by - up + 1, 4, 1); g.fillStyle = '#e2c682'; g.fillRect(bx - 2, by - up - 1, 4, 2);
+          g.fillStyle = '#f6e2aa'; g.fillRect(bx - 1, by - up - 1, 2, 1);
           g.fillStyle = '#6e5c3a'; g.fillRect(bx + 1, by - up, 1, 1); // the seam between 2 bags
         }
       })),
       [BLOCK.PERM]: AXES.map((_, ax) => sprite((g, x, y) => { // plank wall with posts, taller than the sandbags
         for (let s = -6.5; s <= 6.5; s += .5) {
           const [bx, by] = across(ax, s, x, y);
-          for (let r = 0; r < 6; r++) { g.fillStyle = r ? r % 2 ? '#7a5432' : '#8c6239' : '#b5874f'; g.fillRect(bx, by - 5 + r, 2, 1); }
+          for (let r = 0; r < 6; r++) { g.fillStyle = r ? r % 2 ? '#966640' : '#ac7848' : '#d8a462'; g.fillRect(bx, by - 5 + r, 2, 1); }
         }
         for (const s of [-7, -2.3, 2.3, 7]) {
           const [bx, by] = across(ax, s, x, y);
-          g.fillStyle = '#4e3e2e'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#7a6650'; g.fillRect(bx, by - 8, 1, 11); // lit left side
-          g.fillStyle = '#9a8468'; g.fillRect(bx, by - 8, 2, 1); // cut top
+          g.fillStyle = '#604a34'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#987c5c'; g.fillRect(bx, by - 8, 1, 11); // lit left side
+          g.fillStyle = '#bea07a'; g.fillRect(bx, by - 8, 2, 1); // cut top
         }
       })),
       [BLOCK.FILLED]: [sprite((g, x, y) => { // backfilled canal (sim sets kind PEAT): low peat mound with fill seams
@@ -406,17 +406,17 @@ function buildCache() {
     },
     pond: sprite((g, x, y) => { // round pool with a fish cage, over the channel
       pool(g, x, y + HH, 12, rgb(WALL)); pool(g, x, y + HH + 1, 11, rgb(WATER));
-      g.fillStyle = '#9fd4e8'; g.fillRect(x - 8, y + HH, 3, 1);
-      g.fillStyle = '#d8c69a'; g.fillRect(x - 4, y + HH - 2, 9, 1); g.fillRect(x - 4, y + HH + 2, 9, 1); g.fillRect(x - 4, y + HH - 2, 1, 5); g.fillRect(x + 4, y + HH - 2, 1, 5);
-      g.fillStyle = '#e8a040'; g.fillRect(x - 1, y + HH, 2, 1); g.fillRect(x + 6, y + HH + 3, 2, 1); // fish
+      g.fillStyle = '#b4e8f8'; g.fillRect(x - 8, y + HH, 3, 1);
+      g.fillStyle = '#f0dcaa'; g.fillRect(x - 4, y + HH - 2, 9, 1); g.fillRect(x - 4, y + HH + 2, 9, 1); g.fillRect(x - 4, y + HH - 2, 1, 5); g.fillRect(x + 4, y + HH - 2, 1, 5);
+      g.fillStyle = '#ff9c3c'; g.fillRect(x - 1, y + HH, 2, 1); g.fillRect(x + 6, y + HH + 3, 2, 1); // fish
     }),
     // River: each variant moves the ripples, so a long river does not repeat one pattern.
     river: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
-      const top = [40, 84, 110];
+      const top = [38, 112, 156];
       block(g, x, y + 4, top, d - 4);
       for (let k = 0; k < 3; k++) {
         const rx = Math.round((hash(v * 17 + k) - .5) * 18), ry = 6 + k * 3 + (v & 1), len = 2 + (hash(v * 5 + k) * 4 | 0);
-        if (Math.abs(rx) + len < rowW(ry - 4)) { g.fillStyle = k ? '#7fb8d0' : '#a8d4e4'; g.fillRect(x + rx, y + ry, len, 1); }
+        if (Math.abs(rx) + len < rowW(ry - 4)) { g.fillStyle = k ? '#8cd2ee' : '#c4eefa'; g.fillRect(x + rx, y + ry, len, 1); }
       }
     })),
     // Village variants: tile roofs, a zinc roof, a thatch roof, and a row of 3 small houses.
@@ -425,13 +425,13 @@ function buildCache() {
       block(g, x, y, top, d); texture(g, x, y, top, 42 + v);
       eachTop(g, x, y, (a, b) => Math.abs(a - b) < 1.6 && a > 2 && a < 14 ? rgb(mix(top, WHITE, .12)) : null); // a beaten path across the tile
       if (v === 0) { house(g, x - 10, y + 7, 10, ROOF.tile); house(g, x + 2, y + 10, 10, ROOF.tile); }
-      if (v === 1) { tree(g, x - 8, y + 8, 4, 3); house(g, x - 3, y + 11, 12, ROOF.zinc, '#c8b48a'); }
-      if (v === 2) { house(g, x + 1, y + 7, 10, ROOF.thatch, '#b89a6a'); house(g, x - 11, y + 10, 10, ROOF.tile); }
+      if (v === 1) { tree(g, x - 8, y + 8, 4, 3); house(g, x - 3, y + 11, 12, ROOF.zinc, '#e6cf9c'); }
+      if (v === 2) { house(g, x + 1, y + 7, 10, ROOF.thatch, '#dcb882'); house(g, x - 11, y + 10, 10, ROOF.tile); }
       if (v === 3) { for (const [hx, hy, r] of [[-11, 7, 'zinc'], [-3, 10, 'tile'], [5, 13, 'thatch']]) house(g, x + hx, y + hy, 7, ROOF[r]); }
     })),
     // Farm variants: crop rows along each tile axis, cassava mounds, and a part-planted plot.
     farm: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
-      const top = [128, 100, 60], leaf = '#7fa842', dark = '#5c8232';
+      const top = [128, 100, 60], leaf = '#8cc644', dark = '#5e9836';
       block(g, x, y, top, d); texture(g, x, y, top, 60 + v);
       eachTop(g, x, y, (a, b) => {
         if (a < 1.5 || b < 1.5 || a > 14.5 || b > 14.5) return null; // a bare rim
@@ -472,7 +472,7 @@ function buildCache() {
 // The art sits at the bottom centre of the canvas, so the feet are at the tile centre. The silhouette is the same shape in one dark colour.
 const AS = 16, SILHOUETTE = '#4a4338';
 export const ANIMALS = {
-  orangutan: { pal: { o: '#c8622a', O: '#e8863c', f: '#dca468', m: '#a8754a', k: '#1c120c' }, rows: [
+  orangutan: { pal: { o: '#dc6a2a', O: '#fa984a', f: '#f0b878', m: '#c08454', k: '#1c120c' }, rows: [
     '...oooooo...',
     '..oOOoooOo..',
     '..offffffo..',
@@ -497,7 +497,7 @@ export const ANIMALS = {
     'd..dddd..d',
     'd...dd...d',
     'd..d..d..d'] },
-  langur: { pal: { r: '#8a3a28', e: '#5a241a', k: '#1c120c' }, rows: [
+  langur: { pal: { r: '#aa462e', e: '#70301e', k: '#1c120c' }, rows: [
     '..rrrr',
     '.rrrrrr',
     '.rkrrkr',
@@ -509,7 +509,7 @@ export const ANIMALS = {
     '.rrrrrrr',
     '.rr..rr',
     '.ee..ee'] },
-  sunbear: { pal: { d: '#2c2420', t: '#c8a060', y: '#e0b050', k: '#0e0a08' }, rows: [
+  sunbear: { pal: { d: '#2c2420', t: '#dab068', y: '#f4c454', k: '#0e0a08' }, rows: [
     '..dd',
     '.dddd',
     'dtttddddddd',
@@ -521,7 +521,7 @@ export const ANIMALS = {
     '.dd.dd...dd.dd',
     '.dd.dd...dd.dd',
     '.tt.tt...tt.tt'] },
-  hornbill: { pal: { y: '#e8c040', o: '#d8802c', b: '#1c1a22', w: '#f0ece0', k: '#f0ece0', l: '#8a6a3a' }, rows: [
+  hornbill: { pal: { y: '#fad444', o: '#f08c2c', b: '#1c1a22', w: '#f0ece0', k: '#f0ece0', l: '#8a6a3a' }, rows: [
     '..yyyy',
     '.yyyyyy',
     'oooyyyb',
@@ -533,7 +533,7 @@ export const ANIMALS = {
     '.....bbbbbbwwww',
     '......b.b..wwww',
     '......l.l..bbbb'] },
-  stork: { pal: { b: '#1c1a22', w: '#f0ece0', r: '#d04a3a', k: '#f0ece0' }, rows: [
+  stork: { pal: { b: '#1c1a22', w: '#f0ece0', r: '#ea523e', k: '#f0ece0' }, rows: [
     '...bbb',
     '..bbkb',
     'rrrbbb',
@@ -550,7 +550,7 @@ export const ANIMALS = {
     '.....r.r',
     '.....r.r',
     '....rr.rr'] },
-  fishowl: { pal: { b: '#b08a50', d: '#6a4a2a', y: '#f0d040', k: '#1c120c', o: '#d8802c' }, rows: [
+  fishowl: { pal: { b: '#c89c58', d: '#7e5630', y: '#fadc44', k: '#1c120c', o: '#d8802c' }, rows: [
     '..d......d..',
     '..dd....dd..',
     '..bbbbbbbb..',
@@ -563,13 +563,13 @@ export const ANIMALS = {
     '..bdbdbdbb..',
     '...bbbbbb...',
     '...oo..oo...'] },
-  snakehead: { pal: { n: '#1f2e26', l: '#bfe6f2' }, rows: [
+  snakehead: { pal: { n: '#2a4638', l: '#bfe6f2' }, rows: [
     '.....n......',
     '....nnn.....',
     '...nnnnn....',
     '.llllllllll.',
     'l..l....l..l'] },
-  otter: { pal: { b: '#7a5030', t: '#d8c4a0', k: '#1c120c', l: '#bfe6f2' }, rows: [
+  otter: { pal: { b: '#946038', t: '#ecd6ac', k: '#1c120c', l: '#bfe6f2' }, rows: [
     '..bb',
     '.bbbb',
     '.bkbbbbb',
@@ -577,13 +577,13 @@ export const ANIMALS = {
     '.ttbbbbbbbb',
     'lll.llll.lll',
     '.l..l..l..l.'] },
-  gharial: { pal: { g: '#6a7a3a', d: '#3e4a24', k: '#f0d040', b: '#a8b070' }, rows: [
+  gharial: { pal: { g: '#7a9640', d: '#4a5e2a', k: '#fadc44', b: '#c2cc80' }, rows: [
     '.......dd.d.d.d.',
     '....gggggggggggg',
     'ggggggkgggggggdd',
     'bbbbbbbbbbbbbb..',
     '......g.g..g.g..'] },
-  monitor: { pal: { m: '#4a5238', l: '#8a9460', k: '#e8d860', t: '#c04a3a' }, rows: [
+  monitor: { pal: { m: '#586840', l: '#a2b26c', k: '#f6e468', t: '#c04a3a' }, rows: [
     '..mm............',
     't.mmkmmmm.......',
     '..mmmlmlmmmmmm..',
@@ -755,7 +755,7 @@ export function canalSprite(key, o = -1) {
         continue;
       }
       g.fillStyle = zn === 1 ? wall : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
-        : canalZone(dx, r - 1, spec) !== 3 ? rgb(mix(WATER, WHITE, .3)) : v > .97 ? '#9fd4e8' : rgb(WATER);
+        : canalZone(dx, r - 1, spec) !== 3 ? rgb(mix(WATER, WHITE, .3)) : v > .97 ? '#b4e8f8' : rgb(WATER);
       g.fillRect(x + dx - fx, y + r - fy, 1, 1); // a patch lies in the side tile frame
     }
   });
