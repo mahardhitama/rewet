@@ -50,9 +50,9 @@ export const CONCEPTS = [
 ];
 
 // The map tiles and the actions that work on each. Game rules only, so no sources: ACTIONS in src/sim/game.js sets each rule.
-// acts: [ACTIONS id, what it does on this tile]. see: CONCEPTS ids.
+// art: [tileArt name in src/render/iso.js, caption if the page shows 2 tiles]. acts: [ACTIONS id, what it does on this tile]. see: CONCEPTS ids.
 export const TILES = [
-  { id: 'peat', title: 'Peat',
+  { id: 'peat', title: 'Peat', art: [['peatWet', 'Wet'], ['peatDry', 'Dry']],
     body: 'Peat is the soil of the swamp. It is wet when the water table is 40 cm or less below the surface. Dry peat can burn.',
     acts: [
       ['plant', 'Plants seedlings on the 5×5 tiles around it. They live only when the water table is 0 to 40 cm below the surface.'],
@@ -61,26 +61,26 @@ export const TILES = [
       ['well', 'Fire crews in 3 tiles of the well put out fires 2 times faster. A well can go on any tile.'],
       ['fireCrew', 'Only on a fire. The crew puts out the fire on the 3×3 tiles around it.'],
     ], see: ['rule', 'fire', 'plants'] },
-  { id: 'canal', title: 'Canal',
+  { id: 'canal', title: 'Canal', art: [['canal']],
     body: 'A canal drains the peat near it. The water table is deepest next to the canal. People can dig new illegal canals from the edge of the site.',
     acts: [
       ['tempBlock', 'Builds a block that keeps the water in the peat. Floods can break it.'],
       ['backfill', 'Fills the tile with peat. The tile becomes peat and stops drainage. It costs a lot.'],
       ['pond', 'Only on a canal tile with no block, upstream of a block. It gives goodwill.'],
     ], see: ['canals', 'blocks', 'people'] },
-  { id: 'block', title: 'Blocked canal',
+  { id: 'block', title: 'Blocked canal', art: [['tempBlock', 'Temp block'], ['permBlock', 'Perm block']],
     body: 'A block is a dam in a canal. It lowers the drainage for up to 6 canal tiles upstream. A long canal needs a cascade of blocks.',
     acts: [
       ['permBlock', 'Only on a temp block. It makes the block permanent, so floods do not break it.'],
       ['backfill', 'Fills the tile with peat. The tile becomes peat and stops drainage. It costs a lot.'],
     ], see: ['blocks', 'seasons'] },
-  { id: 'river', title: 'River',
+  { id: 'river', title: 'River', art: [['river']],
     body: 'A river is natural water. It drains the peat near it less than a canal does. You cannot block or fill a river.',
     acts: [['well', 'A well can go on any tile.']], see: ['canals'] },
-  { id: 'village', title: 'Village',
+  { id: 'village', title: 'Village', art: [['village']],
     body: 'Local people live in the village. A fire next to the village costs goodwill. At 0 goodwill, you lose the level.',
     acts: [['fireGroup', 'Fires near the village are found at once, and there is less arson.']], see: ['people', 'paludi'] },
-  { id: 'farm', title: 'Farm',
+  { id: 'farm', title: 'Farm', art: [['farm']],
     body: 'The village farms these fields. You cannot plant trees on a farm. A dry farm can burn.',
     acts: [['fireCrew', 'Only on a fire. The crew puts out the fire on the 3×3 tiles around it.']], see: ['landuse', 'fire'] },
 ];

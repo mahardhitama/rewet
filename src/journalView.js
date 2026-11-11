@@ -2,7 +2,7 @@
 import { CONCEPTS, SPECIES, TILES, sourceUrl } from './journal.js';
 import { conceptArt } from './journalArt.js';
 import { JOURNAL as T, ACTION_TEXT } from './strings.js';
-import { animalSprite } from './render/iso.js';
+import { animalSprite, tileArt } from './render/iso.js';
 import { icon, setText, sourceLink } from './icons.js';
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -30,9 +30,10 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
     if (!e) return p; // never: ids come from `pages`
     p.append(el('h3', '', SPECIES.includes(e) ? (has.has(id) ? e.name : T.unknown) : e.title));
     if (TILES.includes(e)) {
+      const box = el('div', 'jTiles'); box.setAttribute('aria-hidden', 'true'); box.append(...e.art.map(([n, cap]) => { const f = el('span'); f.append(tileArt(n)); if (cap) f.append(el('small', '', cap)); return f; })); // the heading names the tile
       const ul = el('ul', 'jActs');
       for (const [a, text] of e.acts) { const li = el('li'); li.append(icon(a), el('b', '', ACTION_TEXT[a][0]), ` ${text}`); ul.append(li); }
-      p.append(el('p', '', e.body), el('h4', '', T.actionsHere), ul, el('h4', '', T.seeAlso));
+      p.append(box, el('p', '', e.body), el('h4', '', T.actionsHere), ul, el('h4', '', T.seeAlso));
       for (const id of e.see) { const b = el('button', 'jc', byId(id).title); b.type = 'button'; b.dataset.go = id; p.append(b); }
     } else if (CONCEPTS.includes(e)) { p.insertAdjacentHTML('beforeend', conceptArt(e.id, e.alt)); p.append(el('p', '', e.body), sources(e)); } // the SVG is our own text, not user input
     else if (!has.has(id)) {

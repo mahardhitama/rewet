@@ -592,6 +592,23 @@ export function animalSprite(id, silhouette = false) {
   animals.set(key, c);
   return c;
 }
+// One example tile for the journal, drawn as on the map, cropped to the tile and the art above it.
+// Canals run straight along x: arms on DIRS 0 and 2, width step 0. Water step 1 is an open canal, 0 a full canal behind a block.
+const ART_TOP = 14, CANAL_X = 1 | 1 << 4;
+export function tileArt(name) {
+  cache ??= buildCache();
+  const layers = {
+    peatWet: [cache.ground[1][0][0][0]], peatDry: [cache.ground[2][0][0][0]],
+    canal: [canalSprite(CANAL_X | 1 << 18)],
+    tempBlock: [canalSprite(CANAL_X), cache.overlay[BLOCK.TEMP][0]], permBlock: [canalSprite(CANAL_X), cache.overlay[BLOCK.PERM][0]],
+    river: [cache.river[0][0]], village: [cache.village[0][0]], farm: [cache.farm[0][0]],
+  }[name];
+  const c = document.createElement('canvas'); c.width = SW; c.height = HEAD + TH + D + 1 - ART_TOP;
+  const g = c.getContext('2d');
+  for (const l of layers) g.drawImage(l, 0, -ART_TOP);
+  return c;
+}
+
 // Slide state of each animal, by id: when its last move started, when it first showed, when its leave fade started.
 const SLIDE_MS = 600;
 const slides = new Map(), drawList = [], pa = [0, 0], pb = [0, 0];
