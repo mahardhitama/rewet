@@ -26,7 +26,7 @@ export function pixelText(ctx, s, x, y, col) {
 const MAX_P = 400;
 let parts = [], floats = [], rings = [], marks = [], events = [], armed = null;
 let seen = null, prevTick = -1, everWet = null, prevFire = null, prevJobs = new Map(), shakeUntil = 0, shakeAmp = 0, rain = 0;
-export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; }
+export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; shakeUntil = 0; shakeAmp = 0; }
 export const setArmed = id => { armed = id; };
 export const takeFxEvents = () => events.splice(0);
 export const rainLevel = () => rain;

@@ -115,7 +115,7 @@ function boot() {
   function startLevel(L) {
     const level = resolveLevel(L);
     game = createGame(level, save.upgrades, buildLevelWorld(level));
-    paused = false; speed = 1; carry = 0; map.leave(); mile = null;
+    paused = false; speed = 1; carry = 0; map.leave(); mile = null; wetFrac = 0;
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
@@ -197,7 +197,7 @@ function boot() {
       if (!reduce) { shot.zoom += (SHOT_ZOOM - shot.zoom) * 0.03; shot.pan += (panTo - shot.pan) * 0.01; } // eased: it slows down and stops at the edge
     }
     if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
-    if (game && phase === 'level') for (const e of takeFxEvents()) sfx(e.type === 'done' ? 'done' : e.type, e.n ?? 0);
+    for (const e of takeFxEvents()) if (phase === 'level') sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
     setAmbience(ambience());
     if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
@@ -231,6 +231,7 @@ function boot() {
   try { toMenuNow = sessionStorage.getItem('rewet_menu') === '1'; sessionStorage.removeItem('rewet_menu'); } catch { /* blocked storage: play the intro */ }
   reduce || toMenuNow ? (phase = 'intro', toMenu(), h = 1) : startIntro();
   requestAnimationFrame(frame);
+  addEventListener('visibilitychange', () => { if (document.hidden) setAmbience({ on: false }); }); // rAF stops in a hidden tab, but the music scheduler does not
 
   // ---- menu actions
   // The toast sits above the action bar in a level (a hidden bar has 0 height).

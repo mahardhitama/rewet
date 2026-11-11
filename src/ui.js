@@ -234,7 +234,7 @@ export function showDebrief(game) {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   st.querySelectorAll('.on').forEach((s, k) => {
     const d = 500 + 400 * k; s.style.setProperty('--d', `${d}ms`);
-    if (!calm) starTimers.push(setTimeout(() => sfx('star', k), d));
+    if (!calm) starTimers.push(setTimeout(() => $('debrief').hidden || sfx('star', k), d)); // silent once the player has left the debrief
   });
   $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : sb ? DEBRIEF.sandbox(game.level.seed) : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
