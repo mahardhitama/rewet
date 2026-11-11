@@ -26,7 +26,7 @@ export function pixelText(ctx, s, x, y, col) {
 const MAX_P = 400;
 let parts = [], floats = [], rings = [], marks = [], events = [], armed = null;
 let seen = null, prevTick = -1, everWet = null, prevFire = null, prevJobs = new Map(), shakeUntil = 0, shakeAmp = 0, rain = 0;
-export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; shakeUntil = 0; shakeAmp = 0; }
+export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; shakeUntil = 0; shakeAmp = 0; flock = null; }
 export const setArmed = id => { armed = id; };
 export const takeFxEvents = () => events.splice(0);
 export const rainLevel = () => rain;
@@ -156,10 +156,14 @@ function weather(ctx, game, pos, bw, bh, now) {
   }
   ctx.globalAlpha = 1; ctx.restore();
 }
+let flock = null, nextFlock = 0;
 function life(ctx, game, pos, shown, now) {
   const wd = game.world, { n, kind, cover, wt, fire } = wd;
+  let peat = 0, wet = 0;
   for (let i = 0; i < n; i++) {
+    if (kind[i] === KIND.PEAT) { peat++; if (wt[i] <= WET_WT) wet++; }
     if (!shown[i]) continue;
+    if (kind[i] === KIND.VILLAGE && Math.random() < .004) spawn(pos[2 * i] - pos[0] + 4, pos[2 * i + 1] - pos[1] - 4, 2, -6, '#8a8478', 2200, now, -1, 2); // chimney smoke
     const ox = pos[2 * i], oy = pos[2 * i + 1], h = hash(i + .9);
     if (fire[i] === 1 && Math.random() < .08) spawn(ox - pos[0] + (Math.random() - .5) * 12, oy - pos[1] + HH - 8, (Math.random() - .5) * 10, -20 - Math.random() * 14, Math.random() < .5 ? '#ffd25a' : '#f08a2c', 900, now, -6);
     if (kind[i] === KIND.PEAT && wt[i] <= WET_WT && !fire[i] && !REDUCED && h > .7 && Math.sin(now / 900 + h * 60) > .985) { // wet peat glints now and then
@@ -171,6 +175,22 @@ function life(ctx, game, pos, shown, now) {
     const x = Math.round(ox + Math.sin(now / 1700 + h * 9) * 7), y = Math.round(oy + 2 + Math.cos(now / 1300 + h * 7) * 4);
     ctx.globalAlpha = .3; ctx.fillStyle = '#d8ff70'; ctx.fillRect(x - 1, y - 1, 3, 3);
     ctx.globalAlpha = 1; ctx.fillStyle = '#f4ffc0'; ctx.fillRect(x, y, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+  if (REDUCED) return;
+  if (!flock && now > nextFlock && peat && wet / peat > .5) { // birds come back to wet peat: a small flock crosses the map now and then
+    const { w, h } = wd, dir = Math.random() < .5 ? 1 : -1;
+    flock = { born: now, dir, y: pos[2 * ((h >> 1) * w) + 1] - pos[1] - 40 - Math.random() * 60, n: 3 + (Math.random() * 3 | 0), span: (w + h) * HW + 120 };
+    nextFlock = now + 15000 + Math.random() * 20000;
+  }
+  if (flock) {
+    const t = (now - flock.born) / 1000, x0 = flock.dir > 0 ? -flock.span / 2 + t * 28 : flock.span / 2 - t * 28;
+    if (Math.abs(x0) > flock.span / 2 + 1) { flock = null; return; }
+    ctx.fillStyle = '#f2efe4'; // white egrets, which read on dark forest
+    for (let k = 0; k < flock.n; k++) {
+      const bx = Math.round(pos[0] + x0 - flock.dir * k * 9), by = Math.round(pos[1] + flock.y + (k & 1 ? 5 : 0) * Math.ceil(k / 2) + Math.sin(t * 2 + k) * 2), up = ((now / 160 + k) | 0) % 2;
+      ctx.fillRect(bx, by, 1, 1); ctx.fillRect(bx - 2, by - up, 2, 1); ctx.fillRect(bx + 1, by - up, 2, 1); // a body and two wings that flap
+    }
   }
 }
 
