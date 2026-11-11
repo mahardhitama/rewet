@@ -68,9 +68,9 @@ const SLENDRO = [0, 240, 480, 720, 960], PELOG = [0, 120, 420, 700, 820]; // cen
 export const slendro = (n, root = 233, cents = SLENDRO) => root * 2 ** ((cents[((n % 5) + 5) % 5] + 1200 * Math.floor(n / 5)) / 1200);
 // One balungan phrase: 8 beats, each a scale step 0..5 or -1 (rest). Same seed and health give the same phrase.
 export function phrase(seed, health = 0.5) {
-  const r = mulberry32(seed), out = []; let s = 2;
+  const r = mulberry32(seed), out = []; let s = 3;
   for (let i = 0; i < 8; i++) {
-    s = Math.max(0, Math.min(5, s + Math.floor(r() * 3) - 1)); // walk in small steps, like a balungan line
+    s += Math.floor(r() * 5) - 2; s = s < 0 ? -s : s > 7 ? 14 - s : s; // walk in small steps over 1.5 octaves, like a balungan line; bounce at the ends
     const keep = i % 4 === 0 || r() < 0.3 + health * 0.6; // healthy peat gives a denser line
     out.push(keep ? s : -1);
   }
@@ -123,7 +123,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 // One beat of the balungan: note, offbeat ornament when healthy, gong on the last beat.
 function playBeat(a, t, n) {
   const i = n % 8, { health: h, fire: f } = amb, r = mulberry32(n * 31 + 7);
-  if (i === 0) cur = phrase(1 + ((n >> 4) % 4), h); // each phrase plays twice, four phrases loop
+  if (i === 0) cur = phrase(1 + ((n >> 4) % 16), h); // each phrase plays twice; 16 phrases loop in about 3.6 min
   const dark = f > 0.2, root = dark ? ROOT / 2 : ROOT, sc = dark ? PELOG : SLENDRO, s = cur[i];
   if (i === 7) { note(a, 62, t, 3.5, 'sine', 0.012, 62, master); note(a, 62.7, t, 3.5, 'sine', 0.012, 62.7, master); } // two detuned sines beat slowly
   if (s < 0 || r() < f * 0.8) return; // fire thins the music out

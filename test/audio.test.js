@@ -35,7 +35,7 @@ test('phrase is deterministic, has 8 beats in range and ends on a stable note', 
     const p = phrase(seed, h);
     assert.deepEqual(p, phrase(seed, h));
     assert.equal(p.length, 8);
-    assert.ok(p.every(s => s >= -1 && s <= 5));
+    assert.ok(p.every(s => s >= -1 && s <= 7));
     assert.ok([0, 2, 4].includes(p[7]));
   }
   const notes = h => { let n = 0; for (let s = 1; s <= 50; s++) n += phrase(s, h).filter(x => x >= 0).length; return n; };
