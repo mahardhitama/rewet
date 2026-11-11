@@ -143,29 +143,36 @@ function diamond(ctx, x, y, s) {
 const stepAlpha = t => Math.ceil((1 - t) * 4) / 4; // 4 alpha steps, not a smooth fade
 
 // ---- weather and life, in screen space (rain, cloud shadows) and on tiles (fireflies, embers)
-// ---- clouds: generated cumulus shapes. Each cloud floats ALT px above its shadow; the shadow is the same shape, solid and squashed onto the ground.
-const CLOUD_N = 6, ALT = 28;
-const CLOUD_FAIR = ['#ffffff', '#eef2f2', '#c3ccd2'], CLOUD_RAIN = ['#c4cacd', '#9ea6ab', '#747d83']; // top light, body, flat underside
-let clouds = null, hoverAt = null; const fade = [];
-function cloudShape(seed) { // a row of puffs on a flat base, the biggest near the middle, and a smaller row on top: a fair-weather cumulus
-  const r = k => hash(seed * 7.13 + k * 1.31), n = 3 + (r(0) * 4 | 0), P = [];
-  let x = 6;
-  for (let i = 0; i < n; i++) {
-    const mid = 1 - Math.abs(i - (n - 1) / 2) / n, rad = Math.round((9 + r(i + 1) * 8) * (.55 + mid * .7));
-    x += Math.round(rad * .7); P.push({ x, rad, up: 0 }); x += Math.round(rad * (.45 + r(i + 9) * .35));
+// ---- clouds: generated cumulus shapes, high in the sky. The lowest cloud floats just above the north corner of the map, so no cloud covers a tile.
+// The shadow of each cloud is the same shape, solid and squashed, on the ground straight below it.
+const CLOUD_N = 6, SKY = 6; // SKY: px between the north corner and the base of the lowest cloud (tree tops on the corner tile)
+const CLOUD_FAIR = ['#ffffff', '#f1f4f4', '#d9e0e3', '#b7c2c9', '#8f9ba4'], CLOUD_RAIN = ['#d0d5d8', '#b0b8bc', '#949da2', '#788188', '#5d656b']; // light to dark
+const SUN = (() => { const v = [-.45, -.75, .5], l = Math.hypot(...v); return v.map(c => c / l); })(); // light from the upper left, towards the viewer
+let clouds = null;
+function cloudShape(seed) { // 14 to 21 round puffs inside a dome on a flat base; each pixel takes the shading of the puff in front, like a cauliflower
+  const r = k => hash(seed * 7.13 + k * 1.31), W = 70 + r(0) * 50 | 0, cx = W / 2, hw = W / 2 - 8, domeH = 10 + r(1) * 10 | 0, H = domeH + 24, base = H - 3, P = [];
+  const m = 14 + (r(2) * 8 | 0);
+  for (let j = 0; j < m; j++) {
+    const t = r(10 + j) * 2 - 1, env = Math.sqrt(1 - t * t), rad = 4 + r(30 + j) * 5 + env * 6;
+    P.push({ x: cx + t * hw * .9, y: base - rad * .6 - env * domeH * (.3 + .7 * r(50 + j)), r: rad });
   }
-  for (let i = 1; i < n - 1; i++) if (r(i + 20) < .7) P.push({ x: P[i].x + Math.round((r(i + 30) - .5) * P[i].rad), rad: Math.round(P[i].rad * (.55 + r(i + 40) * .3)), up: Math.round(P[i].rad * .9) });
-  const W = x + 10, H = Math.max(...P.map(p => p.rad * 1.55 + p.up + p.rad)) + 4 | 0, base = H - 2;
-  const inside = (px, py) => py <= base && P.some(p => (px - p.x) ** 2 + (py - (base - p.rad * .55 - p.up)) ** 2 <= p.rad * p.rad);
+  const front = (px, py) => { // the visible puff at a pixel: the one whose sphere surface is nearest the viewer
+    if (py > base) return null; let best = null, bz = 0;
+    for (const p of P) { const dx = px - p.x, dy = py - p.y, z2 = p.r * p.r - dx * dx - dy * dy; if (z2 > 0 && z2 > bz) { bz = z2; best = [dx / p.r, dy / p.r, Math.sqrt(z2) / p.r]; } }
+    return best;
+  };
   const paint = cols => {
     const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
-    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) if (inside(px, py)) {
-      g.fillStyle = py >= base - 2 || !inside(px + 1, py + 2) ? cols[2] : !inside(px - 1, py - 2) ? cols[0] : cols[1]; g.fillRect(px, py, 1, 1);
+    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+      const n = front(px, py); if (!n) continue;
+      const v = (n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) * .5 + .5 - Math.max(0, py - (base - 7)) / 7 * .3; // a darker flat underside
+      const k = Math.max(0, Math.min(4, Math.floor((1 - v) * 5 + (BAYER[(py % 4) * 4 + px % 4] / 16 - .5) * .9))); // ordered dither between tones: texture
+      g.fillStyle = cols[k]; g.fillRect(px, py, 1, 1);
     }
     return c;
   };
   const sh = document.createElement('canvas'); sh.width = W; sh.height = Math.ceil(H / 2); const g = sh.getContext('2d'); g.fillStyle = '#000';
-  for (let py = 0; py < sh.height; py++) for (let px = 0; px < W; px++) if (inside(px, py * 2) || inside(px, py * 2 + 1)) g.fillRect(px, py, 1, 1);
+  for (let py = 0; py < sh.height; py++) for (let px = 0; px < W; px++) if (front(px, py * 2) || front(px, py * 2 + 1)) g.fillRect(px, py, 1, 1);
   return { W, H, fair: paint(CLOUD_FAIR), rain: paint(CLOUD_RAIN), shadow: sh };
 }
 // Cloud k at time now, in map coordinates (offsets from tile 0): it drifts east and wraps around the map box.
@@ -197,13 +204,11 @@ function weather(ctx, game, pos, bw, bh, now) {
     }
   }
   ctx.restore();
-  for (let k = 0; k < count; k++) { // the clouds themselves, above their shadows: see-through, so the tiles under them still read
-    const [x, y, cl] = cloudAt(k, game, now), cx = ox + x, cy = oy + y - ALT - cl.H;
+  for (let k = 0; k < count; k++) { // the clouds themselves, in the sky above the north corner, straight above their shadows
+    const [x, , cl] = cloudAt(k, game, now), cx = ox + x, cy = oy - SKY - cl.H - Math.round(hash(k + 6.6) * 10);
     if (cx > bw || cy > bh || cx + cl.W < 0 || cy + cl.H < 0) continue;
-    const a = hoverAt && hoverAt[0] > cx - 8 && hoverAt[0] < cx + cl.W + 8 && hoverAt[1] > cy - 8 && hoverAt[1] < cy + cl.H + 24 ? .2 : .85; // a cloud over the cursor fades, so it never hides the tile in play
-    fade[k] = (fade[k] ?? a) + (a - (fade[k] ?? a)) * .15;
-    ctx.globalAlpha = fade[k] * (1 - rain); ctx.drawImage(cl.fair, cx, cy);
-    ctx.globalAlpha = fade[k] * rain; ctx.drawImage(cl.rain, cx, cy);
+    ctx.globalAlpha = .95 * (1 - rain); ctx.drawImage(cl.fair, cx, cy);
+    ctx.globalAlpha = .95 * rain; ctx.drawImage(cl.rain, cx, cy);
   }
   ctx.globalAlpha = 1;
 }
@@ -264,7 +269,7 @@ function cursor(ctx, game, pos, hover, now) {
 
 // Draws all effects. Called at the end of drawWorld. pos: screen point of each tile top; shown: 1 for tiles on screen.
 export function drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, live) {
-  lastPos = pos; hoverAt = hover == null ? null : [pos[2 * hover], pos[2 * hover + 1]];
+  lastPos = pos;
   if (live) diffTick(game, pos, now);
   if (!data) { life(ctx, game, pos, shown, now); weather(ctx, game, pos, bw, bh, now); }
   const ox = pos[0], oy = pos[1];

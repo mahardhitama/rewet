@@ -9,6 +9,7 @@ Source of truth: spec sections 3 to 5 (`docs/superpowers/specs/2026-11-10-rewet-
 | Actions (cost, weeks, 3R group, validity) | `ACTIONS` in `src/sim/game.js` |
 | Tick order (season, jobs, hydro, fire, threats, growth, year end) | `step()` in `src/sim/game.js` |
 | Events for UI and sound | `g.events`, drained in `tickLevel()` in `src/main.js` |
+| Map view after the debrief (phase `scenic`): water, seasons and wildlife only. No jobs, fire, growth, threats or money. | `scenicStep()` in `src/sim/game.js`, `tickScenic()` in `src/main.js` |
 | Goals and score | `src/sim/score.js` |
 | Levels | `src/levels.js` |
 | Action buttons | `src/ui.js` builds them from `ACTIONS`, grouped by `r` |

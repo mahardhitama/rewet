@@ -18,7 +18,8 @@ export function createMapView(cv) {
   let ins = { top: 0, bottom: 0, side: 0 };
   // The zoom buttons cover a side column only when they are fixed at the right edge. On a portrait phone they float just above the action bar and add no side inset.
   const measure = () => { ins = { top: hud.offsetHeight && hud.offsetTop + hud.offsetHeight, bottom: bar.offsetHeight,
-    side: zoomEl.offsetWidth && getComputedStyle(zoomEl).position === 'fixed' ? innerWidth - zoomEl.offsetLeft : 0 }; };
+    side: zoomEl.offsetWidth && getComputedStyle(zoomEl).position === 'fixed' ? innerWidth - zoomEl.offsetLeft : 0,
+    zoom: zoomEl.offsetWidth ? innerWidth - zoomEl.getBoundingClientRect().left : 0 }; }; // zoom: the fire arrows stay clear of the zoom buttons
   if (hud && bar && zoomEl) { const ro = new ResizeObserver(measure); [hud, bar, zoomEl].forEach(el => ro.observe(el)); addEventListener('resize', measure); }
   const toBuffer = (cx, cy) => clientToBuffer(cx, cy, cv.getBoundingClientRect(), cv.width, cv.height);
   const v = {
@@ -67,7 +68,7 @@ export function createMapView(cv) {
       const [sx, sy] = shakeOffset(now); ctx.setTransform(1, 0, 0, 1, sx, sy);
       hits = drawWorld(ctx, game, v.cam, v.whole ? 'normal' : v.mode, v.hover, now);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      if (!v.whole) fireArrows(ctx, game, { l: 0, t: ins.top / v.scale, r: cv.width - ins.side / v.scale, b: cv.height - ins.bottom / v.scale }, now);
+      if (!v.whole) fireArrows(ctx, game, { l: 0, t: ins.top / v.scale, r: cv.width - Math.max(ins.side, ins.zoom) / v.scale, b: cv.height - ins.bottom / v.scale }, now);
     },
     leave() { resetSlides(); resetSmoke(); resetFx(); v.cam = null; v.hover = null; v.pan = { x: 0, y: 0 }; v.scale = null; down = null; hits = []; touches.clear(); pinch = 0; },
     // Arrow keys pan; returns true when the key was used.

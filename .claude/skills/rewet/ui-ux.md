@@ -7,6 +7,7 @@
 | Layout, CSS tokens, buttons, `@media (max-width:600px)` | `index.html` |
 | HUD fill, action bar, map input (tap, drag, hover) | `src/ui.js`, `src/render/view.js` |
 | Camera scale, `screenToTile`, `clampPan` | `src/render/isoMath.js` |
+| Debrief buttons and the bar of the map view after the debrief (`#scenic`, Esc goes back) | `index.html`, `toScenic()` and `backToDebrief()` in `src/main.js` |
 | All text. English is in `src/strings.js`. Indonesian is in `src/strings.id.js`; `src/i18n.js` merges it when `settings.lang` is `id`. | `src/strings.js`, `src/strings.id.js` |
 
 ## Rules
