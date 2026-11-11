@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStory, storyAt } from '../src/render/introStory.js';
 import { KIND, BLOCK, WET_WT } from '../src/sim/world.js';
-import { bankStep } from '../src/render/iso.js';
+import { bankStep, canalStep, downstream } from '../src/render/iso.js';
 
 const peat = (wd) => [...wd.kind.keys()].filter((i) => wd.kind[i] === KIND.PEAT);
 const wetShare = (wd) => { const p = peat(wd); return p.filter((i) => wd.wt[i] <= WET_WT).length / p.length; };
@@ -60,7 +60,7 @@ test('game holds every field drawWorld reads', () => {
   const g = buildStory(42).game;
   assert.equal(g.tick, 0);
   assert.deepEqual(g.jobs, []);
-  for (const k of ['ponds', 'seedlings', 'wells', 'paluds', 'fireGroups']) assert.equal(g[k].size, 0);
+  for (const k of ['ponds', 'seedlings', 'wells', 'paluds']) assert.equal(g[k].size, 0);
   assert.ok(g.S);
 });
 
@@ -108,4 +108,49 @@ test('storyAt changes the bank week, so the canal banks turn green with the peat
   storyAt(s, 1);
   assert.notEqual(s.game.bankWeek, w0);
   assert.ok(green() > g0, `green banks ${g0} then ${green()}`);
+});
+
+const SEEDS = [1, 2, 3, 42];
+const canalsOf = (wd) => [...wd.kind.keys()].filter((i) => wd.kind[i] === KIND.CANAL && wd.cDepth[i] > 0);
+
+test('canals hold shallow water at h = 0 and are full at h = 1', () => {
+  for (const seed of SEEDS) {
+    const s = buildStory(seed), wd = s.game.world, canals = canalsOf(wd);
+    storyAt(s, 0);
+    assert.ok(canals.every((i) => canalStep(wd.cWater[i], wd.cDepth[i]) === 2), `seed ${seed}: shallow at h = 0`);
+    storyAt(s, 1);
+    assert.ok(canals.every((i) => canalStep(wd.cWater[i], wd.cDepth[i]) === 0), `seed ${seed}: full at h = 1`);
+  }
+});
+
+test('dams form a cascade: each canal tile has a dam 3 tiles or less downstream', () => {
+  for (const seed of SEEDS) {
+    const s = buildStory(seed), wd = s.game.world;
+    const down = downstream(wd.w, wd.h, wd.z, wd.kind);
+    storyAt(s, 1);
+    for (const i of canalsOf(wd)) {
+      let j = i, k = 0;
+      while (wd.block[j] !== BLOCK.PERM && k < 4) { j = down[j]; k++; assert.ok(j >= 0 && wd.kind[j] === KIND.CANAL, `seed ${seed}: tile ${i} drains with no dam`); }
+      assert.ok(k <= 3, `seed ${seed}: tile ${i} is ${k} tiles from a dam`);
+    }
+  }
+});
+
+test('story order: dams, canals fill, towers, lush, wildlife', () => {
+  for (const seed of [1, 2, 3]) {
+    const s = buildStory(seed), wd = s.game.world, g = s.game;
+    const dams = () => count(wd.block, (b) => b === BLOCK.PERM);
+    storyAt(s, 1); const allDams = dams(), towers = g.fireGroups.size, cover1 = wd.cover.slice();
+    assert.ok(towers > 0, `seed ${seed}: towers`);
+    storyAt(s, 0.3);
+    assert.equal(dams(), allDams, `seed ${seed}: all dams by h = 0.3`);
+    assert.equal(g.fireGroups.size, 0);
+    storyAt(s, 0.5);
+    assert.ok(canalsOf(wd).every((i) => canalStep(wd.cWater[i], wd.cDepth[i]) === 0), `seed ${seed}: canals full by h = 0.5`);
+    storyAt(s, 0.7);
+    assert.equal(g.fireGroups.size, towers, `seed ${seed}: towers by h = 0.7`);
+    assert.equal(g.fauna.length, 0);
+    storyAt(s, 0.8);
+    assert.deepEqual(wd.cover, cover1, `seed ${seed}: lush by h = 0.8`);
+  }
 });
