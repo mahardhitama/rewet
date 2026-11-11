@@ -119,6 +119,9 @@ export const STRINGS = {
       goodwill: 'Jauhkan api dari desa, dan bangun kolam, kelompok peduli api, dan paludikultur.',
     },
     menu: 'Menu',
+    view: 'Lihat peta',
+    back: 'Kembali ke hasil',
+    viewHint: 'Geser untuk melihat sekeliling. Gulir atau cubit untuk zoom.',
     sandbox: seed => `Mode bebas (seed ${seed}): angka saja, tanpa batas lulus.`,
     figureHead: ['Tujuan', 'Hasil'],
     figureRows: r => [

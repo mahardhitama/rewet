@@ -1,5 +1,5 @@
 import { LANG } from './i18n.js'; // first: it merges the Indonesian copy before any module reads the text
-import { createGame, step, ACTIONS, isWetSeason } from './sim/game.js';
+import { createGame, step, scenicStep, ACTIONS, isWetSeason } from './sim/game.js';
 import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
@@ -58,6 +58,7 @@ function boot() {
     $('bar').hidden = p !== 'level'; // the zoom buttons are inside the bar
     $('report').hidden = p !== 'yearReport';
     $('debrief').hidden = p !== 'debrief';
+    $('scenic').hidden = p !== 'scenic';
     $('findToast').hidden = true;
   }
   function startIntro() { t0 = performance.now(); h = 0; shown = -1; shot.zoom = 1; shot.pan = 0; newStory(); show('intro'); }
@@ -142,13 +143,14 @@ function boot() {
   let wetFrac = 0, mile = null;
   const MILES = [25, 50, 75, 90];
   function ambience() {
-    const on = !!game && phase === 'level' && !paused && !document.querySelector('dialog[open]');
+    const on = !!game && (phase === 'level' && !paused || phase === 'scenic') && !document.querySelector('dialog[open]');
     if (!on) return { on, rain: false, health: wetFrac, fire: 0 };
     const wd = game.world; let peat = 0, wet = 0, burn = 0;
     for (let i = 0; i < wd.n; i++) { if (wd.fire[i]) burn++; if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; } }
     wetFrac += ((peat ? wet / peat : 0) - wetFrac) * .02;
     const pct = peat ? wet / peat * 100 : 0, m = MILES.filter(v => pct >= v).length; // milestones: a toast, a chime and a burst when the dry-season wet share climbs past one
-    if (isWetSeason(game)) mile = null; // rain wets all peat for free: only dry-season peat that stays wet counts
+    if (phase === 'scenic') { /* no milestones while the player only looks */ }
+    else if (isWetSeason(game)) mile = null; // rain wets all peat for free: only dry-season peat that stays wet counts
     else if (mile == null) mile = m;
     else if (m > mile) { mile = m; toast(TOAST.wet(MILES[m - 1])); sfx('star', Math.min(2, m - 1)); celebrate(1, wd.w, wd.h); }
     return { on, rain: rainLevel() > .3, health: Math.min(1, wetFrac * .7 + game.goodwill / 300), fire: Math.min(1, burn / 8) };
@@ -161,6 +163,14 @@ function boot() {
     celebrate(game.level.sandbox ? 0 : stars, game.world.w, game.world.h);
     show('debrief'); $('dbMenu').focus({ preventScroll: true });
   }
+  // After the debrief: the map runs on with water, seasons and wildlife only (scenicStep), at speed 1.
+  function tickScenic(dt) {
+    const r = ticksForFrame(dt, 1, carry); carry = r.carry;
+    for (let k = 0; k < r.ticks; k++) scenicStep(game);
+    game.events.length = 0;
+  }
+  function toScenic() { show('scenic'); $('scBack').focus({ preventScroll: true }); }
+  function backToDebrief() { show('debrief'); $('dbView').focus({ preventScroll: true }); }
   function tickLevel(dt) {
     const r = ticksForFrame(dt, paused ? 0 : speed, carry);
     carry = r.carry;
@@ -198,11 +208,12 @@ function boot() {
       if (!reduce) { shot.zoom += (SHOT_ZOOM - shot.zoom) * 0.03; shot.pan += (panTo - shot.pan) * 0.01; } // eased: it slows down and stops at the edge
     }
     if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
-    for (const e of takeFxEvents()) if (phase === 'level') e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
+    else if (phase === 'scenic') tickScenic(dt);
+    for (const e of takeFxEvents()) if (phase === 'level' || phase === 'scenic') e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
     setAmbience(ambience());
-    if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
+    if (game && phase !== 'debrief' && phase !== 'scenic') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
-    if (game && ['level', 'yearReport', 'debrief'].includes(phase)) { map.whole = false; map.draw(game, now); }
+    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.draw(game, now); }
     else {
       if (!story) newStory(); // first frame with reduced motion
       map.whole = true; map.shot = shot; storyAt(story, h); map.draw(story.game, now);
@@ -215,6 +226,12 @@ function boot() {
     if (document.querySelector('dialog[open]')) return; // Esc there closes the dialog itself
     if (e.key === 'Escape' && (phase === 'level' || phase === 'yearReport')) { e.preventDefault(); return $('dQuit').showModal(); } // preventDefault: this Esc would also cancel the new dialog
     if (e.key === 'Escape' && ['levelSelect', 'debrief'].includes(phase)) return toMenu();
+    if (phase === 'scenic') { // only look: pan and zoom keys, Esc goes back to the results
+      if (e.key === 'Escape') return backToDebrief();
+      if (map.key(e)) return;
+      if (e.key === '+' || e.key === '=') map.zoom(1); else if (e.key === '-') map.zoom(-1); else if (e.key === '0') map.zoom(0);
+      return;
+    }
     if (phase !== 'level') return;
     if (map.key(e)) return;
     if (e.key === ' ' && e.target.closest?.('button')) return; // a focused button takes Space itself
@@ -237,7 +254,7 @@ function boot() {
   // ---- menu actions
   // The toast sits above the action bar in a level (a hidden bar has 0 height).
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.bottom = `${($('bar').offsetHeight || 0) + 24}px`; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
-  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));
   document.addEventListener('mouseover', e => { // delegated: the level select builds its buttons later
@@ -282,6 +299,8 @@ function boot() {
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };
   $('dbMenu').onclick = toMenu;
+  $('dbView').onclick = toScenic;
+  $('scBack').onclick = backToDebrief;
   $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; setText($('qYes'), QUIT.yes); setText($('qNo'), QUIT.no);
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();

@@ -247,5 +247,5 @@ export function showDebrief(game) {
   table($('dbData'), [...DEBRIEF.dataRows(co2, sv), ...speciesRows(game)], { labelledby: 'dbDataTitle' });
   // one hint: the early-loss cause, else the first unmet goal
   $('dbHint').textContent = loss ? DEBRIEF.lossHint[loss] : sb ? '' : r.hints.length ? HINTS[r.hints[0]] : DEBRIEF.allMet;
-  setText($('dbMenu'), DEBRIEF.menu);
+  setText($('dbMenu'), DEBRIEF.menu); setText($('dbView'), DEBRIEF.view); setText($('scBack'), DEBRIEF.back); $('scHint').textContent = DEBRIEF.viewHint;
 }

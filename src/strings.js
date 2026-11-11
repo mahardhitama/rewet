@@ -143,6 +143,9 @@ export const DEBRIEF = {
     goodwill: 'Keep fire away from the village and build ponds, fire groups and paludiculture.',
   },
   menu: 'Menu',
+  view: 'Look at the map',
+  back: 'Back to results',
+  viewHint: 'Drag to look around. Scroll or pinch to zoom.',
   sandbox: seed => `Sandbox (seed ${seed}): figures only, no pass mark.`,
   figureHead: ['Goal', 'Result'],
   figureRows: r => [

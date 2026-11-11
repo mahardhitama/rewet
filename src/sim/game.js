@@ -289,3 +289,14 @@ export function step(g) {
     if (g.level.elNinoYear != null && y + 1 === g.level.elNinoYear) g.events.push({ type: 'elNinoWarning', year: g.level.elNinoYear });
   }
 }
+
+// After the debrief, the player can look at the map. Water, seasons and wildlife go on; jobs, fire, growth, threats and money stop,
+// so the site stays as the player left it.
+export function scenicStep(g) {
+  const wd = g.world, env = seasonAt(g.tick, { elNino: elNino(g) });
+  wd.fire.fill(0); wd.fireT.fill(0);
+  hydroTick(wd, g.S, env);
+  canalTick(wd, g.S, env);
+  if (g.tick % 4 === 0) faunaTick(g);
+  g.tick++;
+}

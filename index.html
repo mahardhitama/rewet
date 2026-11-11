@@ -65,6 +65,10 @@ dialog p{margin:6px 0;color:var(--dim)}
 #menuStats td{padding:4px 8px}
 /* short landscape: a smaller title and 2 button columns, so the menu fits with no scroll */
 @media (max-height:500px){:root{--fs-title:clamp(40px,14vh,64px)}#menu{display:grid;grid-template-columns:repeat(2,minmax(0,360px));column-gap:8px;justify-content:center}#menu>h1,#menu>.sub,#menu>#menuStats{grid-column:1/-1;justify-self:center}#menu .sub{margin:4px 0 12px}#menu .btn{max-width:none}#menuStats{margin-top:8px}}
+#scenic{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#14120ee6;border:2px solid var(--line);padding:8px 8px 8px 14px;max-width:calc(100% - 32px);box-shadow:0 4px 0 #0e0d0bcc}
+#scenic .btn{width:auto;margin:0;flex:none}
+#scHint{color:var(--dim);font-size:var(--fs-label)}
+@media (max-width:600px){#scHint{display:none}}
 #levelSelect,#report,#debrief{position:fixed;background:#14120e;border:2px solid var(--line);padding:16px;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto}
 /* 6px orange scrollbar, always shown when content overflows (WebKit replaces the macOS overlay bar) */
 :is(dialog,#menu,#levelSelect,#report,#debrief,.jPage)::-webkit-scrollbar{width:6px;height:6px}
@@ -302,8 +306,9 @@ h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3
   <div id="dbThumbs"><figure><canvas id="dbBefore"></canvas><figcaption id="dbBeforeL"></figcaption></figure><figure><canvas id="dbAfter"></canvas><figcaption id="dbAfterL"></figcaption></figure></div>
   <h3 id="dbGoalsTitle"></h3><div id="dbGoals"></div><p id="dbHint"></p>
   <h3 id="dbDataTitle"></h3><canvas id="dbChart" role="img" width="312" height="110"></canvas><div id="dbData"></div>
-  <button class="btn" id="dbMenu"></button>
+  <button class="btn" id="dbView"></button><button class="btn" id="dbMenu"></button>
 </div>
+<div id="scenic" hidden><span id="scHint"></span><button class="btn" id="scBack"></button></div>
 <dialog id="dJournal" aria-labelledby="jTitle">
   <div id="jHead"><button class="jb" id="jHome"></button><h2 id="jTitle"></h2><button class="jb" id="jClose" autofocus></button></div>
   <div id="jBook"></div>
