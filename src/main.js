@@ -4,7 +4,9 @@ import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
-import { blip, tap, cue, setMuted, isMuted } from './audio.js';
+import { blip, tap, cue, sfx, setAmbience, setMuted, isMuted } from './audio.js';
+import { takeFxEvents, rainLevel, shake, celebrate } from './render/fx.js';
+import { KIND, WET_WT } from './sim/world.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
 import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE } from './strings.js';
@@ -136,10 +138,22 @@ function boot() {
     dlg.showModal();
     dlg.scrollTop = 0;
   }
+  // The sound bed follows the level: music and nature only while it runs, rain in a shower, darker with fire.
+  let wetFrac = 0;
+  function ambience() {
+    const on = !!game && phase === 'level' && !paused && !document.querySelector('dialog[open]');
+    if (!on) return { on, rain: false, health: wetFrac, fire: 0 };
+    const wd = game.world; let peat = 0, wet = 0, burn = 0;
+    for (let i = 0; i < wd.n; i++) { if (wd.fire[i]) burn++; if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; } }
+    wetFrac += ((peat ? wet / peat : 0) - wetFrac) * .02;
+    return { on, rain: rainLevel() > .3, health: Math.min(1, wetFrac * .7 + game.goodwill / 300), fire: Math.min(1, burn / 8) };
+  }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
   function toDebrief() {
     showDebrief(game); // evaluate() decides loss itself
-    if (!game.level.sandbox) persist(recordResult(save, game.level.id, evaluate(game).stars));
+    const stars = evaluate(game).stars;
+    if (!game.level.sandbox) persist(recordResult(save, game.level.id, stars));
+    celebrate(game.level.sandbox ? 0 : stars, game.world.w, game.world.h);
     show('debrief'); $('dbMenu').focus({ preventScroll: true });
   }
   function tickLevel(dt) {
@@ -153,6 +167,7 @@ function boot() {
     const ev = game.events.splice(0); // drain (yearEnd.year is 0-based)
     const yearEnd = ev.some(e => e.type === 'yearEnd');
     for (const e of ev) if (!(yearEnd && e.type === 'elNinoWarning')) cue(e.type); // the year report shows the warning; one sound at a time
+    for (const e of ev) if (e.type === 'arson' || e.type === 'villageFire') shake(2, 300); else if (e.type === 'washout') shake(1, 250);
     if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief();
     if (checkEarlyLoss(game)) return toDebrief(); // triggers the early end; evaluate() in the debrief re-derives the cause
     const ye = yearEnd && ev.find(e => e.type === 'yearEnd');
@@ -178,6 +193,8 @@ function boot() {
       if (!reduce) { shot.zoom += (SHOT_ZOOM - shot.zoom) * 0.03; shot.pan += (panTo - shot.pan) * 0.01; } // eased: it slows down and stops at the edge
     }
     if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
+    if (game && phase === 'level') for (const e of takeFxEvents()) sfx(e.type === 'done' ? 'done' : e.type, e.n ?? 0);
+    setAmbience(ambience());
     if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
     if (game && ['level', 'yearReport', 'debrief'].includes(phase)) { map.whole = false; map.draw(game, now); }
@@ -237,7 +254,7 @@ function boot() {
   function onFind(id) {
     const r = recordFind(save, id);
     if (!r.isNew) return;
-    persist(r.save); blip(1320, 0.08);
+    persist(r.save); sfx('find');
     const t = $('findToast'); $('findMsg').textContent = JOURNAL.found(SPECIES.find(s => s.id === id).name);
     setText($('findOpen'), JOURNAL.openEntry);
     $('findOpen').onclick = () => { t.hidden = true; openBook(id); };

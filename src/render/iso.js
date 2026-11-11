@@ -2,6 +2,7 @@
 import { KIND, BLOCK, WET_WT, VEG, vegOf } from '../sim/world.js';
 import { TW, TH, tileToScreen } from './isoMath.js';
 import { TICKS_PER_YEAR } from '../sim/season.js';
+import { drawFx } from './fx.js';
 import { PS, WALK_FRAME_MS, WORK_FRAME_MS, crewPlan, crewSeen, crewSweep, crewPhase, crewEntries, guardPose, personSprite, resetCrews, crewHash } from './crew.js';
 
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
@@ -941,6 +942,6 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       if (which.length) edges(ctx, pos[2 * i], pos[2 * i + 1], which);
     }
   }
-  if (hover != null) { ctx.fillStyle = '#ffffff'; edges(ctx, pos[2 * hover], pos[2 * hover + 1], ['tl', 'tr', 'br', 'bl']); }
+  drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, game.bankWeek == null); // the intro story sets bankWeek: no tick diffs there
   return hits;
 }
