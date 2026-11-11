@@ -211,11 +211,12 @@ function tongue(g, bx, by, h, wd, lean) {
 // Frame table for the flame sprite: [dx, height, width, lean] of 3 tongues. The heights and leans change from frame to frame.
 const FLAMES = [[[-7, 9, 5, -1], [0, 14, 7, 1], [7, 8, 5, 0]], [[-7, 11, 5, 1], [0, 11, 7, -1], [7, 10, 5, 1]],
   [[-7, 8, 5, 0], [0, 15, 7, -1], [7, 9, 5, -1]], [[-7, 10, 5, -1], [0, 12, 7, 1], [7, 11, 5, 0]]];
-// Smoke puff: 3 nested disks of fillRect rows, built once for each whole radius from 3 to 7.
-const PUFF_ALPHA = [.18, .26, .4], PUFF_R0 = 3, PUFF_R1 = 7;
+// Smoke puff: 3 nested disks of fillRect rows in 2x2 px cells, built once for each whole radius from 2 to 4 cells.
+// The cells and the 2 px position grid keep the smoke as coarse as the other sprites; 1 px puffs blend into a smooth haze.
+const PUFF_ALPHA = [.18, .26, .4], PUFF_R0 = 2, PUFF_R1 = 4, PUFF_CELL = 2;
 function puffSprite(r) {
-  const c = document.createElement('canvas'); c.width = c.height = 2 * r + 1;
-  const g = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = c.height = (2 * r + 1) * PUFF_CELL;
+  const g = c.getContext('2d'); g.scale(PUFF_CELL, PUFF_CELL);
   PUFF_ALPHA.forEach((a, k) => {
     const rk = r * (1 - k * .3);
     g.fillStyle = `rgba(${SMOKE[0]},${SMOKE[1]},${SMOKE[2]},${a})`;
@@ -587,7 +588,8 @@ export function drawSmoke(ctx, now, data) {
     if (t < 0 || t >= 1) continue;
     const s = (now - p.born) / 1000, r = Math.round(PUFF_R0 + (PUFF_R1 - PUFF_R0) * t);
     ctx.globalAlpha = (1 - t) ** .7; // the disks hold the 0.18 / 0.26 / 0.4 alpha
-    ctx.drawImage(cache.puff[r - PUFF_R0], Math.round(originX + p.x + p.vx * s) - r, Math.round(originY + p.y + p.vy * s) - r);
+    const snap = v => PUFF_CELL * Math.round(v / PUFF_CELL), half = (2 * r + 1) * PUFF_CELL / 2; // snap relative to the map origin, so the grid moves with a pan
+    ctx.drawImage(cache.puff[r - PUFF_R0], originX + snap(p.x + p.vx * s - half), originY + snap(p.y + p.vy * s - half));
   }
   ctx.globalAlpha = 1;
 }
