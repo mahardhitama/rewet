@@ -140,10 +140,11 @@ These are automated tests in `test/hydro.calibration.test.js`.
 
 ## 3. Core loop
 
-- **Level length:** 3–5 years, at about 75 seconds per year.
-  - **Wet season** (about 45 s): build window. Blocks and planting cost −20%.
-  - **Dry season** (about 30 s): fire risk, arson attempts, defending.
-- **Pause, ×1 and ×2 speed:** the sim tick rate changes; the frame rate does not.
+- **Level length:** 3–5 years, at about 150 seconds per year at ×1 (section 8, item 14).
+  - **Wet season** (about 90 s): build window. All actions cost −20%.
+  - **Dry season** (about 60 s): fire risk, arson attempts, defending.
+- **Pause, ×1 and ×2 speed:** the sim tick rate changes; the frame rate does not. ×2 gives 75 s per year.
+- **Field notes and the fire pause:** see `2026-11-11-rewet-calm-pace-design.md`.
 - **Year report** (pauses the game): water-depth chart, burnt area, seedling survival, goodwill and funds.
 
 **Resources:**
@@ -282,3 +283,4 @@ scripts/sim-run.js  headless run of a level plus a plan file, printing 3R result
 11. **Seedling survival and nurse trees (R33):** players lost most seedlings planted in the wet season early in the dry season. Old: a seedling died after 12 ticks (3 weeks) in a row out of the 0–0.40 m band. New: each tick out of the band adds stress, and a seedling dies at stress 48. A flood adds 4 a tick (death in 3 weeks). A dry tile adds 1 a tick up to 0.5 m, then 10 for each metre of depth: 0.45 m kills in 12 weeks, 0.6 m in 6 weeks and 0.8 m in 3 weeks. One tick in the band clears the stress. A seedling next to a tile with cover ≥ 0.6 (canopy shade) grows 2 times faster and gets half the dry stress. All values are game values, NOT SOURCED. On fixture `test/fixtures/l1-reveg.json`, survival went from 160/190 to 183/190 and cover from 54% to 62% (2 stars, unchanged). The same plant taps with no blocks still fail level 1 (rewet 38%, fire loss).
 12. **Canal water fill (R33):** players could not see the water rise behind a block. Old: `CANAL.fillWet` 0.15 drew an open canal full to the bank in the wet season, the same as a blocked canal. New: `fillWet` 0.55 and `fillDry` 0.9. An open canal shows a narrow stream in the wet season and a near-empty bed in the dry season. A blocked stretch stays full to the bank, and its sprite draws a wet seep line on the bank. Game values, NOT SOURCED. `cWater` drives only the canal sprite and the fauna water test, not the water-table depth.
 13. **Fire crew area (2026-11-11):** a fire crew fought only the tapped tile. Now it fights each burning tile in the 3×3 square around the tapped fire, with the same timer cap and the same well bonus. A tile in the square of 2 crews is fought once in each tick. When the tapped tile is out, every fire in the square goes out at the same time, and the job ends. This is a game-tuning value, not a sourced value.
+14. **Calm pace (2026-11-11):** players said that the level felt hasty. Old: ×1 gave 75 s per year (about 1.4 s per week). New: ×1 gives 150 s per year (about 2.9 s per week), and ×2 gives the old 75 s. This is a game-tuning value, not a sourced value. The sim tick did not change, so the seeds, the fixtures and the calibration tests stay the same. Design: `2026-11-11-rewet-calm-pace-design.md`.
