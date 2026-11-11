@@ -18,8 +18,9 @@ const D = 10, EDGE = D + 12, HEAD = 28, SW = TW, SH = HEAD + TH + EDGE + 1; // s
 // Half-width of row r in a 2:1 diamond that is 2*hh rows high.
 const rowW = (r, hh = HH) => r < hh ? (r + 1) * 2 : (2 * hh - r) * 2;
 
-// Canal sprite steps. Water step 0: the water is at the bank. Water step 3: the water is at the bed.
-export const canalStep = (cWater, cDepth) => cDepth > 0 ? Math.max(0, Math.min(3, Math.round(cWater / cDepth * 3))) : 0;
+// Canal sprite steps from the water depth below the bank in metres, on the scale of the peat water table, so a canal and the peat beside it
+// change together. 0: at the bank (< 0.1 m). 1: wet, down to the 40 cm line. 2: dry, down to 1 m. 3: at the bed (1 m or more, or the bed of a shallower canal).
+export const canalStep = (cWater, cDepth) => cDepth <= 0 ? 0 : cWater >= Math.min(1, cDepth) ? 3 : cWater > WET_WT ? 2 : cWater >= 0.1 ? 1 : 0;
 export const widthStep = cWidth => cWidth < 5 ? 0 : cWidth <= 8 ? 1 : 2;
 // ---- joined canal channel. Ground units: the tile is [0,16] x [0,16]; pixel (px, py) from the top vertex is a = py + px/2, b = py - px/2.
 // Neighbour directions; bit k of a canal mask is DIRS[k].

@@ -1,9 +1,10 @@
 import { DRAIN } from './drainage.js';
+import { KIND } from './world.js';
 
 export const HYDRO = { kDrain: 0.10, kLat: 0.02, eqDry: 0.9, eqWet: 0.5, farDry: 0.33, farWet: 0.06, kVert: 0.05, cutoffM: 400 };
 
 // Game values, NOT SOURCED: water fill as a part of cDepth, and the canal response per tick.
-export const CANAL = { depthRef: 5, fillWet: 0.55, fillDry: 0.9, k: 0.05 };
+export const CANAL = { depthRef: 5, fillWet: 0.55, fillDry: 0.9, k: 0.2 };
 
 const WT_MIN = -0.3, WT_MAX = 1.5, COVER_ET = 0.03, SUBSID = 0.001 / 208; // m per tick per cm of wt (0.1 x wt cm/yr)
 let delta = new Float32Array(0); // reused lateral-flow scratch
@@ -37,8 +38,23 @@ export function hydroTick(world, S, env, params = HYDRO) {
   }
 }
 
-export const canalTarget = (world, S, i, dry) =>
-  world.cDepth[i] * (CANAL.fillWet + (CANAL.fillDry - CANAL.fillWet) * dry) * Math.min(1, S[i] / DRAIN.canal);
+// Mean wt of the peat tiles around tile i (8 neighbours), or null when no neighbour is peat.
+function sidePeatWt({ w, h, kind, wt }, i) {
+  const x = i % w, y = (i - x) / w;
+  let s = 0, c = 0;
+  for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++)
+    for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) { const j = yy * w + xx; if (kind[j] === KIND.PEAT) { s += wt[j]; c++; } }
+  return c ? s / c : null;
+}
+
+// The water surface of canal tile i, as a depth below the bank. An open canal drains: its water stays near the bed (fill).
+// Behind a block (S below the open-canal value), the canal holds water at the level of the water table in the peat beside it,
+// from the bank (flooded peat) down to the bed. Game rule, NOT SOURCED; cWater drives only the canal sprite and the fauna water test.
+export function canalTarget(world, S, i, dry) {
+  const d = world.cDepth[i];
+  if (S[i] < DRAIN.canal) { const m = sidePeatWt(world, i); if (m != null) return Math.min(d, Math.max(0, m)); }
+  return d * (CANAL.fillWet + (CANAL.fillDry - CANAL.fillWet) * dry) * Math.min(1, S[i] / DRAIN.canal);
+}
 
 export function canalTick(world, S, env) {
   const { n, cDepth, cWater } = world;

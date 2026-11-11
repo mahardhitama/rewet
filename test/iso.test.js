@@ -17,15 +17,10 @@ test('downstream gives -1 at a local low point', () => {
   assert.deepEqual([...ds], [-1, -1]);
 });
 
-test('canal steps', () => {
-  assert.equal(canalStep(0.75, 5), 0);
-  assert.equal(canalStep(3.5, 5), 2);
-  assert.equal(canalStep(5, 5), 3);
-  assert.equal(canalStep(1, 0), 0);
-  // open canal: narrow strip in the wet season (fill 0.55), near-empty bed in the dry season (fill 0.9); a blocked canal is full
-  assert.equal(canalStep(0.55 * 5, 5), 2);
-  assert.equal(canalStep(0.9 * 5, 5), 3);
-  assert.equal(canalStep(0.1 * 0.55 * 5, 5), 0);
+test('canal steps: the water depth below the bank in metres, on the scale of the peat water table', () => {
+  assert.deepEqual([0, 0.09, 0.1, 0.4, 0.41, 0.99, 1, 4.5].map(d => canalStep(d, 5)), [0, 0, 1, 1, 2, 2, 3, 3]);
+  assert.equal(canalStep(1, 0), 0); // not a canal
+  assert.equal(canalStep(0.3, 0.3), 3); // water at the bed of a shallow canal
   assert.deepEqual([4.9, 5, 8, 8.1].map(widthStep), [0, 1, 1, 2]);
 });
 
