@@ -157,6 +157,18 @@ dialog p{margin:6px 0;color:var(--dim)}
 .jArt .a{fill:var(--accent)}.jArt .i{fill:var(--ink)}.jArt .m{fill:var(--dim)}.jArt .p{fill:var(--c-revit)}.jArt .bx{fill:none;stroke:var(--line);stroke-width:2}.jArt .bg{fill:#14120e}.jArt .z{font-size:6px}.jArt .bgt{fill:#14120e}
 .jArt line{stroke-width:1.5}.jArt .sw{stroke:var(--c-wet)}.jArt .sa{stroke:var(--accent)}.jArt .sm{stroke:var(--dim)}.jArt .sp{stroke:var(--c-revit)}
 .jSt{display:inline-block;border:1px solid var(--accent);color:var(--accent);padding:0 6px;font-size:var(--fs-body)}
+/* how-to dialog at the start of a level: one row per feature, with the icon of the button that does it */
+#dHow{width:min(640px,calc(100% - 24px));max-height:calc(100% - 24px);padding-bottom:0}
+#hGo{position:sticky;bottom:12px;margin:0 0 12px;background:#14120e;box-shadow:0 -12px 0 #14120e,0 12px 0 #14120e} /* Start stays in view when the list scrolls; the shadow is the dialog background, so text does not show around it */
+#hSub{text-align:center;margin:-8px 0 8px}
+#hList{list-style:none;margin:0 0 12px;padding:0}
+#hList li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line)}
+#hList .ic{--c:var(--line);display:flex;align-items:center;justify-content:center;width:44px;height:44px;box-sizing:border-box;background:#14120e;border:2px solid var(--line);border-top:5px solid var(--c);color:var(--ink)}
+#hList .ic[data-r=rewet]{--c:var(--c-rewet)}#hList .ic[data-r=reveg]{--c:var(--c-reveg)}#hList .ic[data-r=revit]{--c:var(--c-revit)}#hList .ic[data-r=defense]{--c:var(--c-defense)}
+#hList b{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);color:var(--ink)}
+#hList kbd{margin-left:8px;font:inherit;font-size:var(--fs-body);color:var(--accent);border:1px solid var(--line);padding:0 4px;white-space:nowrap}
+#hList p{margin:2px 0 0}
+#hHint{display:block;color:var(--dim);text-align:center;margin-bottom:12px}
 #jNav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
 #jPos{color:var(--dim);text-align:center}
 #jHint{display:block;margin-top:6px;color:var(--dim);font-size:var(--fs-body)}
@@ -248,6 +260,7 @@ dialog p{margin:6px 0;color:var(--dim)}
   <div id="jNav"><button class="jb" id="jPrev"></button><span id="jPos" aria-live="polite"></span><button class="jb" id="jNext"></button></div>
   <small id="jHint"></small>
 </dialog>
+<dialog id="dHow" aria-labelledby="hTitle"><h2 id="hTitle"></h2><p id="hSub"></p><ul id="hList"></ul><small id="hHint"></small><button class="btn" id="hGo" autofocus></button></dialog>
 <dialog id="dQuit"><h2 id="qTitle"></h2><p id="qBody"></p><button class="btn" id="qYes"></button><button class="btn" id="qNo" autofocus></button></dialog>
 <div id="toast" role="status"></div>
 <div id="findToast" role="status" hidden><span id="findMsg"></span><button id="findOpen"></button></div>

@@ -1,4 +1,4 @@
-import { createGame, step } from './sim/game.js';
+import { createGame, step, ACTIONS } from './sim/game.js';
 import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
@@ -6,7 +6,7 @@ import { resolveLevel } from './sim/mapgen.js';
 import { blip, tap, cue, setMuted, isMuted } from './audio.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
-import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
+import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
 import { icon, withIcon, setText, sourceLink, starIcons } from './icons.js';
@@ -114,6 +114,24 @@ function boot() {
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
+    if (HOWTO.items[L.id]) openHowto(L); // the sandbox has no how-to
+  }
+  // The how-to dialog. The level stays paused until it closes, by any way (button or Esc).
+  function openHowto(L) {
+    const dlg = $('dHow'), el = (tag, text) => Object.assign(document.createElement(tag), text == null ? {} : { textContent: text });
+    $('hTitle').textContent = HOWTO.title(L);
+    $('hSub').textContent = L.id === 1 ? HOWTO.sub : HOWTO.newHere;
+    $('hList').replaceChildren(...HOWTO.items[L.id].map(x => {
+      const li = el('li'), ic = el('span'), body = el('div'), head = el('b', x.name);
+      ic.className = 'ic'; ic.append(icon(x.icon)); if (ACTIONS[x.icon]) ic.dataset.r = ACTIONS[x.icon].r; // the colour of the action group, as on the slot
+      body.append(head); if (x.key) body.append(el('kbd', x.key)); body.append(el('p', x.text));
+      li.append(ic, body); return li;
+    }));
+    $('hHint').textContent = HOWTO.hint;
+    paused = true;
+    dlg.onclose = () => { dlg.onclose = null; paused = false; };
+    dlg.showModal();
+    dlg.scrollTop = 0;
   }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
   function toDebrief() {
@@ -233,6 +251,8 @@ function boot() {
   $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; setText($('qYes'), QUIT.yes); setText($('qNo'), QUIT.no);
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
+  setText(withIcon($('hGo'), 'play'), HOWTO.go);
+  $('hGo').onclick = () => $('dHow').close();
   $('zoom').setAttribute('aria-label', ZOOM.group);
   for (const [id, key, dir, name] of [['bZoomIn', 'in', 1, 'zoomIn'], ['bZoomOut', 'out', -1, 'zoomOut'], ['bZoomFit', 'fit', 0, 'fit']]) {
     const b = $(id); b.title = ZOOM[key][1]; b.setAttribute('aria-label', b.title); b.replaceChildren(icon(name));

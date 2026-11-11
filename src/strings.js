@@ -152,7 +152,54 @@ export const HINTS = {
   revit: 'Earn more goodwill: build ponds, fire groups and paludiculture.',
 };
 
-export const QUIT = { title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
+// The how-to dialog at the start of a level. items[level id]: level 1 shows the basics, a later level shows only what is new in it.
+// icon: an ICONS name, the icon of the button that does it. key: the keyboard key, if there is one.
+const act = (id, text) => ({ icon: id, name: `${ACTION_TEXT[id][0]} (${ACTION_TEXT[id][2]})`, text });
+export const HOWTO = {
+  title: L => `Level ${L.id}: ${L.name}`,
+  sub: 'What to do on this site',
+  newHere: 'New on this site',
+  go: 'Start',
+  hint: 'The level stays paused until you close this. Esc also closes it.',
+  items: {
+    1: [
+      { icon: 'tempBlock', name: 'Pick, then tap', text: 'Pick an action in the bar at the bottom. Then tap a tile on the map.' },
+      act('tempBlock', 'Tap a canal tile. The block keeps the water in the peat. Floods can break it.'),
+      act('permBlock', 'Tap a temp block to make it permanent. Floods do not break it.'),
+      { icon: 'wet', name: 'The 40 cm line', text: 'Peat with the water table 40 cm or less below the surface is wet. Wet peat does not burn. Keep it wet through the dry season.' },
+      { icon: 'tempBlock', name: 'Distance', text: 'A block rewets the peat near the canal most. Peat far from a block stays dry. Put blocks along all of the canal.' },
+      act('fireCrew', 'Tap a fire to send a crew to it.'),
+      { icon: 'data', name: 'Data view', text: 'Shows the water-table depth. Blue is wet. Brown is dry.', key: 'D' },
+      { icon: 'pause', name: 'Pause, ×1, ×2', text: 'Stop or change the speed of time.', key: 'P, 1, 2' },
+      { icon: 'fit', name: 'Move the map', text: 'Drag or use the arrows to move. Zoom in, zoom out, or show all of the map.', key: '+, −, 0' },
+    ],
+    2: [
+      act('plant', 'Tap peat to plant seedlings. They live only when the water table is 0 to 40 cm below the surface.'),
+      act('mound', 'Seedlings in a low tile drown in a flood. A mound raises the tile 20 cm.'),
+    ],
+    3: [
+      { icon: 'goodwill', name: 'Goodwill', text: 'The village trusts you more when you help it. At 0 goodwill, you lose the level.' },
+      act('palud', 'Tap wet peat next to the village. The village farms it and gives goodwill.'),
+      act('pond', 'Tap a canal tile upstream of a block. It gives goodwill.'),
+      act('fireGroup', 'Tap the village. Fires near it are found at once, and there is less arson.'),
+    ],
+    4: [
+      { icon: 'tempBlock', name: 'Cascades', text: 'One block holds water for only a short length of canal. Put a cascade of blocks along a long canal.' },
+      act('backfill', 'Tap a canal tile to fill it with peat. The canal stops drainage there. It costs a lot.'),
+      { icon: 'tempBlock', name: 'Illegal canals', text: 'People dig new illegal canals from the edge. Block an illegal canal early, when it is short.' },
+    ],
+    5: [
+      { icon: 'time', name: 'El Niño', text: 'In El Niño years the dry season starts 10 weeks early. The year report tells you one year before.' },
+      act('well', 'Fire crews near a well put fires out 2 times faster.'),
+      { icon: 'fireCrew', name: 'Smouldering fire', text: 'A fire can burn under the surface. It starts again if the peat stays dry. Rewet the peat to stop it.' },
+    ],
+    6: [
+      { icon: 'score', name: 'Higher pass marks', text: 'This site is large and has all of the problems. Use all that you know.' },
+    ],
+  },
+};
+
+export const QUIT ={ title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
 
 export const INTRO = { skip: 'Skip' };
 
