@@ -73,3 +73,16 @@ test('each concept has a diagram with alt text, and each diagram has a concept',
     assert.doesNotMatch(svg, /NaN|undefined/, c.id);
   }
 });
+
+test('each tile names real actions and real concept pages, and the journal has an even page count', async () => {
+  const { TILES } = await import('../src/journal.js');
+  const { ACTIONS } = await import('../src/sim/game.js');
+  const concepts = new Set(CONCEPTS.map(c => c.id)), all = [...TILES, ...CONCEPTS, ...SPECIES].map(e => e.id);
+  assert.equal(new Set(all).size, all.length);
+  for (const t of TILES) {
+    assert.ok(t.title && t.body && t.acts.length && t.see.length, t.id);
+    for (const [a, text] of t.acts) assert.ok(ACTIONS[a] && text, `${t.id}: ${a}`);
+    for (const id of t.see) assert.ok(concepts.has(id), `${t.id}: ${id}`);
+  }
+  assert.equal((2 + all.length) % 2, 0, 'a spread would have a blank page'); // 2 contents pages
+});

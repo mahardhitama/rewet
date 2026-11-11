@@ -163,7 +163,6 @@ export const HOWTO = {
   hint: 'The level stays paused until you close this. Esc also closes it.',
   items: {
     1: [
-      { icon: 'tempBlock', name: 'Pick, then tap', text: 'Pick an action in the bar at the bottom. Then tap a tile on the map.' },
       act('tempBlock', 'Tap a canal tile. The block keeps the water in the peat. Floods can break it.'),
       act('permBlock', 'Tap a temp block to make it permanent. Floods do not break it.'),
       { icon: 'wet', name: 'The 40 cm line', text: 'Peat with the water table 40 cm or less below the surface is wet. Wet peat does not burn. Keep it wet through the dry season.' },
@@ -212,7 +211,7 @@ export const MENU = {
 export const JOURNAL = {
   title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next', home: 'Home',
   pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
-  contentsConcepts: 'Contents: ideas', contentsWildlife: (x, n) => `Contents: wildlife (${x}/${n})`,
+  contentsTiles: 'Contents: tiles', contentsConcepts: 'Contents: ideas', actionsHere: 'Actions on this tile', seeAlso: 'See also', contentsWildlife: (x, n) => `Contents: wildlife (${x}/${n})`,
   found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
   hidden: (k, n) => `Unknown species ${k} of ${n}, not found yet`,
   status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },

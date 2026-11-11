@@ -49,6 +49,42 @@ export const CONCEPTS = [
     sources: ['TC20', 'W20', 'P24', 'FAO16'] },
 ];
 
+// The map tiles and the actions that work on each. Game rules only, so no sources: ACTIONS in src/sim/game.js sets each rule.
+// acts: [ACTIONS id, what it does on this tile]. see: CONCEPTS ids.
+export const TILES = [
+  { id: 'peat', title: 'Peat',
+    body: 'Peat is the soil of the swamp. It is wet when the water table is 40 cm or less below the surface. Dry peat can burn.',
+    acts: [
+      ['plant', 'Plants seedlings on the 5×5 tiles around it. They live only when the water table is 0 to 40 cm below the surface.'],
+      ['mound', 'Raises the tile 20 cm, so seedlings do not drown in a flood. A tile takes one mound only.'],
+      ['palud', 'Only on wet peat next to the village. The village farms it and gives goodwill.'],
+      ['well', 'Fire crews in 3 tiles of the well put out fires 2 times faster. A well can go on any tile.'],
+      ['fireCrew', 'Only on a fire. The crew puts out the fire on the 3×3 tiles around it.'],
+    ], see: ['rule', 'fire', 'plants'] },
+  { id: 'canal', title: 'Canal',
+    body: 'A canal drains the peat near it. The water table is deepest next to the canal. People can dig new illegal canals from the edge of the site.',
+    acts: [
+      ['tempBlock', 'Builds a block that keeps the water in the peat. Floods can break it.'],
+      ['backfill', 'Fills the tile with peat. The tile becomes peat and stops drainage. It costs a lot.'],
+      ['pond', 'Only on a canal tile with no block, upstream of a block. It gives goodwill.'],
+    ], see: ['canals', 'blocks', 'people'] },
+  { id: 'block', title: 'Blocked canal',
+    body: 'A block is a dam in a canal. It lowers the drainage for up to 6 canal tiles upstream. A long canal needs a cascade of blocks.',
+    acts: [
+      ['permBlock', 'Only on a temp block. It makes the block permanent, so floods do not break it.'],
+      ['backfill', 'Fills the tile with peat. The tile becomes peat and stops drainage. It costs a lot.'],
+    ], see: ['blocks', 'seasons'] },
+  { id: 'river', title: 'River',
+    body: 'A river is natural water. It drains the peat near it less than a canal does. You cannot block or fill a river.',
+    acts: [['well', 'A well can go on any tile.']], see: ['canals'] },
+  { id: 'village', title: 'Village',
+    body: 'Local people live in the village. A fire next to the village costs goodwill. At 0 goodwill, you lose the level.',
+    acts: [['fireGroup', 'Fires near the village are found at once, and there is less arson.']], see: ['people', 'paludi'] },
+  { id: 'farm', title: 'Farm',
+    body: 'The village farms these fields. You cannot plant trees on a farm. A dry farm can burn.',
+    acts: [['fireCrew', 'Only on a fire. The crew puts out the fire on the 3×3 tiles around it.']], see: ['landuse', 'fire'] },
+];
+
 // status: IUCN now (Wikipedia citation of the IUCN assessment). Check it on iucnredlist.org before release.
 // local: Indonesian name, '' when no source gives one. habitat: the "Habitat cue" row. protected, endemic: the "Presence" row. name is the heading in docs/references/peat-swamp-wildlife.md.
 export const SPECIES = [

@@ -1,9 +1,9 @@
 // The journal: a book in a <dialog>. DOM only. It reads the save's found list and changes no game state.
-import { CONCEPTS, SPECIES, sourceUrl } from './journal.js';
+import { CONCEPTS, SPECIES, TILES, sourceUrl } from './journal.js';
 import { conceptArt } from './journalArt.js';
-import { JOURNAL as T } from './strings.js';
+import { JOURNAL as T, ACTION_TEXT } from './strings.js';
 import { animalSprite } from './render/iso.js';
-import { setText, sourceLink } from './icons.js';
+import { icon, setText, sourceLink } from './icons.js';
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 // The art is 16 px: the box scales it up, and CSS keeps the pixels sharp.
@@ -18,8 +18,8 @@ const sources = e => {
 // found: species ids. page: a concept or species id, or null for the contents. onClose runs when the dialog closes, by any way.
 export function openJournal({ found = [], page = null, onClose } = {}) {
   const $ = id => document.getElementById(id), dlg = $('dJournal'), has = new Set(found);
-  const dyn = [...CONCEPTS, ...SPECIES], byId = id => dyn.find(e => e.id === id);
-  // 0 and 1 are the two contents pages, then the concepts, then the species. Keep the page count even, so a spread never has a blank page.
+  const dyn = [...TILES, ...CONCEPTS, ...SPECIES], byId = id => dyn.find(e => e.id === id);
+  // 0 and 1 are the two contents pages, then the tiles, the concepts and the species. Keep the page count even, so a spread never has a blank page.
   const pages = ['cc', 'cw', ...dyn.map(e => e.id)];
   let idx = Math.max(0, pages.indexOf(page)), focusId = null;
   const mq = matchMedia('(max-width:600px)');
@@ -29,7 +29,12 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
     p.dataset.id = id;
     if (!e) return p; // never: ids come from `pages`
     p.append(el('h3', '', SPECIES.includes(e) ? (has.has(id) ? e.name : T.unknown) : e.title));
-    if (CONCEPTS.includes(e)) { p.insertAdjacentHTML('beforeend', conceptArt(e.id, e.alt)); p.append(el('p', '', e.body), sources(e)); } // the SVG is our own text, not user input
+    if (TILES.includes(e)) {
+      const ul = el('ul', 'jActs');
+      for (const [a, text] of e.acts) { const li = el('li'); li.append(icon(a), el('b', '', ACTION_TEXT[a][0]), ` ${text}`); ul.append(li); }
+      p.append(el('p', '', e.body), el('h4', '', T.actionsHere), ul, el('h4', '', T.seeAlso));
+      for (const id of e.see) { const b = el('button', 'jc', byId(id).title); b.type = 'button'; b.dataset.go = id; p.append(b); }
+    } else if (CONCEPTS.includes(e)) { p.insertAdjacentHTML('beforeend', conceptArt(e.id, e.alt)); p.append(el('p', '', e.body), sources(e)); } // the SVG is our own text, not user input
     else if (!has.has(id)) {
       const box = el('div', 'jSprite'); box.setAttribute('aria-hidden', 'true'); box.append(art(id, true));
       p.append(box, el('p', '', T.notFound));
@@ -47,6 +52,10 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
   }
   function contents(kind) {
     const p = el('section', 'jPage'), list = kind === 'cc' ? CONCEPTS : SPECIES;
+    if (kind === 'cc') { // the tiles come first on the ideas page, so the home spread stays 2 pages
+      p.append(el('h3', '', T.contentsTiles));
+      for (const e of TILES) { const b = el('button', 'jc', e.title); b.dataset.go = e.id; b.type = 'button'; p.append(b); }
+    }
     p.append(el('h3', '', kind === 'cc' ? T.contentsConcepts : T.contentsWildlife(SPECIES.filter(s => has.has(s.id)).length, SPECIES.length)));
     list.forEach((e, k) => {
       const b = el('button', 'jc', SPECIES.includes(e) ? (has.has(e.id) ? e.name : `${T.unknown} ${T.notFound}`) : e.title);
