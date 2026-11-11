@@ -24,10 +24,10 @@ Sources: reviews of Terra Nil (gamepressure.com, "Reclaim the Wasteland At Your 
 
 All changes are in the UI layer (`src/main.js`, `src/ui.js`, `src/strings.js`, `src/strings.id.js`). The sim does not change, so seeds, fixtures and calibration tests stay the same.
 
-1. **Slower clock.** ×1 = 150 s for each year (one week is about 2.9 s). ×2 = 75 s, the old ×1 pace.
+1. **Slower clock.** ×1 = 120 s for each year (one week is about 2.3 s). ×2 = 60 s.
 2. **Tile readout.** With no action selected, the 2 lines above the slots show the tile under the pointer: its kind, its water-table depth and what that means. On a touch screen, a tap on a tile with no action selected shows the readout.
 3. **Refusal preview.** With an action selected, the second line shows why the action cannot go on the tile under the pointer, before the tap.
-4. **Season countdown.** In the last 6 weeks of the wet season, the HUD time says how many weeks are left until the dry season.
+4. **Season countdown.** In the last 6 weeks of the wet season, the tooltip of the HUD time says how many weeks are left until the dry season. A field note gives the same warning 4 weeks before. The HUD text itself does not change, because the HUD widths are measured on it.
 5. **Field notes.** A toast explains these events, once for each level: the start of the dry season, a fire, a washout, arson on wet peat, a fire next to the village. Toasts wait in a queue. Each toast stays on the screen for a time that agrees with its length (3 s to 9 s).
 6. **Fire pause.** The first fire of each year pauses the game, and a note tells the player to send a fire crew. Later fires in the same year do not pause the game.
 7. **Taught actions only.** A level shows the action slots that the how-to dialogs of this level and of the earlier levels teach. The sandbox shows all slots.

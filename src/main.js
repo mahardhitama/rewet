@@ -17,7 +17,7 @@ import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief, table } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
-const TICKS_PER_MS = TICKS_PER_YEAR / 150000; // x1: 150 s a year, so a week is about 2.9 s. x2 is the old 75 s pace.
+const TICKS_PER_MS = TICKS_PER_YEAR / 120000; // x1: 120 s a year, so a week is about 2.3 s. x2: 60 s a year.
 
 // How long a toast stays: about 0.4 s a word, from 3 s to 9 s.
 export const noteMs = msg => Math.min(9000, Math.max(3000, msg.split(/\s+/).length * 400));
@@ -26,7 +26,7 @@ export const noteMs = msg => Math.min(9000, Math.max(3000, msg.split(/\s+/).leng
 export function ticksForFrame(dtMs, speed, carry) {
   if (!speed) return { ticks: 0, carry };
   const acc = carry + dtMs * TICKS_PER_MS * speed;
-  const ticks = Math.floor(acc + 1e-9); // epsilon: 75 s must give exactly 208
+  const ticks = Math.floor(acc + 1e-9); // epsilon: 120 s must give exactly 208
   return ticks > MAX_TICKS_PER_FRAME ? { ticks: MAX_TICKS_PER_FRAME, carry: 0 } : { ticks, carry: Math.max(0, acc - ticks) };
 }
 

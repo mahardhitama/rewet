@@ -9,13 +9,13 @@ const run = (frames, dt, speed) => {
   return total;
 };
 
-test('150 s at x1 = 208 ticks (1 year)', () => assert.equal(run(1500, 100, 1), 208));
-test('75 s at x2 = 208 ticks, the old x1 pace', () => assert.equal(run(750, 100, 2), 208));
+test('120 s at x1 = 208 ticks (1 year)', () => assert.equal(run(1200, 100, 1), 208));
+test('60 s at x2 = 208 ticks', () => assert.equal(run(600, 100, 2), 208));
 test('paused -> 0 ticks', () => assert.equal(ticksForFrame(1000, 0, 0).ticks, 0));
 test('carry keeps the fraction between frames', () => {
   const r = ticksForFrame(100, 1, 0);
   assert.equal(r.ticks, 0);
-  assert.ok(r.carry > 0.138 && r.carry < 0.139);
+  assert.ok(r.carry > 0.173 && r.carry < 0.174);
 });
 test('Review: 60 s frame gap -> 8 ticks, carry reset', () => assert.deepEqual(ticksForFrame(60000, 1, 0), { ticks: 8, carry: 0 }));
-test('exactly the cap keeps its carry', () => assert.equal(ticksForFrame(150000 * 8 / 208, 1, 0).ticks, 8));
+test('exactly the cap keeps its carry', () => assert.equal(ticksForFrame(120000 * 8 / 208, 1, 0).ticks, 8));
