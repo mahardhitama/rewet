@@ -32,29 +32,40 @@ export const CONCEPTS = [
 ];
 
 // status: IUCN now (Wikipedia citation of the IUCN assessment). Check it on iucnredlist.org before release.
-// local: Indonesian name, '' when no source gives one. name is the heading in docs/references/peat-swamp-wildlife.md.
+// local: Indonesian name, '' when no source gives one. habitat: the "Habitat cue" row. protected, endemic: the "Presence" row. name is the heading in docs/references/peat-swamp-wildlife.md.
 export const SPECIES = [
   { id: 'orangutan', name: 'Bornean orangutan', local: 'orangutan kalimantan', sci: 'Pongo pygmaeus wurmbii', status: 'CR',
+    habitat: 'Closed forest, in the canopy. It is active in the day, most in the morning and the late afternoon. Each evening it builds a nest for the night.', protected: true, endemic: true,
     fact: 'Peat swamp forests have the highest observed orangutan densities of any forest type.', sources: ['H18', 'KMP', 'PIN', 'WP'] },
   { id: 'gibbon', name: 'Bornean white-bearded gibbon', local: 'owa jenggot putih', sci: 'Hylobates albibarbis', status: 'EN',
+    habitat: 'Closed forest with tall trees to sing from. A pair sings duets in the morning in its core area.', protected: true, endemic: true,
     fact: 'In the 2015 fires, 10% of the study forest burned. One gibbon group moved west, away from the burnt area.', sources: ['H18', 'KMP', 'C19', 'WP'] },
   { id: 'langur', name: 'Maroon langur', local: 'lutung merah', sci: 'Presbytis rubicunda', status: 'VU',
+    habitat: 'Closed forest. It spends most of its time in the canopy.', protected: true, endemic: true,
     fact: 'Its main food is the young parts of leaves. It also eats fruits, seeds and flowers.', sources: ['H18', 'KMP', 'WP'] },
   { id: 'sunbear', name: 'Sun bear', local: 'beruang madu', sci: 'Helarctos malayanus', status: 'VU',
+    habitat: 'Forest, on the ground and in the trees.', protected: true,
     fact: 'Sun bears eat termites, ants, bees, honey, seeds and fruit. They help to spread the seeds of the tree Canarium pilosum.', sources: ['H18', 'KMP', 'WP'] },
   { id: 'hornbill', name: 'Rhinoceros hornbill', local: '', sci: 'Buceros rhinoceros', status: 'VU',
+    habitat: 'Forest. It nests inside tree trunks, so it needs large trees.', protected: true,
     fact: 'The pair seals the nest hole with mud, food and faeces. The female stays inside, and the male feeds her through a small hole.', sources: ['H18', 'WP'] },
   { id: 'stork', name: "Storm's stork", local: 'bangau storm', sci: 'Ciconia stormi', status: 'EN',
+    habitat: 'Lowland river forest and peat swamp forest. It feeds on muddy banks of rivers and creeks in dense forest, and in pools and swamps. It avoids deep, fast rivers.', protected: true,
     fact: 'Only 300 to 1,750 mature Storm\'s storks live in the wild (2023 estimate). Borneo has the largest part of them.', sources: ['H18', 'KMP', 'WP'] },
   { id: 'fishowl', name: 'Buffy fish owl', local: '', sci: 'Ketupa ketupu', status: 'LC',
+    habitat: 'Forest and freshwater wetlands near rivers and lakes. It hunts at night. In the day, it rests in trees with dense leaves.',
     fact: 'The buffy fish owl eats mainly fish, crabs and frogs.', sources: ['H18', 'WP'] },
   { id: 'otter', name: 'Asian small-clawed otter', local: '', sci: 'Aonyx cinerea', status: 'VU',
+    habitat: 'Rivers and freshwater wetlands. It is active mostly after dark.',
     fact: 'The otter eats mainly crabs and fish. The conversion of peat swamp forests is a threat to its habitat.', sources: ['H18', 'WP'] },
   { id: 'gharial', name: 'False gharial', local: '', sci: 'Tomistoma schlegelii', status: 'EN',
+    habitat: 'Open water in peat swamps and lowland swamp forests.', protected: true,
     fact: 'The false gharial lives in peat swamps. It builds a mound nest.', sources: ['H18', 'WP'] },
   { id: 'monitor', name: 'Asian water monitor', local: '', sci: 'Varanus salvator', status: 'LC',
+    habitat: 'The edges of rivers, lakes, ponds and swamps, and also towns with canals. It swims very well.',
     fact: 'The water monitor often eats carrion. This helps to clean the environment.', sources: ['H18', 'WP'] },
   { id: 'snakehead', name: 'Striped snakehead', local: 'gabus', sci: 'Channa striata', status: 'LC',
+    habitat: 'Open water. In the dry season, it goes back to permanent water or digs into the mud.',
     fact: 'The snakehead is an important food fish in its full native range.', sources: ['H18', 'WP'] },
 ];
 

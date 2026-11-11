@@ -2,11 +2,13 @@
 import { KIND, BLOCK, WET_WT, VEG, vegOf } from '../sim/world.js';
 import { TW, TH, tileToScreen } from './isoMath.js';
 import { TICKS_PER_YEAR } from '../sim/season.js';
+import { PS, WALK_FRAME_MS, WORK_FRAME_MS, crewPlan, crewSeen, crewSweep, crewPhase, crewEntries, guardPose, personSprite, resetCrews, crewHash } from './crew.js';
 
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
+const tileVariant = i => Math.floor(hash(i + .37) * 4) % 4; // ground art variant, not linked to the plant variant
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
 const FLAME = ['#c8321e', '#f08a2c', '#ffd25a', '#fff1b0'], CHAR = '#3a2a22', SMOKE = [205, 200, 192]; // flame layers, outer to core
@@ -90,13 +92,47 @@ function block(g, sx, sy, top, depth) {
 // Peat texture: 2 px dashes in a dark and a light shade, plus a few pale fibre specks.
 function texture(g, sx, sy, top, seed) {
   const dark = rgb(mix(top, BLACK, .14)), light = rgb(mix(top, WHITE, .1)), fibre = rgb(mix(DRY, WHITE, .3));
-  for (let r = 0; r < TH; r++) for (let dx = -rowW(r); dx < rowW(r) - 1; dx += 2) {
+  for (let r = 0; r < TH; r++) for (let dx = -rowW(r) + (r & 1); dx < rowW(r) - 1; dx += 2) { // odd rows start 1 px later: no straight speck columns
     const v = hash(seed * 997 + r * 61 + dx);
-    if (v < .2) g.fillStyle = dark; else if (v > .9) g.fillStyle = light; else continue;
+    if (v < .17) g.fillStyle = dark; else if (v > .92) g.fillStyle = light; else continue;
     g.fillRect(sx + dx, sy + r, v > .985 ? 1 : 2, 1);
     if (v > .985) { g.fillStyle = fibre; g.fillRect(sx + dx + 1, sy + r, 1, 1); }
   }
 }
+// Dry peat cracks: short zigzag lines along the 2 tile axes. n: number of cracks.
+function cracks(g, sx, sy, top, seed, n) {
+  g.fillStyle = rgb(mix(top, BLACK, .32));
+  for (let c = 0; c < n; c++) {
+    let a = 4 + hash(seed * 13 + c) * 8, b = 4 + hash(seed * 29 + c) * 8; // start point in ground units
+    for (let k = 0, ax = hash(seed + c * 7) < .5; k < 5; k++) {
+      const px = Math.round(a - b), py = Math.round((a + b) / 2);
+      if (Math.abs(px) < rowW(py) - 1) g.fillRect(sx + px, sy + py, 2, 1);
+      if (ax) a += 1.2; else b += 1.2;
+      if (hash(seed * 5 + c * 11 + k) < .4) ax = !ax; // a turn gives the zigzag
+    }
+  }
+}
+// Each pixel of the tile top, in ground units (a, b) in [0, 16]. f(a, b) returns a colour or null.
+function eachTop(g, sx, sy, f) {
+  for (let r = 0; r < TH; r++) for (let dx = -rowW(r); dx < rowW(r); dx++) {
+    const c = f(r + (dx + .5) / 2, r - (dx + .5) / 2);
+    if (c) { g.fillStyle = c; g.fillRect(sx + dx, sy + r, 1, 1); }
+  }
+}
+// A stilt house. (hx, hy): the left foot. hw: wall width. roof: [main, eave shadow].
+function house(g, hx, hy, hw, roof, wall = '#d8c69a') {
+  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(hx, hy + 1, hw + 2, 1); // shadow on the ground
+  g.fillStyle = '#3a2a1e'; g.fillRect(hx + 1, hy - 1, 1, 2); g.fillRect(hx + hw - 2, hy - 1, 1, 2); // stilts
+  g.fillStyle = wall; g.fillRect(hx, hy - 6, hw, 5);
+  g.fillStyle = rgb(mix(hexRgb(wall), BLACK, .2)); g.fillRect(hx + hw - 2, hy - 6, 2, 5); // the shaded end
+  g.fillStyle = roof[0]; g.fillRect(hx - 2, hy - 10, hw + 4, 4); g.fillRect(hx, hy - 12, hw, 2);
+  g.fillStyle = rgb(mix(hexRgb(roof[0]), WHITE, .2)); g.fillRect(hx, hy - 12, hw, 1); // ridge light
+  g.fillStyle = roof[1]; g.fillRect(hx - 2, hy - 7, hw + 4, 1);
+  g.fillStyle = '#3a2a1e'; g.fillRect(hx + (hw >> 1) - 1, hy - 4, 2, 3); // door
+  if (hw > 8) { g.fillStyle = '#5a4630'; g.fillRect(hx + 2, hy - 5, 2, 2); } // window
+}
+const hexRgb = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+const ROOF = { tile: ['#9a4a2a', '#7a3a20'], zinc: ['#8a949a', '#646c72'], thatch: ['#a8884a', '#7e6434'] };
 function blob(g, cx, cy, rad, col) {
   g.fillStyle = col;
   for (let dy = -rad; dy <= rad; dy++) { const w = Math.round(Math.sqrt(rad * rad - dy * dy)); g.fillRect(cx - w, cy + dy, w * 2 + 1, 1); }
@@ -107,46 +143,80 @@ function pool(g, cx, cy, rx, col) {
   for (let dy = -ry; dy <= ry; dy++) { const w = Math.round(rx * Math.sqrt(1 - (dy / (ry + .5)) ** 2)); g.fillRect(cx - w, cy + dy, w * 2 + 1, 1); }
 }
 const SHADOW = 'rgba(0,0,0,0.25)';
-function tree(g, bx, by, tall, rad) { // (bx, by) = foot of the trunk
-  pool(g, bx + 2, by, rad + 1, SHADOW);
-  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - tall, 2, tall);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - tall, 1, tall);
-  const cy = by - tall - rad + 2;
-  blob(g, bx, cy, rad, '#24552a'); // shadow side
-  blob(g, bx - 1, cy - 1, rad - 1, '#2f6b33');
-  blob(g, bx - 2, cy - 2, Math.max(1, rad - 3), '#5c9a45'); // light side
-  g.fillStyle = '#7fb85a'; g.fillRect(bx - 3, cy - rad + 1, 2, 1);
-}
-function emergent(g, bx, by) { // tall thin trunk, high flat crown above the other trees
-  pool(g, bx + 2, by, 4, SHADOW);
-  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - 19, 2, 19);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 19, 1, 19);
-  pool(g, bx, by - 21, 8, '#24552a'); // shadow side
-  pool(g, bx - 1, by - 22, 7, '#2f6b33');
-  pool(g, bx - 2, by - 23, 4, '#5c9a45'); // light side
-  g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 24, 2, 1);
-}
-function broadCrown(g, bx, by) { // short trunk, wide round crown of 3 blobs
-  pool(g, bx + 2, by, 7, SHADOW);
-  g.fillStyle = '#4a3324'; g.fillRect(bx - 1, by - 6, 3, 6);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx - 1, by - 6, 1, 6);
-  blob(g, bx - 5, by - 9, 5, '#24552a'); blob(g, bx + 5, by - 8, 5, '#24552a'); blob(g, bx, by - 12, 6, '#24552a');
-  blob(g, bx - 6, by - 10, 4, '#2f6b33'); blob(g, bx + 4, by - 9, 4, '#2f6b33'); blob(g, bx - 1, by - 13, 5, '#2f6b33');
-  blob(g, bx - 2, by - 14, 3, '#5c9a45'); blob(g, bx - 7, by - 11, 2, '#5c9a45');
-  g.fillStyle = '#7fb85a'; g.fillRect(bx - 4, by - 16, 2, 1);
-}
-function pandan(g, bx, by, h) { // no trunk: stilt roots, then stiff 2 px strap leaves that arch out and down at the tips
-  pool(g, bx + 1, by, 5, SHADOW);
-  g.fillStyle = '#6a4a32'; g.fillRect(bx, by - 4, 1, 4); // centre root
-  for (const d of [-1, 1]) for (let k = 0; k < 3; k++) g.fillRect(bx + d * (k + 1), by - 3 + k, 1, 1); // 2 diagonal stilt roots
-  g.fillStyle = '#1f5a48'; g.fillRect(bx - 1, by - 5, 3, 2); // leaf base
-  // [x per rise, rise, droop, colour]: each leaf goes up its slope, then its last steps bend out and down
-  for (const [ax, rise, droop, c] of [[-.25, 13, 2, '#1f5a48'], [.25, 12, 2, '#1f5a48'], [-.6, 10, 3, '#2a6c54'], [.6, 9, 3, '#2a6c54'], [-1, 6, 4, '#2f7a5e'], [1, 6, 4, '#2f7a5e']]) {
-    const d = ax < 0 ? -1 : 1; g.fillStyle = c;
-    for (let k = 1; k <= rise; k++) g.fillRect(bx + Math.round(ax * k) - 1, by - 4 - k * h / 12 | 0, 2, 1);
-    const x0 = bx + Math.round(ax * rise), y0 = by - 4 - (rise * h / 12 | 0);
-    for (let k = 1; k <= droop; k++) g.fillRect(x0 + d * k - 1, y0 + (k > 1 ? k - 1 : 0), 2, 1);
+// Tree palettes, dark to light: [shade, mid, lit, glint].
+const GREENS = ['#1f4a26', '#2f6b33', '#4f8d3f', '#7fb85a'], OLIVE = ['#38422a', '#525c38', '#747c4c', '#9a9e6a'], BLUE_GREEN = ['#1c4232', '#2a5e44', '#3e7c58', '#62a074'];
+const DARK = ['#14321c', '#204628', '#305e36', '#4a7c44'], LIME = ['#3a5a20', '#567e28', '#7aa63a', '#a8d05a'], PUCUK = ['#1f4a26', '#2f6b33', '#4f8d3f', '#b86a4a']; // PUCUK: red young leaves
+const JELUTONG = ['#28502a', '#3a7434', '#5e9844', '#8cc060'], GELAM = ['#2e4836', '#48644a', '#6a8660', '#8ea67a'];
+const BARK = ['#6a4a32', '#4a3324'], PALE_BARK = ['#b8ab90', '#857a66']; // [lit side, shade side]
+// A lumpy crown: a centre clump and a ring of n clumps. Each pixel takes its shade from its own clump, lit from the top left,
+// so the crown reads as many leaf masses, not one disc. holes: the chance to drop an edge pixel, for a ragged outline.
+function crown(g, cx, cy, rx, ry, pal, seed, holes = .3, n = 5) {
+  const cl = [[cx, cy, Math.min(rx, ry) * .8]];
+  for (let k = 0; k < n; k++) {
+    const a = (k / n + hash(seed + k) * .15) * 2 * Math.PI;
+    cl.push([cx + Math.cos(a) * rx * .55, cy + Math.sin(a) * ry * .5 - ry * .1, ry * (.45 + hash(seed * 3 + k) * .2)]);
   }
+  for (let py = Math.floor(cy - ry - 2); py <= cy + ry + 2; py++) for (let px = Math.floor(cx - rx - 2); px <= cx + rx + 2; px++) {
+    let best = 0, bc = null;
+    for (const c of cl) { const m = c[2] - Math.hypot(px + .5 - c[0], py + .5 - c[1]); if (m > best) { best = m; bc = c; } }
+    if (!bc) continue;
+    const hv = hash(seed * 31 + px * 17 + py * 131);
+    if (best < 1 && hv < holes) continue;
+    let v = -((px + .5 - bc[0]) * .55 + (py + .5 - bc[1]) * .85) / bc[2] - (py - cy) / ry * .35; // clump light, plus a darker underside
+    if (hv > .94) v += .4; else if (hv < .06) v -= .5; // leaf glints and gaps
+    g.fillStyle = pal[v > .75 ? 3 : v > .3 ? 2 : v > -.3 ? 1 : 0]; g.fillRect(px, py, 1, 1);
+  }
+}
+// A 2 px trunk, lit on the left. flare: the height of the buttress roots at the foot.
+function trunk(g, bx, by, h, bark = BARK, flare = 0) {
+  g.fillStyle = bark[1]; g.fillRect(bx - 1, by - h, 2, h);
+  g.fillStyle = bark[0]; g.fillRect(bx - 1, by - h, 1, h);
+  if (!flare) return;
+  g.fillStyle = bark[1]; g.fillRect(bx - 2, by - flare, 1, flare); g.fillRect(bx + 1, by - flare, 1, flare); g.fillRect(bx - 3, by - 1, 1, 1); g.fillRect(bx + 2, by - 1, 1, 1);
+  g.fillStyle = bark[0]; g.fillRect(bx - 2, by - flare, 1, 1);
+}
+// 2 limbs that fork up and out from the trunk at height top. The crown covers their tips.
+function fork(g, bx, top, spread) {
+  g.fillStyle = BARK[1];
+  for (let k = 1; k <= spread; k++) { g.fillRect(bx - 1 - k, top - k, 1, 1); g.fillRect(bx + k, top - k, 1, 1); }
+}
+function tree(g, bx, by, tall, rad, pal = GREENS) { // a young tree: the crown sits low on a short trunk
+  pool(g, bx + 2, by, rad + 1, SHADOW);
+  trunk(g, bx, by, tall + 2);
+  crown(g, bx, by - tall - rad + 1, rad + 1, rad, pal, bx * 7 + by * 13 + tall, .3, 3);
+}
+function canopy(g, bx, by, tall, rx, ry, pal, seed, holes = .3, n = 6) { // a mature tree: buttress, a fork, a lumpy crown. rx and ry set its shape
+  pool(g, bx + 2, by, rx - 1, SHADOW);
+  trunk(g, bx, by, tall + 2, BARK, 2); fork(g, bx, by - tall, 3);
+  crown(g, bx, by - tall - ry + 1, rx, ry, pal, seed, holes, n);
+}
+function emergent(g, bx, by) { // a tall straight trunk with buttress roots, 2 low limbs and a high wide crown above the other trees
+  pool(g, bx + 2, by, 5, SHADOW);
+  trunk(g, bx, by, 20, BARK, 3); fork(g, bx, by - 16, 4);
+  crown(g, bx - 4, by - 19, 4, 3, GREENS, 91, .35, 3); crown(g, bx + 4, by - 18, 4, 3, GREENS, 92, .35, 3);
+  crown(g, bx, by - 24, 7, 4, GREENS, 93, .3, 5);
+}
+function gelam(g, bx, by, tall) { // gelam (Melaleuca): a pale papery trunk and a narrow open grey-green crown, common on burnt peat
+  pool(g, bx + 1, by, 3, SHADOW);
+  trunk(g, bx, by, tall, PALE_BARK);
+  g.fillStyle = PALE_BARK[1]; for (let k = 3; k < tall; k += 4) g.fillRect(bx - 1, by - k, 1, 1); // flaking bark
+  crown(g, bx, by - tall + 2, 3, tall * .4, GELAM, bx * 5 + tall, .45, 4);
+}
+function tiered(g, bx, by, pal, seed) { // a narrow cone of 3 leaf tiers, wide at the foot
+  pool(g, bx + 2, by, 5, SHADOW);
+  trunk(g, bx, by, 18);
+  for (const [dy, rx, ry, k] of [[-8, 6, 2.5, 0], [-13, 4.5, 2.5, 1], [-18, 3, 2.5, 2]]) crown(g, bx, by + dy, rx, ry, pal, seed + k, .3, 4);
+}
+function twin(g, bx, by, pal, seed) { // 2 stems that lean apart from one foot, each with its own crown
+  pool(g, bx + 2, by, 7, SHADOW);
+  g.fillStyle = BARK[1];
+  for (let k = 0; k < 11; k++) { g.fillRect(bx - 1 - (k >> 2), by - k, 2, 1); g.fillRect(bx + 1 + (k >> 2), by - k, 2, 1); }
+  g.fillStyle = BARK[0]; for (let k = 0; k < 11; k++) g.fillRect(bx - 1 - (k >> 2), by - k, 1, 1);
+  crown(g, bx - 4, by - 13, 5, 4, pal, seed, .3, 4); crown(g, bx + 5, by - 15, 5, 4, pal, seed + 1, .3, 4);
+}
+function mixed(g, bx, by, dark, light, seed) { // a dark crown with a light flush of new leaves on its sunny side
+  canopy(g, bx, by, 6, 7, 6, dark, seed);
+  crown(g, bx - 2, by - 14, 4, 3, light, seed + 5, .45, 3);
 }
 function shrub(g, bx, by, rad) {
   pool(g, bx + 1, by + 1, rad + 1, SHADOW);
@@ -226,23 +296,30 @@ function puffSprite(r) {
 }
 function buildCache() {
   const both = f => [sprite((g, x, y) => f(g, x, y, D)), sprite((g, x, y) => f(g, x, y, EDGE))]; // [inner, map-edge]
-  const ground = [[], [], []]; // [flooded, wet, dry][cover bin]
-  for (let s = 0; s < 3; s++) for (let b = 0; b < COVER_BINS; b++) ground[s][b] = both((g, x, y, d) => {
-    const top = groundTop(s, b);
-    block(g, x, y, top, d); texture(g, x, y, top, s * COVER_BINS + b);
+  const ground = [[], [], []]; // [flooded, wet, dry][cover bin][variant]
+  for (let s = 0; s < 3; s++) for (let b = 0; b < COVER_BINS; b++) ground[s][b] = [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+    const top = groundTop(s, b), seed = (s * COVER_BINS + b) * 4 + v;
+    block(g, x, y, top, d); texture(g, x, y, top, seed);
+    if (s === 2 && b < 2) cracks(g, x, y, top, seed, b ? v >> 1 : 1 + (v >> 1)); // bare dry peat cracks; cover hides them
     if (s === 0) { // water patches with sheen
       pool(g, x - 6, y + 6, 4, rgb(mix(WATER, top, .3))); pool(g, x + 6, y + 10, 3, rgb(mix(WATER, top, .3)));
       g.fillStyle = '#9fd4e8'; g.fillRect(x - 8, y + 5, 3, 1); g.fillRect(x + 5, y + 10, 2, 1);
     }
-  });
+  }));
   const cache = {
     ground,
     // Fire art. A frame is drawn with its tile top vertex at (SW/2, HEAD), like a tile sprite.
-    flame: FLAMES.map(f => sprite((g, x, y) => f.forEach(([dx, h, wd, lean]) => tongue(g, x + dx, y + 11, h, wd, lean)))),
+    flame: FLAMES.map((f, n) => sprite((g, x, y) => {
+      pool(g, x, y + 11, 11, CHAR); pool(g, x - 1, y + 10, 7, '#5a2c1a'); // scorched ground under the tongues
+      g.fillStyle = FLAME[1]; for (const [ex, ey] of [[-11, 11], [10, 12], [-4, 14], [5, 9]]) if (hash(n * 9 + ex) > .35) g.fillRect(x + ex, y + ey, 1, 1); // sparks on the char
+      f.forEach(([dx, h, wd, lean]) => tongue(g, x + dx, y + 11, h, wd, lean));
+    })),
+    // Smouldering peat: a char patch with glow cracks. The 2 frames swap the bright and the dim cracks.
     ember: [0, 1].map(k => sprite((g, x, y) => {
-      g.fillStyle = CHAR; g.fillRect(x - 5, y + 7, 10, 4); g.fillRect(x - 3, y + 6, 6, 1);
-      g.fillStyle = FLAME[1 + k]; g.fillRect(x - 3 + k, y + 8, 5, 2); g.fillRect(x - 1, y + 7, 2, 1);
-      g.fillStyle = FLAME[2 - k]; g.fillRect(x - 1 + k, y + 8, 2, 1);
+      pool(g, x, y + 9, 9, CHAR); pool(g, x + 1, y + 9, 5, '#2a1e18');
+      [[-6, 9], [-5, 9], [-4, 10], [-3, 10], [-2, 9], [-1, 9], [0, 8], [1, 8], [2, 9], [3, 10], [4, 10], [5, 9], [-1, 10], [0, 11], [1, 11], [2, 7]]
+        .forEach(([ex, ey], n) => { g.fillStyle = (n + k) % 3 ? FLAME[0] : FLAME[1 + k]; g.fillRect(x + ex, y + ey, 1, 1); });
+      g.fillStyle = FLAME[2]; g.fillRect(x + (k ? 3 : -3), y + (k ? 10 : 9), 1, 1);
     })),
     puff: Array.from({ length: PUFF_R1 - PUFF_R0 + 1 }, (_, k) => puffSprite(PUFF_R0 + k)),
     heat: Array.from({ length: HEAT_BINS }, (_, b) => both((g, x, y, d) => block(g, x, y, heatColor(b / (HEAT_BINS - 1) * 1.5), d))),
@@ -252,8 +329,10 @@ function buildCache() {
       [BLOCK.TEMP]: AXES.map((_, ax) => sprite((g, x, y) => { // sandbags in two rows
         for (const [s0, up] of [[-6, 0], [-4.75, 2]]) for (let s = s0; s <= -s0; s += 2.5) {
           const [bx, by] = across(ax, s, x, y);
+          if (!up) { g.fillStyle = SHADOW; g.fillRect(bx - 2, by + 2, 5, 1); } // shadow under the front row
           g.fillStyle = '#8f7a4f'; g.fillRect(bx - 2, by - up + 1, 4, 1); g.fillStyle = '#c9b07a'; g.fillRect(bx - 2, by - up - 1, 4, 2);
           g.fillStyle = '#e0cc98'; g.fillRect(bx - 1, by - up - 1, 2, 1);
+          g.fillStyle = '#6e5c3a'; g.fillRect(bx + 1, by - up, 1, 1); // the seam between 2 bags
         }
       })),
       [BLOCK.PERM]: AXES.map((_, ax) => sprite((g, x, y) => { // plank wall with posts, taller than the sandbags
@@ -263,7 +342,8 @@ function buildCache() {
         }
         for (const s of [-7, -2.3, 2.3, 7]) {
           const [bx, by] = across(ax, s, x, y);
-          g.fillStyle = '#3e3328'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#6a5a48'; g.fillRect(bx, by - 8, 2, 1);
+          g.fillStyle = '#4e3e2e'; g.fillRect(bx, by - 8, 2, 11); g.fillStyle = '#7a6650'; g.fillRect(bx, by - 8, 1, 11); // lit left side
+          g.fillStyle = '#9a8468'; g.fillRect(bx, by - 8, 2, 1); // cut top
         }
       })),
       [BLOCK.FILLED]: [sprite((g, x, y) => { // backfilled canal (sim sets kind PEAT): low peat mound with fill seams
@@ -277,25 +357,38 @@ function buildCache() {
       g.fillStyle = '#d8c69a'; g.fillRect(x - 4, y + HH - 2, 9, 1); g.fillRect(x - 4, y + HH + 2, 9, 1); g.fillRect(x - 4, y + HH - 2, 1, 5); g.fillRect(x + 4, y + HH - 2, 1, 5);
       g.fillStyle = '#e8a040'; g.fillRect(x - 1, y + HH, 2, 1); g.fillRect(x + 6, y + HH + 3, 2, 1); // fish
     }),
-    river: both((g, x, y, d) => {
-      block(g, x, y + 4, [40, 84, 110], d - 4);
-      g.fillStyle = '#7fb8d0'; g.fillRect(x - 8, y + 8, 4, 1); g.fillRect(x + 4, y + 10, 6, 1); g.fillRect(x - 2, y + 14, 3, 1);
-    }),
-    village: both((g, x, y, d) => {
-      block(g, x, y, [112, 92, 62], d); texture(g, x, y, [112, 92, 62], 42);
-      for (const [hx, hy] of [[-10, 7], [2, 10]]) { // two stilt houses: stilts, wall, roof, door
-        g.fillStyle = '#3a2a1e'; g.fillRect(hx + x + 1, y + hy, 1, 2); g.fillRect(hx + x + 8, y + hy, 1, 2);
-        g.fillStyle = '#d8c69a'; g.fillRect(x + hx, y + hy - 6, 10, 6);
-        g.fillStyle = '#9a4a2a'; g.fillRect(x + hx - 2, y + hy - 10, 14, 4); g.fillRect(x + hx, y + hy - 12, 10, 2);
-        g.fillStyle = '#7a3a20'; g.fillRect(x + hx - 2, y + hy - 7, 14, 1);
-        g.fillStyle = '#3a2a1e'; g.fillRect(x + hx + 4, y + hy - 4, 2, 4);
+    // River: each variant moves the ripples, so a long river does not repeat one pattern.
+    river: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+      const top = [40, 84, 110];
+      block(g, x, y + 4, top, d - 4);
+      for (let k = 0; k < 3; k++) {
+        const rx = Math.round((hash(v * 17 + k) - .5) * 18), ry = 6 + k * 3 + (v & 1), len = 2 + (hash(v * 5 + k) * 4 | 0);
+        if (Math.abs(rx) + len < rowW(ry - 4)) { g.fillStyle = k ? '#7fb8d0' : '#a8d4e4'; g.fillRect(x + rx, y + ry, len, 1); }
       }
-    }),
-    farm: both((g, x, y, d) => {
-      block(g, x, y, [128, 100, 60], d);
-      g.fillStyle = '#7fa842'; for (let r = 1; r < TH; r += 2) { const w = rowW(r); if (w > 4) g.fillRect(x - w + 4, y + r, w * 2 - 8, 1); }
-    }),
-    veg: { // 4 sprites for each type, picked by vegVariant(i)
+    })),
+    // Village variants: tile roofs, a zinc roof, a thatch roof, and a row of 3 small houses.
+    village: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+      const top = [112, 92, 62];
+      block(g, x, y, top, d); texture(g, x, y, top, 42 + v);
+      eachTop(g, x, y, (a, b) => Math.abs(a - b) < 1.6 && a > 2 && a < 14 ? rgb(mix(top, WHITE, .12)) : null); // a beaten path across the tile
+      if (v === 0) { house(g, x - 10, y + 7, 10, ROOF.tile); house(g, x + 2, y + 10, 10, ROOF.tile); }
+      if (v === 1) { tree(g, x - 8, y + 8, 4, 3); house(g, x - 3, y + 11, 12, ROOF.zinc, '#c8b48a'); }
+      if (v === 2) { house(g, x + 1, y + 7, 10, ROOF.thatch, '#b89a6a'); house(g, x - 11, y + 10, 10, ROOF.tile); }
+      if (v === 3) { for (const [hx, hy, r] of [[-11, 7, 'zinc'], [-3, 10, 'tile'], [5, 13, 'thatch']]) house(g, x + hx, y + hy, 7, ROOF[r]); }
+    })),
+    // Farm variants: crop rows along each tile axis, cassava mounds, and a part-planted plot.
+    farm: [0, 1, 2, 3].map(v => both((g, x, y, d) => {
+      const top = [128, 100, 60], leaf = '#7fa842', dark = '#5c8232';
+      block(g, x, y, top, d); texture(g, x, y, top, 60 + v);
+      eachTop(g, x, y, (a, b) => {
+        if (a < 1.5 || b < 1.5 || a > 14.5 || b > 14.5) return null; // a bare rim
+        const u = v === 1 ? a : b, m = u % 3;
+        if (v === 2) return (a % 4 < 1.6 && b % 4 < 1.6) ? (a % 4 < .8 ? leaf : dark) : null;
+        if (v === 3 && a > 9) return m < .8 ? rgb(mix(top, BLACK, .2)) : null; // ploughed furrows, not planted yet
+        return m < .8 ? leaf : m < 1.4 ? dark : null;
+      });
+    })),
+    veg: { // sprites for each type; drawWorld picks one from the tile hash
       [VEG.FERN]: [sprite((g, x, y) => { fern(g, x - 5, y + 8, 4); fern(g, x + 5, y + 11, 3); }), sprite((g, x, y) => { fern(g, x + 1, y + 10, 5); fern(g, x - 7, y + 9, 3); }),
         sprite((g, x, y) => { tuft(g, x - 4, y + 9); tuft(g, x + 5, y + 12); }), sprite((g, x, y) => { fern(g, x - 2, y + 11, 6); fern(g, x + 7, y + 9, 2); fern(g, x - 8, y + 8, 2); })],
       [VEG.SEEDLING]: [sprite((g, x, y) => { seedling(g, x - 5, y + 8, 4); seedling(g, x + 3, y + 7, 3); seedling(g, x, y + 12, 4); }),
@@ -304,10 +397,19 @@ function buildCache() {
         sprite((g, x, y) => { sapling(g, x - 2, y + 11, 8); seedling(g, x + 6, y + 9, 3); })],
       [VEG.SHRUB]: [sprite((g, x, y) => { shrub(g, x - 4, y + 8, 5); shrub(g, x + 5, y + 11, 4); }), sprite((g, x, y) => { shrub(g, x + 1, y + 10, 6); shrub(g, x - 8, y + 9, 3); }),
         sprite((g, x, y) => { shrub(g, x - 7, y + 9, 3); shrub(g, x + 1, y + 8, 3); shrub(g, x + 7, y + 11, 3); shrub(g, x - 3, y + 13, 3); }), sprite((g, x, y) => { lowShrub(g, x - 1, y + 10, 9); })],
-      [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 5, y + 9, 5, 3); tree(g, x + 5, y + 12, 4, 3); }), // young trees
-        sprite((g, x, y) => { broadCrown(g, x + 1, y + 12); tree(g, x - 9, y + 9, 5, 3); }),
-        sprite((g, x, y) => { tree(g, x + 6, y + 8, 7, 4); emergent(g, x - 2, y + 12); }),
-        sprite((g, x, y) => { pandan(g, x - 5, y + 9, 12); pandan(g, x + 4, y + 12, 13); tree(g, x + 9, y + 8, 4, 3); })]
+      // Trees, drawn back to front in each sprite. They differ in shape (round, tall, flat, cone, 2 stems, open), in size and in colour.
+      [VEG.TREE]: [sprite((g, x, y) => { tree(g, x - 6, y + 9, 4, 3); tree(g, x + 2, y + 7, 5, 2, JELUTONG); tree(g, x + 5, y + 12, 3, 3, OLIVE); }), // young trees
+        sprite((g, x, y) => { tree(g, x - 9, y + 8, 4, 3); canopy(g, x + 1, y + 12, 6, 8, 6, GREENS, 11); }), // broad round
+        sprite((g, x, y) => { tree(g, x + 6, y + 8, 6, 4, JELUTONG); emergent(g, x - 2, y + 12); }), // emergent
+        sprite((g, x, y) => { gelam(g, x - 5, y + 8, 15); gelam(g, x + 3, y + 10, 18); gelam(g, x + 8, y + 13, 11); }), // gelam
+        sprite((g, x, y) => { tree(g, x - 8, y + 9, 3, 3, OLIVE); canopy(g, x + 2, y + 12, 6, 4, 8, BLUE_GREEN, 41, .3, 5); }), // tall oval
+        sprite((g, x, y) => { canopy(g, x, y + 11, 7, 10, 4, DARK, 51, .3, 8); }), // wide flat crown
+        sprite((g, x, y) => { tree(g, x + 7, y + 8, 3, 3, GREENS); tiered(g, x - 2, y + 12, LIME, 61); }), // cone
+        sprite((g, x, y) => { twin(g, x, y + 12, OLIVE, 71); }), // 2 stems
+        sprite((g, x, y) => { tree(g, x + 8, y + 8, 3, 3, DARK); mixed(g, x - 1, y + 12, DARK, LIME, 81); }), // dark and light
+        sprite((g, x, y) => { tree(g, x - 8, y + 8, 4, 3, JELUTONG); canopy(g, x + 2, y + 12, 7, 7, 6, PUCUK, 91); }), // red young leaves
+        sprite((g, x, y) => { canopy(g, x - 4, y + 9, 5, 6, 5, GREENS, 31); canopy(g, x + 5, y + 13, 4, 6, 4, BLUE_GREEN, 32); }), // a pair
+        sprite((g, x, y) => { gelam(g, x - 7, y + 9, 13); canopy(g, x + 3, y + 12, 7, 7, 6, OLIVE, 101, .55, 5); })] // open, sparse crown
     },
   };
   return cache;
@@ -451,7 +553,7 @@ export function animalSprite(id, silhouette = false) {
 const SLIDE_MS = 600;
 const slides = new Map(), drawList = [], pa = [0, 0], pb = [0, 0];
 let slideFrame = 0;
-export const resetSlides = () => slides.clear();
+export const resetSlides = () => { slides.clear(); resetCrews(); };
 export const slideCount = () => slides.size;
 const clamp01 = v => Math.max(0, Math.min(1, v));
 // Pure. Linear blend of two points. t is 0 to 1. out is optional, to avoid an allocation.
@@ -470,6 +572,27 @@ export function slideState(a, tick, now, w, h, frame, map = slides) {
   s.f = frame;
   if (a.leaving && s.leaveAt < 0 && Math.min(a.i % w, (a.i / w) | 0, w - 1 - a.i % w, h - 1 - ((a.i / w) | 0)) === 0) s.leaveAt = now; // the sim removes it at the next weekly step
   return s;
+}
+// Adds a draw entry for each crew person (crew.js) to drawList, from index n. Returns the new count.
+const phase = { t: 0, alpha: 0, walking: false };
+function addCrews(game, now, w, h, kind, pos, n) {
+  for (const j of game.jobs) { const key = `${j.id}:${j.i}:${j.doneAt}`; crewSeen(key, now, slideFrame, () => crewPlan(j.id, j.i, key, w, h, kind, j.tiles)); }
+  for (const i of game.fireGroups ?? []) { const key = 'guard:' + i; crewSeen(key, now, slideFrame, () => crewPlan('guard', i, key, w, h, kind)); }
+  crewSweep(now, slideFrame);
+  for (const [key, s] of crewEntries()) {
+    const ph = crewPhase(s, now, phase), walking = ph.walking && !REDUCED, u = REDUCED ? 0 : 1 - ph.t;
+    const away = s.leaveAt >= 0 && now >= s.leaveAt, guard = key.startsWith('guard:');
+    s.plan.forEach((m, k) => {
+      const tx = m.tile % w, ty = (m.tile / w) | 0, fx = m.from[0] - tx, fy = m.from[1] - ty, d = drawList[n++] ??= { x: 0, y: 0, al: 1, a: null, xy: [0, 0] };
+      d.x = pos[2 * m.tile] + m.ox + Math.round((fx - fy) * HW * u);
+      d.y = pos[2 * m.tile + 1] + HH + m.oy + Math.round((fx + fy) * HH * u);
+      const pose = walking ? 'walk' : guard ? guardPose(m.tile, now) : m.pose;
+      const flip = walking ? (fx - fy > 0) !== away : m.flip; // walk in: face the spot; walk away: face the start point
+      const frame = REDUCED ? 0 : Math.floor(now / (walking ? WALK_FRAME_MS : WORK_FRAME_MS) + crewHash(m.tile + k) * 2) % 2;
+      d.spr = personSprite(pose, frame, m.pal, flip); d.al = ph.alpha; d.a = null;
+    });
+  }
+  return n;
 }
 // Pure. Hit radius in buffer px: 22 CSS px (half of a 44 px target), but at least the reach of the sprite from its centre.
 export const hitRadius = scale => Math.max(22 / scale, AS / 2 + 1);
@@ -515,6 +638,7 @@ export function canalSprite(key, o = -1) {
   const arms = [];
   DIRS.forEach(([dx, dy], k) => { const v = (key >> 2 * k) & 3; if (v) arms.push([dx, dy, v - 1]); });
   const spec = { arms, cs: (key >> 16) & 3, ws: (key >> 18) & 3 }, bed = rgb(spec.ws === 3 ? mix(MUD, DRY, .4) : MUD), bank = BANK_TOP[(key >> 24) & 3], edge = (key >> 20) & 1;
+  const wall = rgb(mix(bank, BLACK, .25)); // the cut wall: a shade of its own bank, so a drained canal does not draw a black line
   const [ox, oy] = o < 0 ? [0, 0] : DIRS[o], fx = (ox - oy) * HW, fy = (ox + oy) * HH;
   c = sprite((g, x, y) => {
     if (o < 0) {
@@ -527,7 +651,7 @@ export function canalSprite(key, o = -1) {
         if (spec.ws === 0 && chan(dx + .5, r + .5, spec).m > -2.2) { g.fillStyle = v > .88 ? rgb(mix(WATER, WHITE, .3)) : rgb(SEEP); g.fillRect(x + dx - fx, y + r - fy, 1, 1); }
         continue;
       }
-      g.fillStyle = zn === 1 ? rgb(WALL) : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
+      g.fillStyle = zn === 1 ? wall : zn === 2 ? (v > .88 ? rgb(mix(MUD, WHITE, .35)) : bed)
         : canalZone(dx, r - 1, spec) !== 3 ? rgb(mix(WATER, WHITE, .3)) : v > .97 ? '#9fd4e8' : rgb(WATER);
       g.fillRect(x + dx - fx, y + r - fy, 1, 1); // a patch lies in the side tile frame
     }
@@ -634,10 +758,10 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     let spr;
     if (data) spr = cache.heat[Math.round(Math.max(0, Math.min(1, wt[i] / 1.5)) * (HEAT_BINS - 1))];
     else if (k === KIND.CANAL) { const c = canalSprite(canalBase[i] | canalStep(cWater[i], cDepth[i]) << 18 | e << 20); spr = [c, c]; }
-    else if (k === KIND.RIVER) spr = cache.river;
-    else if (k === KIND.VILLAGE) spr = cache.village;
-    else if (k === KIND.FARM) spr = cache.farm;
-    else spr = cache.ground[wt[i] < 0 ? 0 : wt[i] <= WET_WT ? 1 : 2][Math.round(Math.max(0, Math.min(1, cover[i])) * (COVER_BINS - 1))];
+    else if (k === KIND.RIVER) spr = cache.river[tileVariant(i)];
+    else if (k === KIND.VILLAGE) spr = cache.village[tileVariant(i)];
+    else if (k === KIND.FARM) spr = cache.farm[tileVariant(i)];
+    else spr = cache.ground[wt[i] < 0 ? 0 : wt[i] <= WET_WT ? 1 : 2][Math.round(Math.max(0, Math.min(1, cover[i])) * (COVER_BINS - 1))][tileVariant(i)];
     const ax = sx - SW / 2, ay = sy - HEAD;
     ctx.drawImage(spr[e], ax, ay);
     if (data) continue;
@@ -650,7 +774,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (ov) ctx.drawImage(ov[axis[i]] ?? ov[0], ax, ay);
     if (k === KIND.PEAT && !fire[i]) {
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
-      if (veg !== VEG.NONE) ctx.drawImage(cache.veg[veg][vegVariant(i)], ax, ay);
+      if (veg !== VEG.NONE) { const vs = cache.veg[veg]; ctx.drawImage(vs[Math.floor(hash(i) * vs.length)], ax, ay); } // for 4 sprites this is vegVariant(i)
     }
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
@@ -685,12 +809,20 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       const d = drawList[n] ??= { x: 0, y: 0, al: 1, a: null, xy: [0, 0] };
       pa[0] = pos[2 * from]; pa[1] = pos[2 * from + 1]; pb[0] = pos[2 * a.i]; pb[1] = pos[2 * a.i + 1];
       slidePos(pa, pb, clamp01((now - s.seenAt) / SLIDE_MS), d.xy);
-      d.x = Math.round(d.xy[0]); d.y = Math.round(d.xy[1]) + HH + 3; d.a = a; d.al = fadeAlpha(now - s.shownAt, s.leaveAt < 0 ? -1 : now - s.leaveAt);
+      d.x = Math.round(d.xy[0]); d.y = Math.round(d.xy[1]) + HH + 3; d.a = a; d.spr = null; d.al = fadeAlpha(now - s.shownAt, s.leaveAt < 0 ? -1 : now - s.leaveAt);
       n++;
     }
     if (slides.size > n) for (const [id, s] of slides) if (s.f !== slideFrame) slides.delete(id);
+    n = addCrews(game, now, w, h, kind, pos, n);
     drawList.length = n; drawList.sort((p, q) => p.y - q.y);
     for (const d of drawList) {
+      if (d.spr) { // a crew person: not tappable
+        if (d.al <= 0) continue;
+        if (d.al < 1) ctx.globalAlpha = d.al;
+        ctx.drawImage(d.spr, d.x - PS / 2, d.y - PS);
+        ctx.globalAlpha = 1;
+        continue;
+      }
       const a = d.a, up = Math.sin(now / 700 + hash(a.id) * 6.28) > .7 ? 1 : 0; // 1 px idle step, slow
       if (d.al < 1) ctx.globalAlpha = d.al;
       ctx.drawImage(animalSprite(a.species), d.x - AS / 2, d.y - AS - up);

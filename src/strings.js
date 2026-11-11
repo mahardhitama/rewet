@@ -163,12 +163,11 @@ export const MENU = {
 };
 
 export const JOURNAL = {
-  title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next',
-  count: (x, n) => `Wildlife found ${x} of ${n}`,
+  title: 'Journal', open: 'Journal', close: 'Close', prev: 'Prev', next: 'Next', home: 'Home',
   pos: (a, b, n) => (a === b ? `Page ${a} of ${n}` : `Pages ${a}-${b} of ${n}`),
-  contentsConcepts: 'Contents: ideas', contentsWildlife: 'Contents: wildlife',
+  contentsConcepts: 'Contents: ideas', contentsWildlife: (x, n) => `Contents: wildlife (${x}/${n})`,
   found: name => `New in your journal: ${name}`, openEntry: 'Open', notFound: 'Not found yet', unknown: '?',
   hidden: (k, n) => `Unknown species ${k} of ${n}, not found yet`,
   status: { LC: 'Least Concern', NT: 'Near Threatened', VU: 'Vulnerable', EN: 'Endangered', CR: 'Critically Endangered' },
-  statusLabel: 'IUCN status', sources: 'Sources', openSource: 'Open source', hint: 'Left and Right arrows turn pages. Esc closes.',
+  statusLabel: 'IUCN status', habitatLabel: 'Habitat', protectedNote: 'Protected in Indonesia.', endemicNote: 'Lives only on Borneo.', sources: 'Sources', openSource: 'Open source', hint: 'Left and Right arrows turn pages. Esc closes.',
 };
