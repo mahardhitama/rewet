@@ -5,7 +5,7 @@ import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
 import { blip, tap, cue, sfx, setAmbience, setMuted, isMuted } from './audio.js';
-import { takeFxEvents, rainLevel, shake, celebrate } from './render/fx.js';
+import { takeFxEvents, rainLevel, shake, celebrate, setArmed } from './render/fx.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
@@ -158,6 +158,7 @@ function boot() {
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
   function toDebrief() {
     showDebrief(game); // evaluate() decides loss itself
+    setArmed(null);
     const stars = evaluate(game).stars;
     if (!game.level.sandbox) persist(recordResult(save, game.level.id, stars));
     celebrate(game.level.sandbox ? 0 : stars, game.world.w, game.world.h);
@@ -169,7 +170,7 @@ function boot() {
     for (let k = 0; k < r.ticks; k++) scenicStep(game);
     game.events.length = 0;
   }
-  function toScenic() { show('scenic'); $('scBack').focus({ preventScroll: true }); }
+  function toScenic() { if (map.mode === 'data') map.toggleMode(); show('scenic'); $('scBack').focus({ preventScroll: true }); }
   function backToDebrief() { show('debrief'); $('dbView').focus({ preventScroll: true }); }
   function tickLevel(dt) {
     const r = ticksForFrame(dt, paused ? 0 : speed, carry);
@@ -213,7 +214,7 @@ function boot() {
     setAmbience(ambience());
     if (game && phase !== 'debrief' && phase !== 'scenic') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
-    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.draw(game, now); }
+    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.cursor = phase === 'level'; map.draw(game, now); }
     else {
       if (!story) newStory(); // first frame with reduced motion
       map.whole = true; map.shot = shot; storyAt(story, h); map.draw(story.game, now);
@@ -227,7 +228,7 @@ function boot() {
     if (e.key === 'Escape' && (phase === 'level' || phase === 'yearReport')) { e.preventDefault(); return $('dQuit').showModal(); } // preventDefault: this Esc would also cancel the new dialog
     if (e.key === 'Escape' && ['levelSelect', 'debrief'].includes(phase)) return toMenu();
     if (phase === 'scenic') { // only look: pan and zoom keys, Esc goes back to the results
-      if (e.key === 'Escape') return backToDebrief();
+      if (e.key === 'Escape') return e.repeat || backToDebrief(); // a held Esc must not run on into the menu
       if (map.key(e)) return;
       if (e.key === '+' || e.key === '=') map.zoom(1); else if (e.key === '-') map.zoom(-1); else if (e.key === '0') map.zoom(0);
       return;

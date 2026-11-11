@@ -181,36 +181,44 @@ function cloudAt(k, game, now) {
   const x = x0 + ((hash(k + 3.3) * span + now / 1000 * (2 + hash(k + 4.4) * 3)) % span), y = (.1 + .8 * hash(k + 5.5)) * (w + h) * HH;
   return [Math.round(x - c.W / 2), Math.round(y), c];
 }
+// The sky box: the map is its floor, and its walls rise BOX_UP px above the map's top vertex. Clouds, rain and birds stay inside it.
+const BOX_UP = 110;
+const boxH = wd => (wd.w + wd.h) * HH + BOX_UP; // wall height in px: the whole map height, plus room above the north corner
+function corners(pos, { w, h }) { const c = (i, dx, dy) => [pos[2 * i] + dx, pos[2 * i + 1] + dy]; return [c(0, 0, 0), c(w - 1, HW, HH), c(w * h - 1, 0, TH), c((h - 1) * w, -HW, HH)]; } // N, E, S, W
+function clipTo(ctx, pts) { ctx.save(); ctx.beginPath(); for (const [x, y] of pts) ctx.lineTo(x, y); ctx.clip(); }
+function clipBox(ctx, pos, wd) { // the outline of the box on screen: the floor's E, S and W corners, then the top of the walls above W, N and E
+  const [N, E, S, W] = corners(pos, wd), H = boxH(wd);
+  clipTo(ctx, [W, [W[0], W[1] - H], [N[0], N[1] - H], [E[0], E[1] - H], E, S]);
+}
 function weather(ctx, game, pos, bw, bh, now) {
   const want = game.level && isWetSeason(game) && hash(((game.tick ?? 0) / 6 | 0) + game.world.seed) < .55 ? 1 : 0; // showers come and go every 1.5 weeks
   rain += (want - rain) * .02;
   if (REDUCED) return;
   clouds ??= Array.from({ length: CLOUD_N }, (_, k) => cloudShape(k + 1));
-  const { w, h } = game.world, c = (i, dx, dy) => [pos[2 * i] + dx, pos[2 * i + 1] + dy], ox = pos[0], oy = pos[1];
+  const wd = game.world, { w, h } = wd, ox = pos[0], oy = pos[1], H = boxH(wd);
   const count = Math.round(3 + (w + h) / 30 + rain * 3);
-  ctx.save(); ctx.beginPath(); // rain and cloud shadows fall on the map only, not on the backdrop
-  for (const [x, y] of [c(0, 0, 0), c(w - 1, HW, HH), c(w * h - 1, 0, TH), c((h - 1) * w, -HW, HH)]) ctx.lineTo(x, y);
-  ctx.clip();
+  clipTo(ctx, corners(pos, wd)); // cloud shadows fall on the map only
   ctx.globalAlpha = .28 + rain * .08;
   for (let k = 0; k < count; k++) { const [x, y, cl] = cloudAt(k, game, now); ctx.drawImage(cl.shadow, ox + x, oy + y); }
-  if (rain > .05) {
-    const n = Math.round(bw * bh / 700 * rain);
+  ctx.restore();
+  clipBox(ctx, pos, wd);
+  if (rain > .05) { // each drop falls straight down from the top of the box to its own spot on the map, then splashes
+    const n = Math.round(w * h / 1.6 * rain);
     ctx.globalAlpha = .45; ctx.fillStyle = '#b8d4ec';
     for (let k = 0; k < n; k++) {
-      const x0 = hash(k + .1) * (bw + 40), y0 = hash(k + .2) * bh - 50, L = 30 + hash(k + .3) * 70, v = 110 + hash(k + .4) * 50;
-      const p = (now / 1000 * v + hash(k + .5) * 999) % (L + 10), x = Math.round(x0 - p * .3), y = Math.round(y0 + p);
-      if (p < L) { ctx.fillRect(x, y, 1, 3); ctx.fillRect(x - 1, y + 3, 1, 1); }
-      else { const s = Math.round(x0 - L * .3); ctx.fillRect(s - 2, Math.round(y0 + L) + 3, 1, 1); ctx.fillRect(s + 1, Math.round(y0 + L) + 3, 1, 1); } // splash
+      const u = hash(k + .1) * w, v = hash(k + .2) * h, gx = Math.round(ox + (u - v) * HW), gy = Math.round(oy + (u + v) * HH);
+      const alt = H - (now / 1000 * (150 + hash(k + .4) * 60) + hash(k + .5) * 999) % (H + 14);
+      if (alt > 0) { const x = Math.round(gx + alt * .12), y = Math.round(gy - alt); ctx.fillRect(x, y, 1, 3); ctx.fillRect(x - 1, y + 3, 1, 1); } // a little wind from the east
+      else { ctx.fillRect(gx - 2, gy - 1, 1, 1); ctx.fillRect(gx + 1, gy - 1, 1, 1); } // splash
     }
   }
-  ctx.restore();
-  for (let k = 0; k < count; k++) { // the clouds themselves, in the sky above the north corner, straight above their shadows
+  for (let k = 0; k < count; k++) { // the clouds, in the sky above the north corner, straight above their shadows
     const [x, , cl] = cloudAt(k, game, now), cx = ox + x, cy = oy - SKY - cl.H - Math.round(hash(k + 6.6) * 10);
     if (cx > bw || cy > bh || cx + cl.W < 0 || cy + cl.H < 0) continue;
     ctx.globalAlpha = .6 * (1 - rain); ctx.drawImage(cl.fair, cx, cy); // see-through: the sky shows behind
     ctx.globalAlpha = .6 * rain; ctx.drawImage(cl.rain, cx, cy);
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.restore();
 }
 let flock = null, nextFlock = 0;
 function life(ctx, game, pos, shown, now) {
@@ -242,11 +250,12 @@ function life(ctx, game, pos, shown, now) {
   if (flock) {
     const t = (now - flock.born) / 1000, x0 = flock.dir > 0 ? -flock.span / 2 + t * 28 : flock.span / 2 - t * 28;
     if (Math.abs(x0) > flock.span / 2 + 1) { flock = null; return; }
-    ctx.fillStyle = '#f2efe4'; // white egrets, which read on dark forest
+    clipBox(ctx, pos, wd); ctx.fillStyle = '#f2efe4'; // white egrets, which read on dark forest; they fly inside the sky box
     for (let k = 0; k < flock.n; k++) {
       const bx = Math.round(pos[0] + x0 - flock.dir * k * 9), by = Math.round(pos[1] + flock.y + (k & 1 ? 5 : 0) * Math.ceil(k / 2) + Math.sin(t * 2 + k) * 2), up = ((now / 160 + k) | 0) % 2;
       ctx.fillRect(bx, by, 1, 1); ctx.fillRect(bx - 2, by - up, 2, 1); ctx.fillRect(bx + 1, by - up, 2, 1); // a body and two wings that flap
     }
+    ctx.restore();
   }
 }
 

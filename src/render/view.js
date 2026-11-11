@@ -63,7 +63,7 @@ export function createMapView(cv) {
     toggleMode() { v.mode = v.mode === 'data' ? 'normal' : 'data'; },
     draw(game, now) {
       v.fit(game.world);
-      v.hover = ptr && !v.whole ? v.pickTile(ptr) : null; // re-picked every frame, so pan/resize keep it accurate
+      v.hover = ptr && !v.whole && v.cursor !== false ? v.pickTile(ptr) : null; // cursor false: no tile cursor (debrief, map view) // re-picked every frame, so pan/resize keep it accurate
       backdrop(ctx, cv.width, cv.height);
       const [sx, sy] = shakeOffset(now); ctx.setTransform(1, 0, 0, 1, sx, sy);
       hits = drawWorld(ctx, game, v.cam, v.whole ? 'normal' : v.mode, v.hover, now);

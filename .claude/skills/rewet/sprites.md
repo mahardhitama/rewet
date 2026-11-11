@@ -53,6 +53,7 @@ Reuse the named colours at the top of `iso.js`: `DRY`, `WET`, `GREEN`, `FOREST`,
   - When a dam finishes near other blocked canal tiles (6 tiles or less), the map shows `CASCADE xN`.
   - When the dry season starts, a band with `DRY SEASON` slides across the map. The wet season gets no band, because it starts on the new-year tick, under the year report.
 - Clouds: `cloudShape()` builds 6 cumulus shapes once: 22 to 31 round puffs in a dome on a flat base, 130 to 220 px wide, drawn at 60% opacity. Each pixel takes the light of the front puff, with an ordered dither between 5 tones, so the cloud looks fluffy. All clouds float in the sky above the north corner of the map (`SKY`), so no cloud covers a tile. Each cloud has a solid, squashed shadow on the ground straight below it. In rain the clouds are grey and more numerous.
+- The sky box: the map is the floor of a box whose walls rise `boxH()` px (the map height plus `BOX_UP`). `clipBox()` clips clouds, rain and the egret flock to its outline. Each raindrop falls straight down from the top of the box to its own spot on the map, then splashes.
 - `fireArrows()` runs in `view.draw()` after the map. A fire outside the visible band gets a pulsing arrow at the edge. The band leaves out the HUD, the action bar and the zoom buttons.
 - The UI calls `placed()`, `denied()` and `setArmed()`. `main.js` calls `shake()` and `celebrate()`.
 - With reduced motion, fx.js spawns no particles, no weather and no shake.
