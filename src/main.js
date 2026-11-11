@@ -50,6 +50,7 @@ function boot() {
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const newStory = () => { story = buildStory(Math.floor(Math.random() * 2 ** 31)); map.leave(); };
   let game = null, paused = false, speed = 1, carry = 0;
+  const notes = []; // the toast queue (see toast()); declared here because toMenu() can run at boot
 
   // phase is one of intro | menu | levelSelect | level | yearReport | debrief
   function show(p) {
@@ -280,7 +281,6 @@ function boot() {
   // ---- menu actions
   // The toast sits above the action bar in a level (a hidden bar has 0 height).
   // Toasts wait in a queue, so a field note is not lost under the next one.
-  const notes = [];
   // urgent: it replaces the toast on the screen now (the fire pause must say why at once).
   function toast(msg, urgent = false) { if (urgent && notes.length) { notes[0] = msg; return showNote(); } notes.push(msg); if (notes.length === 1) showNote(); }
   function showNote() {
