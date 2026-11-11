@@ -160,12 +160,14 @@ export function table(el, rows, { head, label, labelledby } = {}) {
   if (labelledby) t.setAttribute('aria-labelledby', labelledby);
   const tr = (cells, tag) => {
     const row = document.createElement('tr');
-    for (const c of cells) {
-      const cell = Object.assign(document.createElement(tag), { textContent: c });
+    cells.forEach((c, k) => {
+      const cell = document.createElement(tag);
+      if (tag === 'td' && k === 1) cell.append(...`${c}`.split(/(\d[\d.,]*%?)/).map((s, j) => j % 2 ? Object.assign(document.createElement('span'), { className: 'num', textContent: s }) : s)); // game values in the result column show in the accent colour
+      else cell.textContent = c;
       if (tag === 'th') cell.scope = 'col';
       if (cells.length === 1 && cols > 1) cell.colSpan = cols;
       row.append(cell);
-    }
+    });
     return row;
   };
   if (head) t.createTHead().append(tr(head, 'th'));
