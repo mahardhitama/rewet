@@ -7,7 +7,7 @@
 | Layout, CSS tokens, buttons, `@media (max-width:600px)` | `index.html` |
 | HUD fill, action bar, map input (tap, drag, hover) | `src/ui.js`, `src/render/view.js` |
 | Camera scale, `screenToTile`, `clampPan` | `src/render/isoMath.js` |
-| All text | `src/strings.js` |
+| All text. English is in `src/strings.js`. Indonesian is in `src/strings.id.js`; `src/i18n.js` merges it when `settings.lang` is `id`. | `src/strings.js`, `src/strings.id.js` |
 
 ## Rules
 

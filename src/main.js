@@ -1,3 +1,4 @@
+import { LANG } from './i18n.js'; // first: it merges the Indonesian copy before any module reads the text
 import { createGame, step, ACTIONS } from './sim/game.js';
 import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
@@ -6,7 +7,7 @@ import { resolveLevel } from './sim/mapgen.js';
 import { blip, tap, cue, setMuted, isMuted } from './audio.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
-import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO } from './strings.js';
+import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
 import { icon, withIcon, setText, sourceLink, starIcons } from './icons.js';
@@ -30,6 +31,8 @@ function boot() {
   const map = createMapView(cv);
   const storage = browserStorage;
   let save = loadSave(storage);
+  document.documentElement.lang = LANG;
+  for (const [k, text] of Object.entries(PAGE)) { const [sel, attr] = k.split('@'), e = document.querySelector(sel); attr ? e.setAttribute(attr, text) : (e.firstChild.nodeValue = text); } // before withIcon wraps the button text
   setMuted(save.settings.mute);
   const persist = next => { save = next; writeSave(storage, save); };
 
@@ -203,12 +206,14 @@ function boot() {
   });
   $('skip').onclick = toMenu;
   $('skip').textContent = INTRO.skip;
-  reduce ? (phase = 'intro', toMenu(), h = 1) : startIntro();
+  let toMenuNow = false; // after a switch of language: the reload opens the menu, not the intro
+  try { toMenuNow = sessionStorage.getItem('rewet_menu') === '1'; sessionStorage.removeItem('rewet_menu'); } catch { /* blocked storage: play the intro */ }
+  reduce || toMenuNow ? (phase = 'intro', toMenu(), h = 1) : startIntro();
   requestAnimationFrame(frame);
 
   // ---- menu actions
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
-  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));
   document.addEventListener('mouseover', e => { // delegated: the level select builds its buttons later
@@ -242,8 +247,13 @@ function boot() {
   $('bSet').onclick = () => { $('snd').ariaPressed = String(!isMuted()); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
   $('snd').onclick = () => { setMuted(!isMuted()); $('snd').ariaPressed = String(!isMuted()); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
+  $('bLang').onclick = () => { // all text is read at load, so the new language needs a reload
+    persist({ ...save, settings: { ...save.settings, lang: LANG === 'id' ? 'en' : 'id' } });
+    try { sessionStorage.setItem('rewet_menu', '1'); } catch { /* blocked storage: the reload plays the intro */ }
+    location.reload();
+  };
   $('bReplay').onclick = e => { e.stopPropagation(); $('dSet').close(); startIntro(); }; // stop: the global click-to-skip would end the new intro at once
-  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...DEFAULT_SAVE.settings, mute: isMuted() } }); $('bCont').disabled = true; menuStats(); toast(TOAST.saveDeleted); }; // keeps the mute setting
+  $('bReset').onclick = () => { clearSave(storage); persist({ ...structuredClone(DEFAULT_SAVE), settings: { ...save.settings } }); $('bCont').disabled = true; menuStats(); toast(TOAST.saveDeleted); }; // keeps the settings (mute, language)
   $('lsTitle').textContent = SELECT.title; setText($('lsBack'), SELECT.back);
   $('lsBack').onclick = toMenu;
   $('rpCont').onclick = () => { paused = false; show('level'); };

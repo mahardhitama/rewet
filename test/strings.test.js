@@ -26,9 +26,9 @@ test('DEBRIEF rows have 3 cells', () => {
   assert.deepEqual(g.map(x => x[0][0]), ['✓', '✗', '✓']);
   assert.equal(g[0][2], '60%');
   assert.deepEqual(g, [
-    ['✓ Rewetting', '80% of the peat stayed wet through the last dry season', '60%'],
-    ['✗ Revegetation', 'new forest cover is 20%', '40%'],
-    ['✓ Revitalisation', 'village goodwill is 50', '30'],
+    ['✓\u00a0Rewetting', '80% of the peat stayed wet through the last dry season', '60%'],
+    ['✗\u00a0Revegetation', 'new forest cover is 20%', '40%'],
+    ['✓\u00a0Revitalisation', 'village goodwill is 50', '30'],
   ]);
   assert.deepEqual(DEBRIEF.figureRows(r), [
     ['Rewetting', '80% of the peat stayed wet through the last dry season'],

@@ -1,4 +1,6 @@
-// All UI copy (English).
+// All UI copy (English). src/strings.id.js holds the Indonesian copy; src/i18n.js merges it in.
+// PAGE: text of the static elements in index.html, as { 'selector' or 'selector@attribute': text }. English is in the HTML itself.
+export const PAGE = {};
 export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals drained it. Then it burned.'], [5.6, 'Block the canals. Rewet the peat. Replant.']];
 
 export const TOAST = {
@@ -78,7 +80,8 @@ export const ACTION_TEXT = {
   fireGroup: ['Fire group', 'Tap the village. Halves arson.', 'Watch'],
   fireCrew: ['Fire crew', 'Tap a fire. Puts out 3×3.', 'Fire'],
 };
-export const actionMeta = (cost, weeks, perTile = false) => weeks === Infinity ? 'until out' : perTile ? `${cost}/tile · 1–${weeks}w` : `${cost} · ${weeks}w`; // perTile: weeks is the longest job
+export const META = { until: 'until out', tile: 'tile', w: 'w' };
+export const actionMeta = (cost, weeks, perTile = false) => weeks === Infinity ? META.until : perTile ? `${cost}/${META.tile} · 1–${weeks}${META.w}` : `${cost} · ${weeks}${META.w}`; // perTile: weeks is the longest job
 export const SELECT_HINT = ['Pick an action, then tap a tile.', 'Tap the action again to cancel.']; // 2 lines, as the name and how-to lines of an action
 
 export const REASON = {
@@ -115,9 +118,9 @@ export const DEBRIEF = {
   goalHead: ['Goal', 'Result', 'Pass mark'],
   // each row is [goal, result, pass mark]
   goalRows: (r, p) => [
-    [`${r.rewetPct >= p.rewet ? '✓' : '✗'} Rewetting`, `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`, `${p.rewet}%`],
-    [`${r.coverPct >= p.reveg ? '✓' : '✗'} Revegetation`, `new forest cover is ${r.coverPct.toFixed(0)}%`, `${p.reveg}%`],
-    [`${r.goodwill >= p.revit ? '✓' : '✗'} Revitalisation`, `village goodwill is ${r.goodwill.toFixed(0)}`, `${p.revit}`],
+    [`${r.rewetPct >= p.rewet ? '✓' : '✗'}\u00a0Rewetting`, `${r.rewetPct.toFixed(0)}% of the peat stayed wet through the last dry season`, `${p.rewet}%`],
+    [`${r.coverPct >= p.reveg ? '✓' : '✗'}\u00a0Revegetation`, `new forest cover is ${r.coverPct.toFixed(0)}%`, `${p.reveg}%`],
+    [`${r.goodwill >= p.revit ? '✓' : '✗'}\u00a0Revitalisation`, `village goodwill is ${r.goodwill.toFixed(0)}`, `${p.revit}`],
   ],
   goalsTitle: 'Goal status',
   dataTitle: 'Data',

@@ -4,7 +4,9 @@
 // Classes: w water, d dry peat, g plant, f fire, a accent, i ink, m dim, p people. index.html sets the colours.
 
 const r = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="${c}"/>`;
-const t = (x, y, s, c = 'i', a = 'start') => `<text x="${x}" y="${y}" class="${c}" text-anchor="${a}">${s}</text>`;
+// Label translations, keyed by the English label. src/i18n.js fills it; a label not in it stays as it is (numbers, units).
+export const ART_TEXT = {};
+const t = (x, y, s, c = 'i', a = 'start') => `<text x="${x}" y="${y}" class="${c}" text-anchor="${a}">${ART_TEXT[s] ?? s}</text>`;
 const ln = (x1, y1, x2, y2, c = 'm', dash = false) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="s${c}"${dash ? ' stroke-dasharray="3 2"' : ''}/>`;
 // a stepped curve: one 2 px column for each x, from y = f(x) down to y1
 const fillUnder = (x0, x1, f, y1, c) => { let s = ''; for (let x = x0; x < x1; x += 2) { const y = Math.round(f(x)); s += r(x, y, 2, y1 - y, c); } return s; };

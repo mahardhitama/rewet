@@ -2,7 +2,7 @@ import { SPECIES } from './journal.js';
 // The only module that touches localStorage. Pure helpers take an injected `storage` ({getItem, setItem, removeItem?}).
 export const SAVE_KEY = 'rewet_v1';
 export const MAX_LEVEL = 6; // levels above this are the sandbox; unlocked = MAX_LEVEL + 1 opens it
-export const DEFAULT_SAVE = { version: 1, unlocked: MAX_LEVEL, stars: {}, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false }, found: [] }; // found: ids of the species in the journal
+export const DEFAULT_SAVE = { version: 1, unlocked: MAX_LEVEL, stars: {}, upgrades: { crew: 0, cheapBlocks: 0, fastCrew: 0 }, settings: { mute: false, lang: 'en' }, found: [] }; // found: ids of the species in the journal
 export const UPGRADE_COST = { crew: 3, cheapBlocks: 3, fastCrew: 4 };
 
 // Lazy methods: merely reading `localStorage` can throw when storage is blocked, and the callers here catch that.
@@ -19,6 +19,7 @@ function sanitize(o) {
   for (let id = 1; id <= MAX_LEVEL; id++) if (num(o.stars?.[id], 1, 3)) s.stars[id] = o.stars[id];
   for (const k of Object.keys(UPGRADE_COST)) if (o.upgrades?.[k] === 1) s.upgrades[k] = 1;
   s.settings.mute = o.settings?.mute === true;
+  if (o.settings?.lang === 'id') s.settings.lang = 'id';
   if (Array.isArray(o.found)) s.found = [...new Set(o.found.filter(id => SPECIES.some(sp => sp.id === id)))];
   return s;
 }

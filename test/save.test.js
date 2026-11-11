@@ -121,3 +121,11 @@ test('an unknown id or a duplicate in a stored save is dropped on load', () => {
   assert.deepEqual(loadSave(mem({ [SAVE_KEY]: JSON.stringify(raw) })).found, ['otter', 'gibbon']);
   assert.deepEqual(loadSave(mem({ [SAVE_KEY]: JSON.stringify({ ...DEFAULT_SAVE, found: 'otter' }) })).found, []);
 });
+
+test('settings.lang: en by default, id kept, anything else is en', () => {
+  const v = lang => loadSave(mem({ rewet_v1: JSON.stringify({ version: 1, settings: { lang } }) })).settings.lang;
+  assert.equal(loadSave(mem({})).settings.lang, 'en');
+  assert.equal(v('id'), 'id');
+  assert.equal(v('fr'), 'en');
+  assert.equal(v(undefined), 'en');
+});
