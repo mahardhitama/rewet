@@ -24,7 +24,7 @@ A CLI deploy uploads the working tree, not a commit. Deploy only from a clean tr
 1. Run `npm test`. All tests must pass, with C1 to C3.
 2. Run `node scripts/sim-run.js --level 1 --plan test/fixtures/l1-cascade.json`. The run must have no loss.
 3. Serve the game (`python3 -m http.server 8765`) and open it. Check the intro, the menu and one level.
-4. Change the version number in `index.html` (`<div id="ver">`) when the release changes. Use `0.0.x` for a fix and `0.x.0` for a feature set.
+4. Change the version number in `index.html` (`<div id="ver">`) when the release changes. The format is `vMAJOR.MINOR`, for example `v1.0`. Ask the user for the number.
 
 ## Rules
 
