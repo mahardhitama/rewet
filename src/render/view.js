@@ -1,7 +1,7 @@
 // Level-screen view state (camera pan, data mode, hover). Lives outside the game; render-only.
 import { cameraFor, clientToBuffer, screenToTile, fitScale, zoomSteps, keepStep, panForZoom, openStep } from './isoMath.js';
 import { drawWorld, nearestHit, hitRadius, resetSlides, resetSmoke } from './iso.js';
-import { backdrop, resetFx, shakeOffset, fireArrows } from './fx.js';
+import { backdrop, resetFx, shakeOffset, fireArrows, newFinds } from './fx.js';
 
 const DRAG_PX = 4, KEY_PAN = 16; // drag starts after 4 client px, so a tap stays a tap
 const PINCH = 0.25; // a pinch zooms one step each time the finger distance changes by 25%
@@ -67,6 +67,7 @@ export function createMapView(cv) {
       backdrop(ctx, cv.width, cv.height);
       const [sx, sy] = shakeOffset(now); ctx.setTransform(1, 0, 0, 1, sx, sy);
       hits = drawWorld(ctx, game, v.cam, v.whole ? 'normal' : v.mode, v.hover, now);
+      if (v.found && v.cursor !== false) newFinds(ctx, hits, v.found, now); // found: species ids in the journal, set by main
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (!v.whole) fireArrows(ctx, game, { l: 0, t: ins.top / v.scale, r: cv.width - Math.max(ins.side, ins.zoom) / v.scale, b: cv.height - ins.bottom / v.scale }, now);
     },

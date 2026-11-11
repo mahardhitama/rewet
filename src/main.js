@@ -214,7 +214,7 @@ function boot() {
     setAmbience(ambience());
     if (game && phase !== 'debrief' && phase !== 'scenic') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
-    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.cursor = phase === 'level'; map.draw(game, now); }
+    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.cursor = phase === 'level'; map.found = save.found; map.draw(game, now); }
     else {
       if (!story) newStory(); // first frame with reduced motion
       map.whole = true; map.shot = shot; storyAt(story, h); map.draw(story.game, now);

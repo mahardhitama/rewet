@@ -369,3 +369,13 @@ export function fireArrows(ctx, game, box, now) {
     }
   }
 }
+
+// ---- new finds: an animal whose species is not in the journal yet gets a small gold twinkle above it, so the player taps it.
+export function newFinds(ctx, hits, found, now) {
+  if (!hits.length) return;
+  ctx.fillStyle = FUNDS;
+  for (const a of hits) if (!found.includes(a.species)) {
+    const t = REDUCED ? 0 : (now / 140 + a.bx) % 8 | 0, x = Math.round(a.bx), y = Math.round(a.by) - 14 - (REDUCED ? 0 : (now / 400 | 0) % 2), r = t < 4 ? 2 : 1; // a 4-point star that pulses
+    ctx.fillRect(x, y - r, 1, 2 * r + 1); ctx.fillRect(x - r, y, 2 * r + 1, 1);
+  }
+}
