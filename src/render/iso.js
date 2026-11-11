@@ -9,6 +9,14 @@ const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 export const vegVariant = i => Math.floor(hash(i) * 4) % 4;
+// Pure. Tile i and the tiles in front of it (x+1, y+1 and the diagonal), inside a w x h map. Row-major order draws them after tile i.
+export const frontTiles = (w, h, i) => {
+  const x = i % w, y = (i - x) / w, out = [i];
+  if (x + 1 < w) out.push(i + 1);
+  if (y + 1 < h) out.push(i + w);
+  if (x + 1 < w && y + 1 < h) out.push(i + w + 1);
+  return out;
+};
 const tileVariant = i => Math.floor(hash(i + .37) * 4) % 4; // ground art variant, not linked to the plant variant
 const DRY = [124, 88, 54], WET = [64, 50, 38], GREEN = [92, 132, 54], FOREST = [54, 98, 46], WATER = [52, 108, 136];
 const BLACK = [0, 0, 0], WHITE = [255, 255, 255];
@@ -582,6 +590,16 @@ export const ANIMALS = {
     '..mmmmmmmmmmmmmm',
     '..mm.mm..mm.mm..'] },
 };
+// The plant sprite of tile i, or null: peat that is not burning, with a seedling or some cover.
+function vegSprite(game, i) {
+  const wd = game.world;
+  if (wd.kind[i] !== KIND.PEAT || wd.fire[i]) return null;
+  const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(wd.cover[i]);
+  if (veg === VEG.NONE) return null;
+  const vs = cache.veg[veg];
+  return vs[Math.floor(hash(i) * vs.length)]; // for 4 sprites this is vegVariant(i)
+}
+
 const animals = new Map();
 export function animalSprite(id, silhouette = false) {
   const key = silhouette ? '!' + id : id;
@@ -886,10 +904,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     const fv = Math.floor(hash(i + .71) * FLAME_VARIANTS);
     if (!fire[i] && (k === KIND.PEAT || k === KIND.FARM) && (game.tick ?? 0) - outAt[i] < COOL_TICKS) // put out lately: ash and dull glow
       ctx.drawImage(cache.cool[fv][REDUCED ? 0 : ((now / 700 + hash(i) * 2) | 0) % 2], ax, ay);
-    if (k === KIND.PEAT && !fire[i]) {
-      const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
-      if (veg !== VEG.NONE) { const vs = cache.veg[veg]; ctx.drawImage(vs[Math.floor(hash(i) * vs.length)], ax, ay); } // for 4 sprites this is vegVariant(i)
-    }
+    const vs = vegSprite(game, i);
+    if (vs) ctx.drawImage(vs, ax, ay);
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
     if (game.fireGroups.has(i)) { ctx.fillStyle = '#d23a2a'; ctx.fillRect(sx + 12, sy - 8, 2, 12); ctx.fillRect(sx + 14, sy - 8, 6, 4); }
@@ -902,7 +918,8 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
   }
   const dbg = globalThis.rewet; // ?debug only
   if (!data) { // animals: their own pass, sorted by drawn y, so a slide keeps the depth order. The feet are at the tile centre.
-    // Trade-off: an animal now draws over the plants of the tile below it. A tile pass drew those plants over the animal.
+    // After each animal, the plants of its tile and of the tiles in front of it draw again over it: a forest hides its wildlife.
+    // Trade-off: those plants also draw over the small markers (work flag, well) of their own tiles.
     slideFrame++; if (dbg) dbg.slides = slides;
     const fauna = game.fauna ?? []; let n = 0;
     for (const a of fauna) {
@@ -929,6 +946,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
       if (d.al < 1) ctx.globalAlpha = d.al;
       ctx.drawImage(animalSprite(a.species), d.x - AS / 2, d.y - AS - up);
       ctx.globalAlpha = 1;
+      for (const t of frontTiles(w, h, a.i)) { const vs = vegSprite(game, t); if (vs) ctx.drawImage(vs, pos[2 * t] - SW / 2, pos[2 * t + 1] - HEAD); }
       if (d.al > 0.2) hits.push({ species: a.species, bx: d.x, by: d.y - AS / 2 }); // a faded animal is not tappable
       if (dbg) (dbg.drawn ??= new Map()).set(a.id, { x: d.x, y: d.y, al: d.al, i: a.i, rx: pos[0], ry: pos[1] });
     }

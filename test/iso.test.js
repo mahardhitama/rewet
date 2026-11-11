@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, fireSize, flameFrames, FLAME_VARIANTS, FLAME_FRAMES, yearDir, emitSmoke, resetSmoke, setFireCount, smoke } from '../src/render/iso.js';
+import { downstream, frontTiles, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, fireSize, flameFrames, FLAME_VARIANTS, FLAME_FRAMES, yearDir, emitSmoke, resetSmoke, setFireCount, smoke } from '../src/render/iso.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 import { SPECIES } from '../src/journal.js';
 
@@ -15,6 +15,12 @@ test('downstream picks the lowest lower canal or river neighbour', () => {
 test('downstream gives -1 at a local low point', () => {
   const ds = downstream(2, 1, Float32Array.from([1, 1]), Uint8Array.from([KIND.CANAL, KIND.CANAL]));
   assert.deepEqual([...ds], [-1, -1]);
+});
+
+test('frontTiles: the tile and the tiles drawn after it that can cover it, inside the map', () => {
+  assert.deepEqual(frontTiles(4, 3, 5), [5, 6, 9, 10]); // (1,1)
+  assert.deepEqual(frontTiles(4, 3, 7), [7, 11]); // (3,1): right edge
+  assert.deepEqual(frontTiles(4, 3, 11), [11]); // (3,2): bottom-right corner
 });
 
 test('canal steps: the water depth below the bank in metres, on the scale of the peat water table', () => {
