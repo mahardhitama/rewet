@@ -19,7 +19,7 @@ const sources = e => {
 export function openJournal({ found = [], page = null, onClose } = {}) {
   const $ = id => document.getElementById(id), dlg = $('dJournal'), has = new Set(found);
   const dyn = [...CONCEPTS, ...SPECIES], byId = id => dyn.find(e => e.id === id);
-  // 0 and 1 are the two contents pages, then the concepts, then the species. 22 pages: an even count, so a spread never has a blank page.
+  // 0 and 1 are the two contents pages, then the concepts, then the species. Keep the page count even, so a spread never has a blank page.
   const pages = ['cc', 'cw', ...dyn.map(e => e.id)];
   let idx = Math.max(0, pages.indexOf(page)), focusId = null;
   const mq = matchMedia('(max-width:600px)');

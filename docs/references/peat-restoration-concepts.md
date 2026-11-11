@@ -100,6 +100,28 @@ The Dropbox folder `7. References/` holds only empty placeholder files (0 bytes)
 - Fish farming in the traditional "beje" system can use existing canals, low peat areas and fire-prevention water reservoirs. The 2016 workshop suggested this as a livelihood option (FAO16 page 3).
 - Oil palm raised the income of some smallholders in Sumatra. In Kalimantan its benefit is less clear (W20 page 823).
 
+### Dry and wet seasons
+
+- In the dry season, the water tables are 0.30 m deeper on average than in the rainy season (R14 page 8).
+- Water-table depth at 10 m, 100 m, 400 m and 1,000 m from Kalampangan Canal: dry season 0.88, 0.54, 0.35 and 0.33 m; rainy season 0.50, 0.13, 0.05 and 0.06 m (R14 Table 4, page 25).
+- In the dry season after dam construction, the water tables fell again to well below 0.40 m (R14 page 8).
+
+### Peat fire emissions
+
+- A wildfire on drained tropical peat burns 353 t of dry matter per hectare (IPCC13 Table 2.6, page 2.40).
+- A tropical organic-soil fire gives 464 g CO2-C, 210 g CO and 21 g CH4 per kg of dry matter burnt (IPCC13 Table 2.7, page 2.41).
+- Calculation: 353 t d.m. per hectare × 0.464 = 163.8 t C per hectare, about 164 t C. Divided by 11 t C per hectare per year for drained oil palm (IPCC13 Table 2.1), that is 14.9 years, about 15 years.
+
+### Land use on peat
+
+- Tier 1 CO2 emission factors for drained tropical organic soils, in t CO2-C per hectare per year: short-rotation plantation (for example acacia) 20, cropland 14, oil palm 11, paddy rice 9.4, shallow-drained plantation under 0.3 m (for example sago palm) 1.5 (IPCC13 Table 2.1, pages 2.12 and 2.13).
+- Rewetted tropical organic soil: 0 (IPCC13 Table 3.1, page 3.12).
+
+### Carbon and CO2
+
+- The conversion from C to CO2 uses the ratio of molecular weights, 44/12 (IPCC06 Volume 4, Section 2.2.3, page 2.11). See `peat-hydrology-and-emissions.md`.
+- Calculation: 1 t C × 44/12 = 3.67 t CO2.
+
 ## Newer edition check (2026-11-10)
 
 - IPCC13: we did not check the 2019 Refinement for changes to the factors above.

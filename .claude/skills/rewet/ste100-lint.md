@@ -29,7 +29,7 @@ Do the lint pass on each text that stays after the session: docs, specs, plans, 
 | backfill | fill a canal tile with peat | close, seal |
 | tick | one sim step, 1/4 week | frame, turn |
 | goal | one of the three 3R goals | objective, target |
-| t C | tonnes of carbon | t CO2 (not sourced yet) |
+| t C | tonnes of carbon. Use t CO2 only for the debrief value and the convert journal page (44/12, `IPCC06`) | t CO2 for a sim value |
 
 ## Common mistakes
 

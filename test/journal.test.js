@@ -39,7 +39,7 @@ test('a concept body is 2 to 4 sentences and has no t CO2 or hectare target', ()
   for (const c of CONCEPTS) {
     assert.ok(c.title && c.body);
     assert.ok(sentences(c.body) >= 2 && sentences(c.body) <= 4, `${c.id}: ${sentences(c.body)} sentences`);
-    assert.doesNotMatch(c.body, /t CO2(?!-?C)|million hectares? (target|by 2020)/i);
+    assert.doesNotMatch(c.body, c.id === 'convert' ? /million hectares? (target|by 2020)/i : /t CO2(?!-?C)|million hectares? (target|by 2020)/i); // only the convert page explains t CO2
   }
 });
 

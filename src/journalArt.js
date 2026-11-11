@@ -60,6 +60,39 @@ const ART = {
     return s + t(135, 20, '11', 'f', 'middle') + t(173, 74, '0', 'w', 'middle') + t(135, 90, 'drained', 'm z', 'middle') + t(173, 90, 'rewet', 'm z', 'middle') + t(158, 99, 't C/ha/yr', 'm', 'middle');
   },
 
+  seasons: () => {
+    // R14 Table 4: depth in m at each distance, [dry, rainy]. 1 m = 70 px down from the surface.
+    const rows = [['10 m', 0.88, 0.50], ['100 m', 0.54, 0.13], ['400 m', 0.35, 0.05], ['1,000 m', 0.33, 0.06]];
+    let s = r(4, 20, 192, 2, 'g') + ln(4, 48, 196, 48, 'a', true) + t(196, 57, '0.4 m', 'a', 'end');
+    rows.forEach(([d, dry, wet], k) => { const x = 18 + k * 46; s += r(x, 22, 12, Math.round(dry * 70), 'f') + r(x + 14, 22, 12, Math.max(1, Math.round(wet * 70)), 'w') + t(x + 13, 96, d, 'm', 'middle'); });
+    return s + r(4, 6, 8, 6, 'f') + t(15, 12, 'dry', 'f') + r(44, 6, 8, 6, 'w') + t(55, 12, 'rainy', 'w') + t(196, 12, 'from canal', 'm', 'end');
+  },
+
+  burn: () => {
+    // t C per hectare: one fire = 353 t d.m. x 0.464 = 164 t C. Oil palm 11 t C a year. 164 t C = 70 px.
+    const k = 70 / 164, h = Math.round(164 * k);
+    let s = ln(4, 86, 196, 86, 'm') + r(40, 86 - h, 30, h, 'f') + flame(55, 86 - h - 1);
+    for (let y = 0; y < 15; y++) s += r(120, 86 - Math.round((y + 1) * 11 * k), 30, Math.round(11 * k) - 1, 'a');
+    return s + t(55, 96, '1 fire', 'f', 'middle') + t(135, 96, '15 yr oil palm', 'a', 'middle') + t(80, 22, '164 t C', 'f') + t(156, 40, '11 t C', 'a') + t(156, 48, 'each year', 'a z') + t(4, 10, 't C per hectare', 'm');
+  },
+
+  landuse: () => {
+    // IPCC13 Table 2.1 and Table 3.1, t C per hectare per year. 20 t C = 100 px.
+    const rows = [['acacia', 20, 'f'], ['cropland', 14, 'f'], ['oil palm', 11, 'f'], ['paddy rice', 9.4, 'f'], ['sago', 1.5, 'g'], ['rewetted', 0, 'w']];
+    let s = t(4, 10, 't C per hectare per year', 'm');
+    rows.forEach(([n, v, c], k) => { const y = 18 + k * 13, w = Math.round(v * 5); s += t(4, y + 7, n, 'i') + r(66, y, Math.max(1, w), 8, c) + t(70 + w, y + 7, String(v), c); });
+    return s;
+  },
+
+  convert: () => {
+    const atom = (x, y, c, s) => r(x - 7, y - 7, 14, 14, c) + t(x, y + 3, s, 'bgt', 'middle');
+    let s = atom(30, 30, 'm', 'C') + t(30, 50, '12', 'm', 'middle') + t(48, 33, '+', 'i', 'middle');
+    s += atom(64, 30, 'w', 'O') + atom(80, 30, 'w', 'O') + t(72, 50, '32', 'w', 'middle') + arrow(96, 30, 114);
+    s += atom(130, 30, 'm', 'C') + atom(146, 30, 'w', 'O') + atom(162, 30, 'w', 'O') + t(146, 50, '44', 'a', 'middle');
+    // 1 t C = 30 px; 1 t C x 44/12 = 3.67 t CO2 = 110 px
+    return s + r(4, 62, 30, 8, 'm') + t(38, 69, '1 t C', 'm') + r(4, 78, 110, 8, 'a') + t(118, 85, '3.67 t CO2', 'a') + t(196, 99, 'x 44/12', 'a', 'end');
+  },
+
   plants: () => {
     const side = (x, trees) => {
       const wt = trees ? 46 : 66;

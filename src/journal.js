@@ -1,5 +1,5 @@
 // Journal content. Data only. Each entry lists source keys: the first cell of a table row in docs/references/*.md.
-// Every fact below comes from those files. A value with no source is not here. Carbon is t C. No hectare target for the 3Rs: W20 and TC20 disagree.
+// Every fact below comes from those files. A value with no source is not here. Carbon is t C; only the convert entry names t CO2. No hectare target for the 3Rs: W20 and TC20 disagree.
 
 export const CONCEPTS = [
   { id: 'threer', title: 'The 3Rs', alt: 'Diagram: rewet by blocking canals, replant endemic trees, then revitalise livelihoods.',
@@ -11,15 +11,27 @@ export const CONCEPTS = [
   { id: 'rule', title: 'The 0.4 m rule', alt: 'Diagram: peat with water above the 0.4 m line is healthy. Peat with water below the line is damaged and can burn.',
     body: 'Indonesian law PP 57/2016 sets a limit for peat that people farm. The peat is damaged when the water table is more than 0.4 m below the surface. Fire risk rises at the same depth. Protected peat is damaged by drainage, exposed sediment or less land cover.',
     sources: ['PP57', 'R14'] },
+  { id: 'seasons', title: 'Dry and wet seasons', alt: 'Graph: water-table depth at 10, 100, 400 and 1,000 m from a canal. In the dry season, the water table is deeper at each distance.',
+    body: 'In the dry season, the water table is 0.30 m deeper on average than in the rainy season. At 10 m from a canal, it is 0.88 m below the surface in the dry season and 0.50 m in the rainy season. Even with blocks, the water table can fall below 0.40 m again in a long dry season.',
+    sources: ['R14'] },
   { id: 'blocks', title: 'Block cascades', alt: 'Diagram: blocks raised the water table from 1.12 m to 0.37 m below the surface. A cascade of blocks keeps each step under 0.5 m.',
     body: 'In one study, canal blocks raised the average water table from 1.12 m to 0.37 m below the surface. In the dry season, water seeps along and under the blocks. The water table can then fall again, even below 1 m. The head difference over one block should stay under 0.5 m, so a canal needs a cascade of strong blocks.',
     sources: ['R14'] },
   { id: 'fire', title: 'Fire', alt: 'Graph: fire risk stays low while the water table is above 0.40 m, then rises as the water table falls.',
     body: 'Fire risk rises when the water table falls below 0.40 m. Fires burned 1.7 million hectares in Indonesia to October 2015. The largest fires were on peat. Fires also harm wildlife in Kalimantan.',
     sources: ['R14', 'PP57', 'C19'] },
+  { id: 'burn', title: 'Peat fire emissions', alt: 'Graph: one hectare of peat fire releases about 164 t C, as much as 15 years of drained oil palm at 11 t C per year.',
+    body: 'A wildfire on drained tropical peat burns 353 t of dry matter per hectare. Each kg of burnt peat gives 464 g of carbon as CO2, 210 g of CO and 21 g of methane. So the CO2 from one hectare of fire holds about 164 t C. Drained oil palm takes about 15 years to emit that much.',
+    sources: ['IPCC13'] },
   { id: 'carbon', title: 'Subsidence and carbon', alt: 'Graphs: subsidence rises with the water-table depth, 10 cm per year at 100 cm. Drained oil palm emits 11 t C per hectare per year, rewetted peat 0.',
     body: 'In drained peat, CO2 emission and subsidence rise sharply as the water table falls. Subsidence in cm per year equals 0.1 times the water-table depth in cm. IPCC gives defaults for CO2 only: drained tropical oil palm on peat emits 11 t C per hectare per year, and rewetted tropical peat emits 0. These values do not count methane or dissolved carbon.',
     sources: ['R14', 'IPCC13'] },
+  { id: 'landuse', title: 'Land use on peat', alt: 'Graph: CO2 emissions in t C per hectare per year. Acacia 20, cropland 14, oil palm 11, paddy rice 9.4, sago 1.5, rewetted peat 0.',
+    body: 'IPCC sets defaults for the CO2 that drained tropical peat emits, in t C per hectare per year. Acacia plantations emit 20, cropland 14, oil palm 11 and paddy rice 9.4. Sago palm with shallow drainage, less than 0.3 m, emits 1.5. Rewetted peat emits 0.',
+    sources: ['IPCC13'] },
+  { id: 'convert', title: 'Carbon and CO2', alt: 'Diagram: 1 carbon atom of weight 12 joins 2 oxygen atoms of weight 32 to make CO2 of weight 44. So 1 t C becomes 3.67 t CO2.',
+    body: 'The game counts carbon in t C, tonnes of carbon. The debrief shows t CO2, tonnes of carbon dioxide. To change t C to t CO2, multiply by 44/12, the ratio of their molecular weights. So 1 t C is about 3.67 t CO2.',
+    sources: ['IPCC06'] },
   { id: 'plants', title: 'Revegetation', alt: 'Diagram: on burned peat that is only rewet, the water falls and the peat sinks. With new trees, the water stays high.',
     body: 'BRG revegetation means planting endemic and adaptive trees. On burned peat, rewetting alone is not enough. Without swamp forest, high water levels cannot stay and subsidence continues. Researchers also recommend replanting burned areas.',
     sources: ['TC20', 'FAO16', 'H18'] },
@@ -80,6 +92,7 @@ export const SOURCE_URLS = {
   H18: 'https://mires-and-peat.scholasticahq.com/article/128947.pdf',
   PP57: 'https://peraturan.go.id/files/pp57-2016bt.pdf',
   C19: 'https://radar.brookes.ac.uk/radar/file/bb3992c9-738c-4ba0-9206-521ceb3a76cf/1/journal.pone.0217784.pdf',
+  IPCC06: 'https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_02_Ch2_Generic.pdf',
   IPCC13: 'https://www.ipcc.ch/site/assets/uploads/2018/03/Wetlands_Supplement_Entire_Report.pdf',
   FAO16: 'https://update23.greifswaldmoor.de/files/dokumente/2016_05_Final%20workshop%20report-MOEF%20FAO%20peatland%20paludiculture%20workshop%20May%202016.pdf',
   P24: 'https://atlantis-press.com/article/126000658.pdf',
