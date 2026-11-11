@@ -179,8 +179,8 @@ function life(ctx, game, pos, shown, now) {
   ctx.globalAlpha = 1;
   if (REDUCED) return;
   if (!flock && now > nextFlock && peat && wet / peat > .5) { // birds come back to wet peat: a small flock crosses the map now and then
-    const { w, h } = wd, dir = Math.random() < .5 ? 1 : -1;
-    flock = { born: now, dir, y: pos[2 * ((h >> 1) * w) + 1] - pos[1] - 40 - Math.random() * 60, n: 3 + (Math.random() * 3 | 0), span: (w + h) * HW + 120 };
+    const { w, h } = wd, dir = Math.random() < .5 ? 1 : -1; // the flock crosses the middle band of the map
+    flock = { born: now, dir, y: pos[2 * ((h >> 1) * w) + 1] - pos[1] - 30 + Math.random() * 50, n: 3 + (Math.random() * 3 | 0), span: (w + h) * HW + 120 };
     nextFlock = now + 15000 + Math.random() * 20000;
   }
   if (flock) {

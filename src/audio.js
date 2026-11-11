@@ -100,9 +100,9 @@ export const SFX = {
   fireCrew: { gap: 200, play: (a, t) => noise(a, t, 0.5, 0.03, 3500, 0.8, 300) }, // whoosh, high to low
   done: { gap: 150, play: (a, t, k) => { const s = (k % 5) + 5; bell(a, slendro(s, 233), t, 0.026, 0.9); bell(a, slendro(s + 2, 233), t + 0.14, 0.026, 1.1); } }, // two soft dings
   wet: { gap: 90, play: (a, t, k) => { const f = slendro(k % 10, 466); note(a, f, t, 0.12, 'sine', 0.02, f * 1.15); note(a, f * 2, t, 0.06, 'sine', 0.006); } }, // water drop; a run of tiles is a melody
-  star: { gap: 150, play: (a, t, k) => { const s = 5 + k * 2; bell(a, slendro(s, 466), t, 0.026, 1.2); bell(a, slendro(s + 1, 466), t + 0.08, 0.026, 1.4); note(a, slendro(s + 1, 466) * 4, t + 0.08, 0.3, 'sine', 0.008); } }, // rising chime, higher for higher k
-  deny: { gap: 150, play: (a, t) => { note(a, 110, t, 0.16, 'sawtooth', 0.025); note(a, 117, t, 0.16, 'sawtooth', 0.025); } }, // soft low buzz
-  find: { gap: 300, play: (a, t) => [0, 2, 4].forEach((s, i) => bell(a, slendro(s, 466), t + i * 0.1, 0.026, 0.7)) }, // rising arpeggio
+  star: { gap: 150, play: (a, t, k) => { const s = 5 + k * 2; bell(a, slendro(s, 466), t, 0.016, 1.2); bell(a, slendro(s + 1, 466), t + 0.08, 0.016, 1.4); note(a, slendro(s + 1, 466) * 4, t + 0.08, 0.3, 'sine', 0.006); } }, // rising chime, higher for higher k
+  deny: { gap: 150, play: (a, t) => { note(a, 110, t, 0.16, 'sawtooth', 0.02); note(a, 117, t, 0.16, 'sawtooth', 0.02); } }, // soft low buzz
+  find: { gap: 300, play: (a, t) => [0, 2, 4].forEach((s, i) => bell(a, slendro(s, 466), t + i * 0.1, 0.02, 0.7)) }, // rising arpeggio
   fireOut: { gap: 400, play: (a, t) => noise(a, t, 0.7, 0.03, 6000, 0.5, 3000) }, // soft hiss
 };
 const lastSfx = new Map();
