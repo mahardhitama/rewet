@@ -65,7 +65,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 #menuStats td{padding:4px 8px}
 /* short landscape: a smaller title and 2 button columns, so the menu fits with no scroll */
 @media (max-height:500px){:root{--fs-title:clamp(40px,14vh,64px)}#menu{display:grid;grid-template-columns:repeat(2,minmax(0,360px));column-gap:8px;justify-content:center}#menu>h1,#menu>.sub,#menu>#menuStats{grid-column:1/-1;justify-self:center}#menu .sub{margin:4px 0 12px}#menu .btn{max-width:none}#menuStats{margin-top:8px}}
-#scenic{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#14120ee6;border:2px solid var(--line);padding:8px 8px 8px 14px;max-width:calc(100% - 32px);box-shadow:0 4px 0 #0e0d0bcc}
+#scenic{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:max-content;display:flex;align-items:center;gap:12px;background:#14120ee6;border:2px solid var(--line);padding:8px 8px 8px 14px;max-width:calc(100% - 32px);box-shadow:0 4px 0 #0e0d0bcc}
 #scenic .btn{width:auto;margin:0;flex:none}
 #scHint{color:var(--dim);font-size:var(--fs-label)}
 @media (max-width:600px){#scHint{display:none}}
