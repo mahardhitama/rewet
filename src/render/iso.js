@@ -278,9 +278,42 @@ function tongue(g, bx, by, h, wd, lean) {
     if (f < .3 && half > 1) { g.fillStyle = FLAME[3]; g.fillRect(bx + ox, by - j, 1, 1); }
   }
 }
-// Frame table for the flame sprite: [dx, height, width, lean] of 3 tongues. The heights and leans change from frame to frame.
-const FLAMES = [[[-7, 9, 5, -1], [0, 14, 7, 1], [7, 8, 5, 0]], [[-7, 11, 5, 1], [0, 11, 7, -1], [7, 10, 5, 1]],
-  [[-7, 8, 5, 0], [0, 15, 7, -1], [7, 9, 5, -1]], [[-7, 10, 5, -1], [0, 12, 7, 1], [7, 11, 5, 0]]];
+// Fire size from the ticks since the tile was lit: 0 small, 1 medium, 2 large. A surface fire lasts FIRE.surfaceTicks = 8 ticks.
+export const fireSize = age => age < 3 ? 0 : age < 6 ? 1 : 2;
+export const FLAME_VARIANTS = 3, FLAME_FRAMES = 4;
+// Tongue counts, base spread (px), heights and widths for each size.
+const TONGUES = [{ n: 2, dx: 5, h: [5, 8], wd: [3, 4] }, { n: 3, dx: 8, h: [8, 14], wd: [5, 7] }, { n: 5, dx: 7, h: [12, 22], wd: [6, 9] }];
+// Pure. Frame table for one flame variant: FLAME_FRAMES frames of [dx, dy, height, width, lean] tongues, back to front.
+// The base points stay fixed in a variant; the heights and leans change from frame to frame.
+export function flameFrames(size, v) {
+  const t = TONGUES[size], r = k => hash(size * 1000 + v * 100 + k);
+  const bases = Array.from({ length: t.n }, (_, k) => [Math.round((t.n === 1 ? 0 : k / (t.n - 1) * 2 - 1) * t.dx + (r(k) - .5) * 4), Math.round((r(k + 20) - .5) * (size + 1) * 2)])
+    .sort((a, b) => a[1] - b[1]);
+  return Array.from({ length: FLAME_FRAMES }, (_, f) => bases.map(([dx, dy], k) => {
+    const q = r(40 + f * 10 + k), mid = Math.abs(dx) < t.dx / 2 ? 1 : .75; // middle tongues are taller
+    return [dx, dy, Math.round((t.h[0] + (t.h[1] - t.h[0]) * q) * mid), t.wd[0] + Math.round(r(k + 60) * (t.wd[1] - t.wd[0])), Math.round((r(70 + f * 10 + k) - .5) * 3)];
+  }));
+}
+// Fills the whole tile top (the 2:1 diamond) with col.
+const tileTop = (g, x, y, col) => { g.fillStyle = col; for (let r = 0; r < TH; r++) { const w = rowW(r); g.fillRect(x - w, y + r, w * 2, 1); } };
+// Calls f(px, py) for n points inside the tile top, picked from seed.
+const topPoints = (seed, n, f) => {
+  for (let k = 0, m = 0; m < n && k < n * 4; k++) {
+    const py = Math.floor(hash(seed + k * 1.7) * TH), w = rowW(py) - 1, px = Math.round((hash(seed + k * 2.3 + .5) * 2 - 1) * w);
+    if (w > 0) { f(px, py, m); m++; }
+  }
+};
+// Glow cracks: short random walks across the tile top.
+function cracks2(g, x, y, seed, n, cols) {
+  topPoints(seed, n, (px, py, m) => {
+    for (let s = 0; s < 5; s++) {
+      if (Math.abs(px) >= rowW(py)) break;
+      g.fillStyle = cols[(m + s) % cols.length]; g.fillRect(x + px, y + py, 1, 1);
+      px += hash(seed + m * 7 + s) > .5 ? 1 : -1; if (hash(seed + m * 11 + s + .3) > .6) py += hash(seed + m + s) > .5 ? 1 : -1;
+      if (py < 0 || py >= TH) break;
+    }
+  });
+}
 // Smoke puff: 3 nested disks of fillRect rows in 2x2 px cells, built once for each whole radius from 2 to 4 cells.
 // The cells and the 2 px position grid keep the smoke as coarse as the other sprites; 1 px puffs blend into a smooth haze.
 const PUFF_ALPHA = [.18, .26, .4], PUFF_R0 = 2, PUFF_R1 = 4, PUFF_CELL = 2;
@@ -309,18 +342,28 @@ function buildCache() {
   const cache = {
     ground,
     // Fire art. A frame is drawn with its tile top vertex at (SW/2, HEAD), like a tile sprite.
-    flame: FLAMES.map((f, n) => sprite((g, x, y) => {
-      pool(g, x, y + 11, 11, CHAR); pool(g, x - 1, y + 10, 7, '#5a2c1a'); // scorched ground under the tongues
-      g.fillStyle = FLAME[1]; for (const [ex, ey] of [[-11, 11], [10, 12], [-4, 14], [5, 9]]) if (hash(n * 9 + ex) > .35) g.fillRect(x + ex, y + ey, 1, 1); // sparks on the char
-      f.forEach(([dx, h, wd, lean]) => tongue(g, x + dx, y + 11, h, wd, lean));
-    })),
-    // Smouldering peat: a char patch with glow cracks. The 2 frames swap the bright and the dim cracks.
-    ember: [0, 1].map(k => sprite((g, x, y) => {
-      pool(g, x, y + 9, 9, CHAR); pool(g, x + 1, y + 9, 5, '#2a1e18');
-      [[-6, 9], [-5, 9], [-4, 10], [-3, 10], [-2, 9], [-1, 9], [0, 8], [1, 8], [2, 9], [3, 10], [4, 10], [5, 9], [-1, 10], [0, 11], [1, 11], [2, 7]]
-        .forEach(([ex, ey], n) => { g.fillStyle = (n + k) % 3 ? FLAME[0] : FLAME[1 + k]; g.fillRect(x + ex, y + ey, 1, 1); });
-      g.fillStyle = FLAME[2]; g.fillRect(x + (k ? 3 : -3), y + (k ? 10 : 9), 1, 1);
-    })),
+    // flame[size][variant][frame]. Small and medium fires scorch a patch; a large fire chars the whole tile top.
+    flame: [0, 1, 2].map(size => Array.from({ length: FLAME_VARIANTS }, (_, v) => flameFrames(size, v).map((f, n) => sprite((g, x, y) => {
+      if (size === 2) tileTop(g, x, y, CHAR); else pool(g, x, y + 10, size ? 11 : 6, CHAR);
+      pool(g, x - 1, y + 10, size === 2 ? 11 : size ? 7 : 4, '#5a2c1a');
+      g.fillStyle = FLAME[1]; topPoints(size * 50 + v * 7 + n, 2 + size * 2, (px, py) => g.fillRect(x + px, y + py, 1, 1)); // sparks on the char
+      f.forEach(([dx, dy, h, wd, lean]) => tongue(g, x + dx, y + 11 + dy, h, wd, lean));
+    })))),
+    // ember[variant][frame]: smouldering peat over the whole tile top. The 2 frames swap the bright and the dim cracks.
+    ember: Array.from({ length: FLAME_VARIANTS }, (_, v) => [0, 1].map(k => sprite((g, x, y) => {
+      tileTop(g, x, y, '#4a2216'); // hot red-brown under the char
+      g.fillStyle = CHAR; topPoints(300 + v, 40, (px, py) => g.fillRect(x + px, y + py, 3, 1));
+      g.fillStyle = '#2a1e18'; topPoints(350 + v, 14, (px, py) => g.fillRect(x + px, y + py, 2, 1));
+      cracks2(g, x, y, 400 + v * 13, 14, k ? [FLAME[0], FLAME[1], FLAME[0]] : [FLAME[1], FLAME[0], FLAME[2]]);
+      g.fillStyle = FLAME[2]; topPoints(500 + v * 5 + k, 5, (px, py) => g.fillRect(x + px, y + py, 1, 1));
+    }))),
+    // cool[variant][frame]: a tile just put out. Grey ash on char, with a few dull glow pixels that flicker.
+    cool: Array.from({ length: FLAME_VARIANTS }, (_, v) => [0, 1].map(k => sprite((g, x, y) => {
+      tileTop(g, x, y, '#2e2420');
+      g.fillStyle = '#6a625c'; topPoints(600 + v, 22, (px, py) => g.fillRect(x + px, y + py, 1 + (px & 1), 1));
+      g.fillStyle = '#8e8680'; topPoints(700 + v, 6, (px, py) => g.fillRect(x + px, y + py, 1, 1));
+      cracks2(g, x, y, 800 + v * 13, 3, ['#7a2a18', k ? FLAME[0] : '#7a2a18']);
+    }))),
     puff: Array.from({ length: PUFF_R1 - PUFF_R0 + 1 }, (_, k) => puffSprite(PUFF_R0 + k)),
     heat: Array.from({ length: HEAT_BINS }, (_, b) => both((g, x, y, d) => block(g, x, y, heatColor(b / (HEAT_BINS - 1) * 1.5), d))),
     // Overlays for a block or a backfill. drawWorld draws them on top of the tile sprite.
@@ -692,7 +735,7 @@ let smokeHead = 0, smokeN = 0, wind = 0, originX = 0, originY = 0, nFire = 0, em
 const smokeSlot = new Map(); // tile -> last emit slot, so the rate does not depend on the frame rate. It has at most w*h keys and resetSmoke clears it.
 // Pure. Wind angle in radians for a map seed and a year. A new year gives a new direction.
 export const yearDir = (seed, year) => hash(seed * 31 + year) * 2 * Math.PI;
-export function resetSmoke() { smoke.length = 0; smokeHead = 0; smokeN = 0; nFire = 0; emitScale = 1; smokeSlot.clear(); }
+export function resetSmoke() { litAt = null; smoke.length = 0; smokeHead = 0; smokeN = 0; nFire = 0; emitScale = 1; smokeSlot.clear(); }
 // With many fires the ring would reuse puffs too soon. Each tile then emits less often: 14 fires or fewer give the normal rate.
 export const setFireCount = n => { emitScale = Math.max(1, n / 14); };
 // Emits at most 1 puff for tile i. sx, sy: the screen point of the tile centre. kind: 1 surface fire (the puff starts at the flame tip), 2 smouldering.
@@ -716,6 +759,22 @@ export function drawSmoke(ctx, now, data) {
     ctx.drawImage(cache.puff[r - PUFF_R0], originX + snap(p.x + p.vx * s - half), originY + snap(p.y + p.vy * s - half));
   }
   ctx.globalAlpha = 1;
+}
+// ---- fire age. Render-side only: the tick each tile was lit, and the tick its fire went out. drawWorld updates it once for each tick.
+const COOL_TICKS = 8; // a put-out tile shows ash and dull glow for 2 weeks
+let litAt = null, outAt = null, prevFire = null, trackTick = -1;
+function trackFire(fire, tick) {
+  if (!litAt || litAt.length !== fire.length || tick < trackTick) {
+    litAt = new Int32Array(fire.length).fill(tick); outAt = new Int32Array(fire.length).fill(-1e9); prevFire = Uint8Array.from(fire); trackTick = tick;
+  }
+  if (tick === trackTick) return;
+  trackTick = tick;
+  for (let i = 0; i < fire.length; i++) {
+    const f = fire[i], p = prevFire[i];
+    if (f === 1 && p !== 1) litAt[i] = tick;
+    if (!f && p) outAt[i] = tick;
+    prevFire[i] = f;
+  }
 }
 export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 0) {
   cache ??= buildCache();
@@ -744,7 +803,7 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
   } else if (week !== bankWeek) { setBanks(wd); bankWeek = week; } // the peat changes slowly: one update each week, so the banks do not flicker
   const jobs = new Set(game.jobs.map(j => j.i)), hits = [];
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
-  wind = yearDir(wd.seed, year); setFireCount(nFire); nFire = 0; // the fire count of the last frame sets the smoke rate
+  wind = yearDir(wd.seed, year); setFireCount(nFire); nFire = 0; trackFire(fire, game.tick ?? 0); // the fire count of the last frame sets the smoke rate
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
     const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
     pos[2 * i] = sx; pos[2 * i + 1] = sy;
@@ -772,6 +831,9 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (k === KIND.CANAL && game.ponds.has(i)) ctx.drawImage(cache.pond, ax, ay);
     const ov = cache.overlay[blk[i]];
     if (ov) ctx.drawImage(ov[axis[i]] ?? ov[0], ax, ay);
+    const fv = Math.floor(hash(i + .71) * FLAME_VARIANTS);
+    if (!fire[i] && (k === KIND.PEAT || k === KIND.FARM) && (game.tick ?? 0) - outAt[i] < COOL_TICKS) // put out lately: ash and dull glow
+      ctx.drawImage(cache.cool[fv][REDUCED ? 0 : ((now / 700 + hash(i) * 2) | 0) % 2], ax, ay);
     if (k === KIND.PEAT && !fire[i]) {
       const veg = game.seedlings.has(i) ? VEG.SEEDLING : vegOf(cover[i]);
       if (veg !== VEG.NONE) { const vs = cache.veg[veg]; ctx.drawImage(vs[Math.floor(hash(i) * vs.length)], ax, ay); } // for 4 sprites this is vegVariant(i)
@@ -779,10 +841,10 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
     if (game.wells.has(i)) { ctx.fillStyle = '#2a2420'; ctx.fillRect(sx - 4, sy + 6, 8, 6); ctx.fillStyle = '#5ab4e0'; ctx.fillRect(sx - 2, sy + 8, 4, 2); }
     if (game.paluds.has(i)) { ctx.fillStyle = '#c8e070'; for (let r = 4; r < 14; r += 4) ctx.fillRect(sx - 8 + r % 8, sy + r, 2, 2), ctx.fillRect(sx + 4 - r % 8, sy + r, 2, 2); }
     if (game.fireGroups.has(i)) { ctx.fillStyle = '#d23a2a'; ctx.fillRect(sx + 12, sy - 8, 2, 12); ctx.fillRect(sx + 14, sy - 8, 6, 4); }
-    if (fire[i] === 1) { // surface fire: a cached flame frame, with a phase for each tile
-      nFire++; ctx.drawImage(cache.flame[REDUCED ? 0 : ((now / 120 + hash(i) * 4) | 0) % 4], ax, ay); emitSmoke(i, sx, sy + HH, 1, now);
-    } else if (fire[i] === 2) { // smouldering peat: an ember, and thin smoke
-      nFire++; ctx.drawImage(cache.ember[REDUCED ? 0 : ((now / 400 + hash(i) * 2) | 0) % 2], ax, ay); emitSmoke(i, sx, sy + HH, 2, now);
+    if (fire[i] === 1) { // surface fire: size from its age, a variant and a phase for each tile
+      nFire++; ctx.drawImage(cache.flame[fireSize((game.tick ?? 0) - litAt[i])][fv][REDUCED ? 0 : ((now / 120 + hash(i) * 4) | 0) % FLAME_FRAMES], ax, ay); emitSmoke(i, sx, sy + HH, 1, now);
+    } else if (fire[i] === 2) { // smouldering peat: the whole tile glows, and thin smoke
+      nFire++; ctx.drawImage(cache.ember[fv][REDUCED ? 0 : ((now / 400 + hash(i) * 2) | 0) % 2], ax, ay); emitSmoke(i, sx, sy + HH, 2, now);
     }
     if (jobs.has(i)) { ctx.fillStyle = '#efe6cf'; ctx.fillRect(sx - 1, sy - 10, 2, 16); ctx.fillStyle = '#e8b04a'; ctx.fillRect(sx + 1, sy - 10, 8, 4); } // work flag
   }

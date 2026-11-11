@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, yearDir, emitSmoke, resetSmoke, setFireCount, smoke } from '../src/render/iso.js';
+import { downstream, canalStep, widthStep, canalMask, canalZone, canalSprite, canalId, bankStep, BANK_TOP, DIRS, vegVariant, nearestHit, hitRadius, ANIMALS, fireSize, flameFrames, FLAME_VARIANTS, FLAME_FRAMES, yearDir, emitSmoke, resetSmoke, setFireCount, smoke } from '../src/render/iso.js';
 import { KIND, WET_WT } from '../src/sim/world.js';
 import { SPECIES } from '../src/journal.js';
 
@@ -270,4 +270,25 @@ test('with 100 burning tiles a replaced puff is at least 3 s old', () => {
   const mean = ages.reduce((a, b) => a + b, 0) / ages.length;
   assert.ok(ages.length > 100 && mean >= 3000, `mean=${mean} n=${ages.length}`);
   resetSmoke();
+});
+
+test('fire size grows with the ticks since the tile was lit', () => {
+  assert.deepEqual([0, 2, 3, 5, 6, 7].map(fireSize), [0, 0, 1, 1, 2, 2]);
+});
+
+test('flame frames: more and taller tongues for bigger fires, all inside the sprite', () => {
+  for (let size = 0; size < 3; size++) for (let v = 0; v < FLAME_VARIANTS; v++) {
+    const frames = flameFrames(size, v);
+    assert.equal(frames.length, FLAME_FRAMES);
+    assert.deepEqual(flameFrames(size, v), frames, 'deterministic');
+    for (const f of frames) {
+      assert.equal(f.length, [2, 3, 5][size]);
+      for (const [dx, dy, h, wd, lean] of f) {
+        assert.ok(Math.abs(dx) + Math.round(wd / 2) + Math.abs(lean) <= 15, 'inside the 32 px sprite');
+        assert.ok(h - dy - 11 <= 28 && h > 0, 'inside HEAD');
+      }
+    }
+  }
+  const tallest = s => Math.max(...flameFrames(s, 0).flat().map(t => t[2]));
+  assert.ok(tallest(0) < tallest(1) && tallest(1) < tallest(2));
 });

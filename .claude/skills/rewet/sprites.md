@@ -15,6 +15,7 @@
 - A canal that joins on a corner crosses the two side tiles. Each side tile draws a patch with the channel pixels.
 - `drawWorld()` draws one cached sprite per tile, then the overlays (patch, pond, block, vegetation), then small markers.
 - Draw with `fillRect` only. No image files.
+- Fire: `cache.flame[size][variant][frame]` (3 sizes, 3 variants, 4 frames), `cache.ember[variant][frame]` for smouldering peat, and `cache.cool[variant][frame]` for 2 weeks after a fire goes out. Ember and cool sprites cover the whole tile top. `fireSize()` gives the size from the ticks since the tile was lit. `trackFire()` in `iso.js` records those ticks on the render side, so the sim does not change.
 - Work crews (`src/render/crew.js`): 1 to 3 people at each job tile, and 1 guard at each fire group post. They are display only.
   - `FRAMES` holds the poses as row strings, 2 frames each, with the body on columns 4 to 8. `CREW` gives the crew size and the poses for each action.
   - `crewPlan()` picks the size, the poses, the clothes and the start point from a hash of the job key. People walk in from the nearest village tile.
