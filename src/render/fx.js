@@ -143,37 +143,20 @@ function diamond(ctx, x, y, s) {
 const stepAlpha = t => Math.ceil((1 - t) * 4) / 4; // 4 alpha steps, not a smooth fade
 
 // ---- weather and life, in screen space (rain, cloud shadows) and on tiles (fireflies, embers)
-// ---- clouds: generated cumulus shapes, high in the sky. The lowest cloud floats just above the north corner of the map, so no cloud covers a tile.
-// The shadow of each cloud is the same shape, solid and squashed, on the ground straight below it.
-const CLOUD_N = 6, SKY = 6; // SKY: px between the north corner and the base of the lowest cloud (tree tops on the corner tile)
-const CLOUD_FAIR = ['#ffffff', '#f1f4f4', '#d9e0e3', '#b7c2c9', '#8f9ba4'], CLOUD_RAIN = ['#d0d5d8', '#b0b8bc', '#949da2', '#788188', '#5d656b']; // light to dark
-const SUN = (() => { const v = [-.45, -.75, .5], l = Math.hypot(...v); return v.map(c => c / l); })(); // light from the upper left, towards the viewer
+// ---- cloud shadows: generated cumulus outlines, drawn only as solid, squashed shadows that drift over the map. The clouds themselves are not drawn.
+const CLOUD_N = 6;
 let clouds = null;
-function cloudShape(seed) { // 22 to 31 round puffs inside a dome on a flat base; each pixel takes the shading of the puff in front, like a cauliflower
+function cloudShape(seed) { // 22 to 31 round puffs inside a dome on a flat base
   const r = k => hash(seed * 7.13 + k * 1.31), W = 130 + r(0) * 90 | 0, cx = W / 2, hw = W / 2 - 12, domeH = 16 + r(1) * 14 | 0, H = domeH + 36, base = H - 3, P = [];
   const m = 22 + (r(2) * 10 | 0);
   for (let j = 0; j < m; j++) {
     const t = r(10 + j) * 2 - 1, env = Math.sqrt(1 - t * t), rad = 6 + r(30 + j) * 8 + env * 10;
     P.push({ x: cx + t * hw * .9, y: base - rad * .6 - env * domeH * (.3 + .7 * r(50 + j)), r: rad });
   }
-  const front = (px, py) => { // the visible puff at a pixel: the one whose sphere surface is nearest the viewer
-    if (py > base) return null; let best = null, bz = 0;
-    for (const p of P) { const dx = px - p.x, dy = py - p.y, z2 = p.r * p.r - dx * dx - dy * dy; if (z2 > 0 && z2 > bz) { bz = z2; best = [dx / p.r, dy / p.r, Math.sqrt(z2) / p.r]; } }
-    return best;
-  };
-  const paint = cols => {
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
-    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
-      const n = front(px, py); if (!n) continue;
-      const v = (n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) * .5 + .5 - Math.max(0, py - (base - 7)) / 7 * .3; // a darker flat underside
-      const k = Math.max(0, Math.min(4, Math.floor((1 - v) * 5 + (BAYER[(py % 4) * 4 + px % 4] / 16 - .5) * .9))); // ordered dither between tones: texture
-      g.fillStyle = cols[k]; g.fillRect(px, py, 1, 1);
-    }
-    return c;
-  };
+  const inside = (px, py) => py <= base && P.some(p => (px - p.x) ** 2 + (py - p.y) ** 2 < p.r * p.r);
   const sh = document.createElement('canvas'); sh.width = W; sh.height = Math.ceil(H / 2); const g = sh.getContext('2d'); g.fillStyle = '#000';
-  for (let py = 0; py < sh.height; py++) for (let px = 0; px < W; px++) if (front(px, py * 2) || front(px, py * 2 + 1)) g.fillRect(px, py, 1, 1);
-  return { W, H, fair: paint(CLOUD_FAIR), rain: paint(CLOUD_RAIN), shadow: sh };
+  for (let py = 0; py < sh.height; py++) for (let px = 0; px < W; px++) if (inside(px, py * 2) || inside(px, py * 2 + 1)) g.fillRect(px, py, 1, 1);
+  return { W, H, shadow: sh };
 }
 // Cloud k at time now, in map coordinates (offsets from tile 0): it drifts east and wraps around the map box.
 function cloudAt(k, game, now) {
@@ -222,12 +205,6 @@ function weather(ctx, game, pos, bw, bh, now) {
       if (alt > 0) { const x = Math.round(gx + alt * .12), y = Math.round(gy - alt); ctx.fillRect(x, y, 1, 3); ctx.fillRect(x - 1, y + 3, 1, 1); } // a little wind from the east
       else { ctx.fillRect(gx - 2, gy - 1, 1, 1); ctx.fillRect(gx + 1, gy - 1, 1, 1); } // splash
     }
-  }
-  for (let k = 0; k < count; k++) { // the clouds, in the sky above the north corner, straight above their shadows
-    const [x, , cl] = cloudAt(k, game, now), cx = ox + x, cy = oy - SKY - cl.H - Math.round(hash(k + 6.6) * 10);
-    if (cx > bw || cy > bh || cx + cl.W < 0 || cy + cl.H < 0) continue;
-    ctx.globalAlpha = .6 * (1 - rain); ctx.drawImage(cl.fair, cx, cy); // see-through: the sky shows behind
-    ctx.globalAlpha = .6 * rain; ctx.drawImage(cl.rain, cx, cy);
   }
   ctx.globalAlpha = 1; ctx.restore();
 }
