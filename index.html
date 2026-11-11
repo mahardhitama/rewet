@@ -93,18 +93,17 @@ dialog p{margin:6px 0;color:var(--dim)}
 #barHint{max-width:100%;min-height:16px;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:16px;text-align:center;color:var(--dim)}
 #barName.sel{color:var(--ink)}
 #barRow{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%}
-#slots{display:flex;justify-content:center;gap:12px} /* 12 px between the 2 rows = the 4 px gap and the 8 px group margin */
+#slots{display:flex;justify-content:center;gap:4px} /* the same 4 px gap as between the slots */
 .row{display:flex;gap:4px}
-.slot{--c:var(--c-rewet);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:none;width:64px;height:80px;box-sizing:border-box;padding:0;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:1;color:var(--ink);background:#14120e;border:2px solid var(--line);border-top:3px solid var(--c);cursor:pointer}
+.slot{--c:var(--c-rewet);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:none;width:64px;height:80px;box-sizing:border-box;padding:0;font-family:Silkscreen,monospace;font-size:var(--fs-label);line-height:1;color:var(--ink);background:#14120e;border:2px solid var(--line);border-top:5px solid var(--c);cursor:pointer}
 .slot[data-r=reveg]{--c:var(--c-reveg)}.slot[data-r=revit]{--c:var(--c-revit)}.slot[data-r=defense]{--c:var(--c-defense)}
-.slot.first:not(:first-child){margin-left:8px}
 .slot small{font:inherit;color:var(--dim)}
 .slot .tag{line-height:1;white-space:nowrap}
-.slot:hover{border-color:var(--dim);border-top-color:var(--c)}
+.slot:hover{border-color:var(--accent);border-top-color:var(--c)}
 .slot:focus-visible{outline:2px solid var(--dim);outline-offset:1px} /* an outline, so the ring also shows on the selected slot */
 .slot.on{border-color:var(--accent);border-top-color:var(--c);color:var(--accent)}
 .slot.poor small{color:#c0583a}
-/* 10 slots of 64 px need 700 px, so the 48 px slots go up to 719 px wide */
+/* 10 slots of 64 px and 9 gaps need 676 px, so the 48 px slots go up to 719 px wide */
 @media (max-width:719px),(max-height:500px){.slot{width:48px;height:60px;gap:1px;font-size:12px}}
 #zoom{flex:none;position:fixed;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
 #zoom button{width:44px;height:44px;font-family:Silkscreen,monospace;font-size:var(--fs-label);white-space:nowrap;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:0;cursor:pointer}
@@ -166,8 +165,8 @@ dialog p{margin:6px 0;color:var(--dim)}
 /* very short window: smaller HUD text, and the zoom buttons are a row, because a 144 px column does not fit between the HUD and the bar */
 @media (max-height:360px){#hud{max-width:calc(100% - 16px);left:50%}#zoom{flex-direction:row;gap:4px}}
 /* portrait phone (short landscape is excluded, its rules above win): the 2 slot rows stack, and the zoom column floats at the right edge just above the bar (the bar is its positioned parent); the find toast keeps clear of that column */
-/* the slots stretch to fill the bar width; the max-width keeps the 4-slot row at the same slot width as the 5-slot row (4 gaps + the 8 px group margin = 24 px) */
-@media (max-width:600px) and (min-height:501px){#barRow{width:100%}#slots{flex-direction:column;align-items:stretch;gap:4px;width:100%}.row{justify-content:center}.slot{flex:1 1 0;width:auto;min-width:48px;max-width:calc((100% - 24px) / 5)}#findToast{left:calc(50% - 32px);max-width:calc(100% - 80px)}#zoom{position:absolute;top:auto;right:12px;bottom:100%;margin-bottom:10px;transform:none}}
+/* the slots stretch to fill the bar width; the max-width keeps the 4-slot row at the same slot width as the 5-slot row (4 gaps of 4 px = 16 px) */
+@media (max-width:600px) and (min-height:501px){#barRow{width:100%}#slots{flex-direction:column;align-items:stretch;gap:4px;width:100%}.row{justify-content:center}.slot{flex:1 1 0;width:auto;min-width:48px;max-width:calc((100% - 16px) / 5)}#findToast{left:calc(50% - 32px);max-width:calc(100% - 80px)}#zoom{position:absolute;top:auto;right:12px;bottom:100%;margin-bottom:10px;transform:none}}
 @media (max-width:600px){:root{--fs-body:14px}.sub{margin-bottom:16px}#report canvas,#debrief canvas:not(#dbThumbs canvas){height:80px}}
 </style>
 </head>

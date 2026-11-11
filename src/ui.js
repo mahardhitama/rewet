@@ -52,9 +52,9 @@ function bind() {
   // 2 rows: rewet + reveg, revit + defense. CSS stacks them on a portrait phone.
   $('slots').replaceChildren(...[R.slice(0, 2), R.slice(2)].map(rs => {
     const row = document.createElement('div'); row.className = 'row';
-    for (const r of rs) groups[r].forEach((id, k) => {
+    for (const r of rs) groups[r].forEach(id => {
       const b = document.createElement('button'), s = document.createElement('small');
-      b.className = k ? 'slot' : 'slot first'; b.dataset.id = id; b.dataset.r = r; b.title = ACTION_TEXT[id][1]; const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = ACTION_TEXT[id][2]; tag.setAttribute('aria-hidden', 'true');
+      b.className = 'slot'; b.dataset.id = id; b.dataset.r = r; b.title = ACTION_TEXT[id][1]; const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = ACTION_TEXT[id][2]; tag.setAttribute('aria-hidden', 'true');
       b.append(tag, icon(id), s);
       b.onclick = () => { blip(880, 0.04); arm(id); b.blur(); };
       for (const [on, off] of [['pointerenter', 'pointerleave'], ['focus', 'blur']]) {
