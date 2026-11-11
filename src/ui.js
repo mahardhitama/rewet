@@ -4,7 +4,8 @@ import { evaluate, co2Estimate, dryWetPct, seedlingSurvival } from './sim/score.
 import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
-import { blip } from './audio.js';
+import { placed, denied, setArmed } from './render/fx.js';
+import { blip, sfx } from './audio.js';
 import { icon, setText, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
 import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
@@ -40,6 +41,7 @@ function showName() {
 
 function arm(id) {
   armed = armed === id ? null : id;
+  setArmed(armed);
   for (const b of $('slots').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === armed);
   showName();
 }
@@ -89,9 +91,9 @@ function bind() {
     if (!armed) { const a = H.map.pickAnimal(e); if (a) H.onFind(a.species); return; } // no action selected: a tap on an animal marks it found
     const i = H.map.pickTile(e);
     if (i == null) return;
-    const r = applyAction(G, armed, i);
-    if (!r.ok) { blip(160, 0.08, 'square'); return tip(REASON[r.reason], e.clientX, e.clientY); }
-    blip(1100, 0.05);
+    const was = G.funds, r = applyAction(G, armed, i);
+    if (!r.ok) { sfx('deny'); denied(i); return tip(REASON[r.reason], e.clientX, e.clientY); }
+    sfx(armed); placed(i, armed, was - G.funds);
   });
 }
 
@@ -109,7 +111,14 @@ export function afterStep(game) {
   if (weeks.length > 52) weeks.shift();
 }
 
+let bumpG = null, bumpMemo = {}; // last number per HUD part, reset for each new game so the first render does not flash
+// restart the pop and colour flash on one value, only when it changed
+function bump(v, up) {
+  v.classList.remove('up', 'dn'); void v.offsetWidth; v.classList.add(up ? 'up' : 'dn');
+}
+
 export function renderUI(game, { paused, speed, data }) {
+  if (bumpG !== game) { bumpG = game; bumpMemo = {}; }
   const wd = game.world, year = Math.floor(game.tick / TICKS_PER_YEAR), { week } = seasonAt(game.tick);
   let peat = 0, wet = 0;
   for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; }
@@ -119,7 +128,14 @@ export function renderUI(game, { paused, speed, data }) {
   for (const p of parts) {
     const el = $('hudRow').querySelector(`[data-id=${p.id}]`), l = el.querySelector('.l'), v = el.querySelector('.v');
     if (l.textContent !== p.label) l.textContent = p.label;
-    if (v.textContent !== p.value) v.textContent = p.value;
+    if (v.textContent !== p.value) {
+      v.textContent = p.value;
+      if (p.id !== 'time') {
+        const n = parseFloat(p.value.match(/-?\d+(\.\d+)?/)?.[0]), o = bumpMemo[p.id];
+        if (o !== undefined && n !== o && !isNaN(n) && !isNaN(o)) bump(v, n > o);
+        bumpMemo[p.id] = n;
+      }
+    }
     if (el.title !== p.full) { el.title = p.full; el.setAttribute('aria-label', p.full); }
   }
   $('bPause').classList.toggle('on', paused); $('bX1').classList.toggle('on', !paused && speed === 1); $('bX2').classList.toggle('on', !paused && speed === 2);
@@ -206,12 +222,20 @@ function thumb(cv, w, h, wt) {
   ctx.putImageData(img, 0, 0);
 }
 
+const starTimers = [];
 export function showDebrief(game) {
   const r = evaluate(game), sv = seedlingSurvival(game), loss = r.loss, p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
   $('dbTitle').textContent = DEBRIEF.title;
   const sb = game.level.sandbox; // sandbox: figures only, no pass verdict
   const st = $('dbStars');
   if (sb) { st.replaceChildren(); st.removeAttribute('aria-label'); } else { starIcons(st, r.stars); st.setAttribute('aria-label', DEBRIEF.stars(r.stars)); }
+  // each earned star pops in turn (CSS reads --d) with a rising note; no notes under reduced motion
+  starTimers.splice(0).forEach(clearTimeout);
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  st.querySelectorAll('.on').forEach((s, k) => {
+    const d = 500 + 400 * k; s.style.setProperty('--d', `${d}ms`);
+    if (!calm) starTimers.push(setTimeout(() => sfx('star', k), d));
+  });
   $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : sb ? DEBRIEF.sandbox(game.level.seed) : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;
