@@ -115,7 +115,7 @@ function boot() {
   function startLevel(L) {
     const level = resolveLevel(L);
     game = createGame(level, save.upgrades, buildLevelWorld(level));
-    paused = false; speed = 1; carry = 0; map.leave();
+    paused = false; speed = 1; carry = 0; map.leave(); mile = null;
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
@@ -139,13 +139,17 @@ function boot() {
     dlg.scrollTop = 0;
   }
   // The sound bed follows the level: music and nature only while it runs, rain in a shower, darker with fire.
-  let wetFrac = 0;
+  let wetFrac = 0, mile = null;
+  const MILES = [25, 50, 75, 90];
   function ambience() {
     const on = !!game && phase === 'level' && !paused && !document.querySelector('dialog[open]');
     if (!on) return { on, rain: false, health: wetFrac, fire: 0 };
     const wd = game.world; let peat = 0, wet = 0, burn = 0;
     for (let i = 0; i < wd.n; i++) { if (wd.fire[i]) burn++; if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; } }
     wetFrac += ((peat ? wet / peat : 0) - wetFrac) * .02;
+    const pct = peat ? wet / peat * 100 : 0, m = MILES.filter(v => pct >= v).length; // milestones: a toast, a chime and a burst the first time each one is reached
+    if (mile == null) mile = m;
+    else if (m > mile) { mile = m; toast(TOAST.wet(MILES[m - 1])); sfx('star', Math.min(2, m - 1)); celebrate(1, wd.w, wd.h); }
     return { on, rain: rainLevel() > .3, health: Math.min(1, wetFrac * .7 + game.goodwill / 300), fire: Math.min(1, burn / 8) };
   }
   function setSpeed(s) { if (s) { speed = s; paused = false; } else paused = !paused; }
@@ -229,7 +233,8 @@ function boot() {
   requestAnimationFrame(frame);
 
   // ---- menu actions
-  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
+  // The toast sits above the action bar in a level (a hidden bar has 0 height).
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.bottom = `${($('bar').offsetHeight || 0) + 24}px`; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
   for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', findOpen: 'journal', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));

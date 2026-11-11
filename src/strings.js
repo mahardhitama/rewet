@@ -6,6 +6,7 @@ export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals draine
 export const TOAST = {
   noSave: 'No save.',
   saveDeleted: 'Save deleted.',
+  wet: n => `${n}% of the peat is wet now!`, // a milestone in a level
 };
 
 export const SELECT = {

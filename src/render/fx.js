@@ -130,11 +130,15 @@ function cloudSprite() { // a dithered blob: a checker of dark pixels inside a l
   }
   return c;
 }
-function weather(ctx, game, bw, bh, now) {
+function weather(ctx, game, pos, bw, bh, now) {
   const want = game.level && isWetSeason(game) && hash(((game.tick ?? 0) / 6 | 0) + game.world.seed) < .55 ? 1 : 0; // showers come and go every 1.5 weeks
   rain += (want - rain) * .02;
   if (REDUCED) return;
   cloudSpr ??= cloudSprite();
+  const { w, h } = game.world, c = (i, dx, dy) => [pos[2 * i] + dx, pos[2 * i + 1] + dy];
+  ctx.save(); ctx.beginPath(); // rain and cloud shadows fall on the map only, not on the backdrop
+  for (const [x, y] of [c(0, 0, 0), c(w - 1, HW, HH), c(w * h - 1, 0, TH), c((h - 1) * w, -HW, HH)]) ctx.lineTo(x, y);
+  ctx.clip();
   ctx.globalAlpha = .1 + rain * .08;
   for (let k = 0; k < 3; k++) { // slow cloud shadows
     const span = bw + 160, x = ((now / 1000 * (3 + k) + hash(k) * span) % span) - 140, y = hash(k + 5) * bh * .8 + ((now / 1000 * 1.2) % 40) - 20;
@@ -150,7 +154,7 @@ function weather(ctx, game, bw, bh, now) {
       else { const s = Math.round(x0 - L * .3); ctx.fillRect(s - 2, Math.round(y0 + L) + 3, 1, 1); ctx.fillRect(s + 1, Math.round(y0 + L) + 3, 1, 1); } // splash
     }
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.restore();
 }
 function life(ctx, game, pos, shown, now) {
   const wd = game.world, { n, kind, cover, wt, fire } = wd;
@@ -191,7 +195,7 @@ function cursor(ctx, game, pos, hover, now) {
 export function drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, live) {
   lastPos = pos;
   if (live) diffTick(game, pos, now);
-  if (!data) { life(ctx, game, pos, shown, now); weather(ctx, game, bw, bh, now); }
+  if (!data) { life(ctx, game, pos, shown, now); weather(ctx, game, pos, bw, bh, now); }
   const ox = pos[0], oy = pos[1];
   rings = rings.filter(r => now - r.born < r.life);
   for (const r of rings) {
