@@ -102,6 +102,7 @@ export const SFX = {
   wet: { gap: 90, play: (a, t, k) => { const f = slendro(k % 10, 466); note(a, f, t, 0.12, 'sine', 0.02, f * 1.15); note(a, f * 2, t, 0.06, 'sine', 0.006); } }, // water drop; a run of tiles is a melody
   star: { gap: 150, play: (a, t, k) => { const s = 5 + k * 2; bell(a, slendro(s, 466), t, 0.016, 1.2); bell(a, slendro(s + 1, 466), t + 0.08, 0.016, 1.4); note(a, slendro(s + 1, 466) * 4, t + 0.08, 0.3, 'sine', 0.006); } }, // rising chime, higher for higher k
   deny: { gap: 150, play: (a, t) => { note(a, 110, t, 0.16, 'sawtooth', 0.02); note(a, 117, t, 0.16, 'sawtooth', 0.02); } }, // soft low buzz
+  season: { gap: 1000, play: (a, t) => [4, 2, 0].forEach((s, i) => bell(a, slendro(s, 233), t + i * 0.18, 0.018, 1.6)) }, // dry season starts: a slow falling bell
   find: { gap: 300, play: (a, t) => [0, 2, 4].forEach((s, i) => bell(a, slendro(s, 466), t + i * 0.1, 0.02, 0.7)) }, // rising arpeggio
   fireOut: { gap: 400, play: (a, t) => noise(a, t, 0.7, 0.03, 6000, 0.5, 3000) }, // soft hiss
 };

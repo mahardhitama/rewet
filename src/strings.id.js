@@ -21,7 +21,7 @@ const timeShort = (year, years, wet, week) => `${year}/${years} · ${wet ? 'Huja
 
 export const STRINGS = {
   LINES: [[0, 'Rawa gambut ini dulu basah.'], [2.8, 'Kanal mengeringkannya. Lalu ia terbakar.'], [5.6, 'Sekat kanal. Basahi gambut. Tanam kembali.']],
-  FX: { cascade: 'BERJENJANG' },
+  FX: { cascade: 'BERJENJANG', dry: 'MUSIM KEMARAU' },
   TOAST: { noSave: 'Tidak ada simpanan.', saveDeleted: 'Simpanan dihapus.', wet: n => `${n}% gambut sekarang basah!` },
   SELECT: {
     title: 'Pilih lokasi', back: 'Kembali', years: n => `${n} tahun`,

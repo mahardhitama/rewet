@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { drawFx, takeFxEvents, resetFx, textWidth, pixelText } from '../src/render/fx.js';
 import { KIND } from '../src/sim/world.js';
 
-const stubCtx = () => ({ n: 0, fillStyle: '', globalAlpha: 1, fillRect() { this.n++; }, drawImage() {} });
+const stubCtx = () => ({ n: 0, fillStyle: '', globalAlpha: 1, fillRect() { this.n++; }, drawImage() {}, save() {}, restore() {}, translate() {}, scale() {} });
 function fakeGame() {
   const n = 4;
   return { tick: 0, jobs: [], level: null, world: { n, w: 2, h: 2, seed: 1, kind: new Uint8Array(n).fill(KIND.PEAT), wt: new Float32Array(n).fill(1), fire: new Uint8Array(n), cover: new Float32Array(n) } };
@@ -54,4 +54,16 @@ test('cascade counts blocked canal tiles within 6 tiles, and a finished block ne
   g.tick = 4; g.jobs = [];
   drawFx(ctx, g, p, sh, null, true, 100, 100, 16, true);
   assert.deepEqual(takeFxEvents().map(e => e.type), ['done', 'cascade']);
+});
+
+test('fx: a season change gives one season event, and the start of a level gives none', async () => {
+  const { isWetSeason } = await import('../src/sim/season.js');
+  resetFx(); const g = { ...fakeGame(), level: { elNinoYear: -1 } }, ctx = stubCtx();
+  const wet0 = isWetSeason(g); let t = 1; while (t < 208 && isWetSeason({ ...g, tick: t }) === wet0) t++;
+  assert.ok(t < 208);
+  drawFx(ctx, g, pos, shown, null, true, 100, 100, 0, true);
+  g.tick = t - 1; drawFx(ctx, g, pos, shown, null, true, 100, 100, 16, true);
+  assert.deepEqual(takeFxEvents().filter(e => e.type === 'season'), []);
+  g.tick = t; drawFx(ctx, g, pos, shown, null, true, 100, 100, 32, true);
+  assert.deepEqual(takeFxEvents().filter(e => e.type === 'season').length, 1);
 });

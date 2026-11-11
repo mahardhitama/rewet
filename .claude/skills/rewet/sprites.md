@@ -49,5 +49,8 @@ Reuse the named colours at the top of `iso.js`: `DRY`, `WET`, `GREEN`, `FOREST`,
 - `drawFx()` runs at the end of `drawWorld()`. It draws particles, rings, floating cost numbers, the action cursor, rain, cloud shadows, fireflies, embers and glints on wet peat.
 - Effect positions are offsets from tile 0, like the smoke, so a pan or a zoom moves them with the map.
 - Once per tick, `diffTick()` finds tiles that turned wet, fires that went out and finished jobs. It queues events. `frame()` in `src/main.js` drains them with `takeFxEvents()` and plays the sounds.
+- `diffTick()` also shows two pop-ups in big pixel letters (`pixelText()`, 3x5 glyphs, A-Z and 0-9 only). The words are in `FX` in `src/strings.js`.
+  - When a dam finishes near other blocked canal tiles (6 tiles or less), the map shows `CASCADE xN`.
+  - When the dry season starts, a band with `DRY SEASON` slides across the map. The wet season gets no band, because it starts on the new-year tick, under the year report.
 - The UI calls `placed()`, `denied()` and `setArmed()`. `main.js` calls `shake()` and `celebrate()`.
 - With reduced motion, fx.js spawns no particles, no weather and no shake.

@@ -30,9 +30,9 @@ export function pixelText(ctx, s, x, y, col) {
 
 // ---- state. Positions are offsets from the top vertex of tile 0, so a pan or a zoom moves the effects with the map.
 const MAX_P = 400;
-let parts = [], floats = [], rings = [], marks = [], events = [], armed = null;
+let parts = [], floats = [], rings = [], marks = [], events = [], armed = null, banner = null, prevWet = null;
 let seen = null, prevTick = -1, everWet = null, prevFire = null, prevJobs = new Map(), shakeUntil = 0, shakeAmp = 0, rain = 0;
-export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; shakeUntil = 0; shakeAmp = 0; flock = null; }
+export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; shakeUntil = 0; shakeAmp = 0; flock = null; banner = null; prevWet = null; }
 export const setArmed = id => { armed = id; };
 export const takeFxEvents = () => events.splice(0);
 export const rainLevel = () => rain;
@@ -83,13 +83,16 @@ export const shakeOffset = now => now < shakeUntil ? [Math.round((Math.random() 
 function diffTick(game, pos, now) {
   const wd = game.world, { n, wt, kind, fire } = wd, tick = game.tick ?? 0;
   if (seen !== game || !everWet || everWet.length !== n || tick < prevTick) {
-    seen = game; prevTick = tick; everWet = new Uint8Array(n); prevFire = Uint8Array.from(fire);
+    seen = game; prevTick = tick; prevWet = null; everWet = new Uint8Array(n); prevFire = Uint8Array.from(fire);
     for (let i = 0; i < n; i++) everWet[i] = wt[i] <= WET_WT;
     prevJobs = new Map(game.jobs.map(j => [`${j.i}:${j.id}`, j]));
     return;
   }
   if (tick === prevTick) return;
   prevTick = tick;
+  const wetNow = !!game.level && isWetSeason(game);
+  if (prevWet && !wetNow) { banner = { text: FX.dry, col: '#f0a040', born: now }; events.push({ type: 'season' }); } // dry season only: the wet season starts on the new-year tick, under the year report
+  prevWet = wetNow;
   if (tick % 208 === 0) everWet.fill(0); // a new year: the first rewet of each tile shows again
   const fresh = [];
   for (let i = 0; i < n; i++) if (kind[i] === KIND.PEAT && !everWet[i] && wt[i] <= WET_WT) { everWet[i] = 1; fresh.push(i); }
@@ -261,6 +264,19 @@ export function drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, live) {
   }
   ctx.globalAlpha = 1;
   if (hover != null) cursor(ctx, game, pos, hover, now);
+  if (banner) seasonBanner(ctx, bw, bh, now);
+}
+
+// ---- season banner: a band with big pixel words that slides across when the season turns.
+const BANNER_MS = 2600;
+function seasonBanner(ctx, bw, bh, now) {
+  const t = (now - banner.born) / BANNER_MS; if (t >= 1) { banner = null; return; }
+  const k = Math.min(6, Math.max(2, Math.round(bw / 160))), tw = textWidth(banner.text) * k, y = Math.round(bh * .3), pad = 2 * k + 1;
+  const slide = REDUCED ? 0 : t < .12 ? (1 - t / .12) ** 2 : t > .88 ? -(((t - .88) / .12) ** 2) : 0; // ease in from the right, out to the left
+  const x = Math.round((bw - tw) / 2 + slide * bw);
+  ctx.globalAlpha = t < .88 ? .75 : .75 * (1 - (t - .88) / .12); ctx.fillStyle = '#0e0d0b'; ctx.fillRect(0, y - pad, bw, 5 * k + 2 * pad);
+  ctx.globalAlpha = 1; ctx.fillStyle = banner.col; ctx.fillRect(0, y - pad, bw, 1); ctx.fillRect(0, y + 5 * k + pad - 1, bw, 1);
+  ctx.save(); ctx.translate(x, y); ctx.scale(k, k); pixelText(ctx, banner.text, 0, 0, banner.col); ctx.restore();
 }
 
 // ---- the backdrop behind the map: dark bands with an ordered dither between them, built once for each buffer height.
