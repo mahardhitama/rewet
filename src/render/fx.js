@@ -32,7 +32,7 @@ export function pixelText(ctx, s, x, y, col) {
 const MAX_P = 400;
 let parts = [], floats = [], rings = [], marks = [], events = [], armed = null, banner = null, prevWet = null;
 let seen = null, prevTick = -1, everWet = null, prevFire = null, prevJobs = new Map(), shakeUntil = 0, shakeAmp = 0, rain = 0;
-export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; shakeUntil = 0; shakeAmp = 0; flock = null; banner = null; prevWet = null; }
+export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; haze = 0; warm = 0; shakeUntil = 0; shakeAmp = 0; flock = null; banner = null; prevWet = null; }
 export const setArmed = id => { armed = id; };
 export const takeFxEvents = () => events.splice(0);
 export const rainLevel = () => rain;
@@ -181,6 +181,17 @@ function cloudAt(k, game, now) {
   const x = x0 + ((hash(k + 3.3) * span + now / 1000 * (2 + hash(k + 4.4) * 3)) % span), y = (.1 + .8 * hash(k + 5.5)) * (w + h) * HH;
   return [Math.round(x - c.W / 2), Math.round(y), c];
 }
+// ---- the air: a faint warm tint in the dry season, and brown smoke haze that thickens with the number of burning tiles.
+let haze = 0, warm = 0;
+function air(ctx, game, bw, bh) {
+  const { n, fire } = game.world; let burn = 0;
+  for (let i = 0; i < n; i++) if (fire[i]) burn++;
+  haze += (Math.min(1, burn / 25) - haze) * .03; // eased, so the haze builds up and clears slowly
+  warm += ((game.level && !isWetSeason(game) ? 1 : 0) - warm) * .01;
+  if (warm > .01) { ctx.globalAlpha = .07 * warm; ctx.fillStyle = '#f0a040'; ctx.fillRect(0, 0, bw, bh); }
+  if (haze > .01) { ctx.globalAlpha = .38 * haze; ctx.fillStyle = '#8a7356'; ctx.fillRect(0, 0, bw, bh); }
+  ctx.globalAlpha = 1;
+}
 // The sky box: the map is its floor, and its walls rise BOX_UP px above the map's top vertex. Clouds, rain and birds stay inside it.
 const BOX_UP = 110;
 const boxH = wd => (wd.w + wd.h) * HH + BOX_UP; // wall height in px: the whole map height, plus room above the north corner
@@ -280,7 +291,7 @@ function cursor(ctx, game, pos, hover, now) {
 export function drawFx(ctx, game, pos, shown, hover, data, bw, bh, now, live) {
   lastPos = pos;
   if (live) diffTick(game, pos, now);
-  if (!data) { life(ctx, game, pos, shown, now); weather(ctx, game, pos, bw, bh, now); }
+  if (!data) { life(ctx, game, pos, shown, now); weather(ctx, game, pos, bw, bh, now); air(ctx, game, bw, bh); }
   const ox = pos[0], oy = pos[1];
   rings = rings.filter(r => now - r.born < r.life);
   for (const r of rings) {
