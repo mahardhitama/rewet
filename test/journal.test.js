@@ -62,3 +62,14 @@ test('IUCN now statuses', () => {
   const st = Object.fromEntries(SPECIES.map(s => [s.id, s.status]));
   assert.deepEqual(st, { orangutan: 'CR', gibbon: 'EN', langur: 'VU', sunbear: 'VU', hornbill: 'VU', stork: 'EN', fishowl: 'LC', otter: 'VU', gharial: 'EN', monitor: 'LC', snakehead: 'LC' });
 });
+
+test('each concept has a diagram with alt text, and each diagram has a concept', async () => {
+  const { conceptArt, ART_IDS } = await import('../src/journalArt.js');
+  assert.deepEqual([...ART_IDS].sort(), CONCEPTS.map(c => c.id).sort());
+  for (const c of CONCEPTS) {
+    assert.ok(c.alt?.length > 20, `${c.id}: no alt text`);
+    const svg = conceptArt(c.id, c.alt);
+    assert.match(svg, /^<svg [^>]*role="img"/);
+    assert.doesNotMatch(svg, /NaN|undefined/, c.id);
+  }
+});

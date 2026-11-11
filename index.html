@@ -151,6 +151,11 @@ dialog p{margin:6px 0;color:var(--dim)}
 @keyframes jWalk{0%{transform:translateX(-12px)}45%{transform:translateX(12px)}50%{transform:translateX(12px) scaleX(-1)}95%{transform:translateX(-12px) scaleX(-1)}100%{transform:translateX(-12px)}}
 @keyframes jHop{50%{translate:0 -6px}}
 @media (prefers-reduced-motion:reduce){.jSprite[data-id] canvas{animation:none}}
+/* journal diagrams (journalArt.js): classes are colours. s* is a line. */
+.jArt{display:block;width:100%;max-width:400px;height:auto;margin:0 0 10px;background:#14120e;border:2px solid var(--line);font-family:Silkscreen,monospace;font-size:8px}
+.jArt .w{fill:var(--c-wet)}.jArt .wd{fill:#1d4a55}.jArt .d{fill:#4a3a28}.jArt .g{fill:var(--c-reveg)}.jArt .f{fill:var(--c-crew)}.jArt .fd{fill:#5a3020}
+.jArt .a{fill:var(--accent)}.jArt .i{fill:var(--ink)}.jArt .m{fill:var(--dim)}.jArt .p{fill:var(--c-revit)}.jArt .bx{fill:none;stroke:var(--line);stroke-width:2}.jArt .bg{fill:#14120e}.jArt .z{font-size:6px}
+.jArt line{stroke-width:1.5}.jArt .sw{stroke:var(--c-wet)}.jArt .sa{stroke:var(--accent)}.jArt .sm{stroke:var(--dim)}
 .jSt{display:inline-block;border:1px solid var(--accent);color:var(--accent);padding:0 6px;font-size:var(--fs-body)}
 #jNav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
 #jPos{color:var(--dim);text-align:center}

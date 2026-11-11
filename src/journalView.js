@@ -1,5 +1,6 @@
 // The journal: a book in a <dialog>. DOM only. It reads the save's found list and changes no game state.
 import { CONCEPTS, SPECIES, sourceUrl } from './journal.js';
+import { conceptArt } from './journalArt.js';
 import { JOURNAL as T } from './strings.js';
 import { animalSprite } from './render/iso.js';
 import { setText, sourceLink } from './icons.js';
@@ -28,7 +29,7 @@ export function openJournal({ found = [], page = null, onClose } = {}) {
     p.dataset.id = id;
     if (!e) return p; // never: ids come from `pages`
     p.append(el('h3', '', SPECIES.includes(e) ? (has.has(id) ? e.name : T.unknown) : e.title));
-    if (CONCEPTS.includes(e)) p.append(el('p', '', e.body), sources(e));
+    if (CONCEPTS.includes(e)) { p.insertAdjacentHTML('beforeend', conceptArt(e.id, e.alt)); p.append(el('p', '', e.body), sources(e)); } // the SVG is our own text, not user input
     else if (!has.has(id)) {
       const box = el('div', 'jSprite'); box.setAttribute('aria-hidden', 'true'); box.append(art(id, true));
       p.append(box, el('p', '', T.notFound));
