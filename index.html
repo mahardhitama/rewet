@@ -59,9 +59,9 @@ dialog p{margin:6px 0;color:var(--dim)}
 #report h2,#debrief h2{text-align:center}
 #levelSelect h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:14px 0 6px}
 #levelSelect #lsStars{color:var(--accent);font-family:Silkscreen,monospace;font-size:var(--fs-body);margin-bottom:6px}
-#levelSelect .lsBest{display:flex;justify-content:center;gap:4px;margin:6px 0 2px;color:var(--dim)}
-#levelSelect .lsBest svg{display:block}
-#levelSelect .lsBest .on{color:var(--c-funds)}
+.lsBest{display:flex;justify-content:center;gap:4px;margin:6px 0 2px;color:var(--dim)}
+.lsBest svg{display:block}
+.lsBest .on{color:var(--c-funds)}
 #levelSelect .btn small{display:block;font-family:Silkscreen,monospace;font-size:var(--fs-body);color:var(--dim);margin-top:2px}
 #report p,#debrief p{margin:6px 0}
 /* a grid, so the legend can sit under the row: width:max-content gives the centred box its full content width */
@@ -112,7 +112,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 #tip{position:fixed;z-index:5;background:#14120e;border:2px solid #c0583a;padding:2px 8px;font-size:var(--fs-body);pointer-events:none}
 #report canvas,#debrief canvas{display:block;width:100%;image-rendering:pixelated;border:1px solid var(--line);margin:4px 0}
 #rpElNino{color:var(--accent)}
-#dbStars{font-size:var(--fs-head);color:var(--accent);letter-spacing:4px}
+#dbStars{margin:8px 0}
 #dbThumbs{display:flex;gap:12px}#dbThumbs figure{margin:0;flex:1;text-align:center;color:var(--dim)}
 #dbThumbs canvas{aspect-ratio:1;max-width:140px;margin:4px auto}
 #debrief h3{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);margin:12px 0 4px;color:var(--dim)}
@@ -223,7 +223,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 <div id="tip" role="status" hidden></div>
 <div id="report" hidden><h2 id="rpTitle"></h2><small id="rpChartLabel"></small><canvas id="rpChart" role="img" width="312" height="110"></canvas><div id="rpBody"></div><p id="rpElNino" hidden></p><button class="btn" id="rpCont"></button></div>
 <div id="debrief" hidden>
-  <h2 id="dbTitle"></h2><div id="dbStars"></div><p id="dbBody"></p>
+  <h2 id="dbTitle"></h2><div id="dbStars" class="lsBest"></div><p id="dbBody"></p>
   <div id="dbThumbs"><figure><canvas id="dbBefore"></canvas><figcaption id="dbBeforeL"></figcaption></figure><figure><canvas id="dbAfter"></canvas><figcaption id="dbAfterL"></figcaption></figure></div>
   <h3 id="dbGoalsTitle"></h3><div id="dbGoals"></div><p id="dbHint"></p>
   <h3 id="dbDataTitle"></h3><canvas id="dbChart" role="img" width="312" height="110"></canvas><div id="dbData"></div>

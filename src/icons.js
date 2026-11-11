@@ -57,6 +57,11 @@ export function icon(name) {
   return s;
 }
 
+// Fill el with 3 star icons, the first n filled.
+export function starIcons(el, n) {
+  el.replaceChildren(...[0, 1, 2].map(k => { const e = icon(k < n ? 'starOn' : 'star'); e.classList.toggle('on', k < n); return e; }));
+}
+
 // A link to an original source, opened in a new tab. label names the source for screen readers.
 export function sourceLink(url, label) {
   const a = document.createElement('a');

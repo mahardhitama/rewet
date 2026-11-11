@@ -5,7 +5,7 @@ import { seasonAt, TICKS_PER_YEAR } from './sim/season.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { heatColor } from './render/iso.js';
 import { blip } from './audio.js';
-import { icon, setText } from './icons.js';
+import { icon, setText, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
 import { HUD, BAR, R_NAMES, ACTION_TEXT, actionMeta, SELECT_HINT, REASON, REPORT, DEBRIEF, HINTS } from './strings.js';
 
@@ -208,7 +208,8 @@ export function showDebrief(game) {
   const r = evaluate(game), sv = seedlingSurvival(game), loss = r.loss, p = game.level.pass, co2 = co2Estimate(game), wd = game.world;
   $('dbTitle').textContent = DEBRIEF.title;
   const sb = game.level.sandbox; // sandbox: figures only, no pass verdict
-  $('dbStars').textContent = sb ? '' : DEBRIEF.stars(r.stars);
+  const st = $('dbStars');
+  if (sb) { st.replaceChildren(); st.removeAttribute('aria-label'); } else { starIcons(st, r.stars); st.setAttribute('aria-label', DEBRIEF.stars(r.stars)); }
   $('dbBody').textContent = loss ? DEBRIEF.loss[loss] : sb ? DEBRIEF.sandbox(game.level.seed) : r.passed ? DEBRIEF.passed : DEBRIEF.failed;
   thumb($('dbBefore'), wd.w, wd.h, game.wt0); thumb($('dbAfter'), wd.w, wd.h, wd.wt);
   $('dbBeforeL').textContent = DEBRIEF.before; $('dbAfterL').textContent = DEBRIEF.after; $('dbThumbs').title = DEBRIEF.thumbs;

@@ -109,7 +109,7 @@ export const REPORT = {
 
 export const DEBRIEF = {
   title: 'Debrief',
-  stars: n => '★'.repeat(n) + '☆'.repeat(3 - n),
+  stars: n => `${n} of 3 stars`,
   before: 'Start', after: 'End',
   thumbs: 'Water depth at start and end (blue wet, brown dry)',
   goalHead: ['Goal', 'Result', 'Pass mark'],

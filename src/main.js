@@ -9,7 +9,7 @@ import { createMapView } from './render/view.js';
 import { LINES, INTRO, TOAST, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU } from './strings.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal } from './journalView.js';
-import { icon, withIcon, setText, sourceLink } from './icons.js';
+import { icon, withIcon, setText, sourceLink, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
 import { initUI, renderUI, afterStep, showYearReport, showDebrief, table } from './ui.js';
 
@@ -73,7 +73,7 @@ function boot() {
       b.className = 'btn'; b.textContent = `${L.id}. ${L.name}`;
       const n = save.stars[L.id] || 0, st = document.createElement('span');
       st.className = 'lsBest'; st.setAttribute('aria-label', SELECT.best(n));
-      for (let k = 0; k < 3; k++) { const e = icon(k < n ? 'starOn' : 'star'); e.classList.toggle('on', k < n); st.append(e); }
+      starIcons(st, n);
       s.textContent = `${SELECT.years(L.years)} · ${L.teaches}`;
       b.append(st, s); withIcon(b, 'level');
       b.onclick = () => { blip(880, 0.06); startLevel({ ...L, seed: L.seeds[Math.floor(Math.random() * L.seeds.length)] }); };
