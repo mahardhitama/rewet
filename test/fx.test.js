@@ -42,3 +42,16 @@ test('pixel text: 4 px per glyph, and it draws pixels', () => {
   const ctx = stubCtx(); pixelText(ctx, '-80', 0, 0, '#fff');
   assert.ok(ctx.n > 20);
 });
+
+test('cascade counts blocked canal tiles within 6 tiles, and a finished block near another gives a cascade event', async () => {
+  const { cascade } = await import('../src/render/fx.js');
+  const { BLOCK } = await import('../src/sim/world.js');
+  const n = 100, wd = { n, w: 10, h: 10, seed: 1, kind: new Uint8Array(n).fill(KIND.PEAT), block: new Uint8Array(n), wt: new Float32Array(n).fill(1), fire: new Uint8Array(n), cover: new Float32Array(n) };
+  for (const i of [0, 3, 9]) { wd.kind[i] = KIND.CANAL; wd.block[i] = BLOCK.TEMP; }
+  assert.equal(cascade(wd, 0), 2); // tile 9 is 9 tiles away
+  resetFx(); const g = { tick: 0, jobs: [{ id: 'tempBlock', i: 3, doneAt: 4 }], level: null, world: wd }, ctx = stubCtx(), p = new Int16Array(2 * n), sh = new Uint8Array(n);
+  drawFx(ctx, g, p, sh, null, true, 100, 100, 0, true);
+  g.tick = 4; g.jobs = [];
+  drawFx(ctx, g, p, sh, null, true, 100, 100, 16, true);
+  assert.deepEqual(takeFxEvents().map(e => e.type), ['done', 'cascade']);
+});

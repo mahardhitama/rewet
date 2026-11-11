@@ -3,6 +3,9 @@
 export const PAGE = {};
 export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals drained it. Then it burned.'], [5.6, 'Block the canals. Rewet the peat. Replant.']];
 
+// FX: words drawn in 3x5 pixel letters on the map. Use A-Z, 0-9 and spaces only.
+export const FX = { cascade: 'CASCADE' };
+
 export const TOAST = {
   noSave: 'No save.',
   saveDeleted: 'Save deleted.',

@@ -1,8 +1,9 @@
 // Map effects: particles, floating numbers, the action cursor, weather, fireflies and screen shake.
 // Display only. It reads game state and never writes it. All effects use 1 px fillRect pixels, like the sprites.
-import { KIND, WET_WT } from '../sim/world.js';
+import { KIND, WET_WT, BLOCK } from '../sim/world.js';
 import { ACTIONS, costOf, freeCrews, plantTiles, isWetSeason } from '../sim/game.js';
 import { TW, TH } from './isoMath.js';
+import { FX } from '../strings.js';
 
 const HW = TW / 2, HH = TH / 2;
 const REDUCED = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -13,7 +14,12 @@ const BAD = '#e0503a', FUNDS = '#f2d16b', INK = '#efe6cf', DARK = '#0e0d0b';
 // ---- 3x5 pixel digits for the floating numbers. Each glyph is 5 rows of 3 bits.
 const GLYPH = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001',
   5: '111100111001111', 6: '111100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001111',
-  '+': '000010111010000', '-': '000000111000000', '.': '000000000000010' };
+  '+': '000010111010000', '-': '000000111000000', '.': '000000000000010',
+  ' ': '000000000000000', A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111',
+  F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101',
+  L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011',
+  R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101',
+  X: '101101010101101', Y: '101101010010010', Z: '111001010100111' };
 export const textWidth = s => s.length * 4 - 1;
 export function pixelText(ctx, s, x, y, col) {
   for (const [c, dx] of [[DARK, 1], [col, 0]]) { // a 1 px dark shadow under the text, so it reads on any ground
@@ -108,10 +114,24 @@ function diffTick(game, pos, now) {
     burst(x, y - 4, col, 16, now, 55);
     (j.tiles ?? []).slice(0, 12).forEach((t, k) => { const [px, py] = tileAt(pos, t); spawn(px, py - 2, 0, -22, '#b6f08a', 600, now + k * 40, 30); }); // planted tiles each get a green pop
     events.push({ type: 'done', id: j.id });
+    if (j.id === 'tempBlock' || j.id === 'permBlock') { // a cascade: other blocks on canal tiles near this one. It teaches that a chain of blocks rewets more
+      const c = cascade(game.world, j.i);
+      if (c > 1) { floats.push({ x, y: y - 16, text: `${FX.cascade} X${c}`, col: '#5ff0ff', born: now + 150, life: 1800 }); events.push({ type: 'cascade', n: c }); shake(1, 120, now); }
+    }
   }
   prevJobs = cur;
 }
 
+// The blocked canal tiles within 6 tiles of tile i, i included. 6 tiles: the reach of one block upstream (CLAUDE.md).
+export function cascade(wd, i) {
+  const { w, h, kind, block } = wd, x0 = i % w, y0 = (i / w) | 0;
+  let n = 0;
+  for (let y = Math.max(0, y0 - 6); y <= Math.min(h - 1, y0 + 6); y++) for (let x = Math.max(0, x0 - 6); x <= Math.min(w - 1, x0 + 6); x++) {
+    const k = y * w + x;
+    if (kind[k] === KIND.CANAL && (block[k] === BLOCK.TEMP || block[k] === BLOCK.PERM)) n++;
+  }
+  return n;
+}
 // A diamond outline around a tile centre, s times the tile size. Only the outer 1 px.
 function diamond(ctx, x, y, s) {
   const hh = Math.max(1, Math.round(HH * s)), hw = HW * s;

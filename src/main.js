@@ -198,7 +198,7 @@ function boot() {
       if (!reduce) { shot.zoom += (SHOT_ZOOM - shot.zoom) * 0.03; shot.pan += (panTo - shot.pan) * 0.01; } // eased: it slows down and stops at the edge
     }
     if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
-    for (const e of takeFxEvents()) if (phase === 'level') sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
+    for (const e of takeFxEvents()) if (phase === 'level') e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
     setAmbience(ambience());
     if (game && phase !== 'debrief') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
