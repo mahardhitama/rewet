@@ -17,6 +17,9 @@ Date of the search: 2026-11-10. We opened each source in the table below on that
 | MB22 | Arumingtyas, L. (2022-01-13). "Melihat target BRGM restorasi gambut dan mangrove pada 2022". *Mongabay Indonesia*. A web article without page numbers. | Page opened: https://mongabay.co.id/2022/01/13/melihat-target-brgm-restorasi-gambut-dan-mangrove-pada-2022/ |
 | FAO16 | Ministry of Environment and Forestry of Indonesia and FAO (2016). "Workshop report: Peatland paludiculture. An opportunity to reduce greenhouse gas emissions and improve livelihoods", 9–10 May 2016. Page numbers are report pages. | PDF opened: https://update23.greifswaldmoor.de/files/dokumente/2016_05_Final%20workshop%20report-MOEF%20FAO%20peatland%20paludiculture%20workshop%20May%202016.pdf |
 | P24 | Putra, R.P. (2024). "Peatland management and community engagement to avoid forest-fire in Tebingtinggi Island Kepulauan Meranti Riau Province". *Proceedings of ICoMSi 2023*, Advances in Social Science, Education and Humanities Research 829. Page numbers are PDF pages. | PDF opened: https://atlantis-press.com/article/126000658.pdf |
+| PAGE11 | Page, S.E., Rieley, J.O. and Banks, C.J. (2011). "Global and regional importance of the tropical peatland carbon pool". *Global Change Biology* 17(2), 798. DOI 10.1111/j.1365-2486.2010.02279.x. We read the accepted manuscript (HAL hal-00599518v1, submitted 2010-03-01), not the published version. Page numbers are manuscript pages. | PDF opened 2026-11-11: https://hal.science/hal-00599518v1/file/PEER_stage2_10.1111%252Fj.1365-2486.2010.02279.x.pdf |
+| VM0007 | Verra. VCS Methodology VM0007 REDD+ Methodology Framework (REDD+MF), Version 1.8, 4 June 2024, Sectoral Scope 14. | PDF opened 2026-11-11: https://verra.org/documents/vm0007-redd-methodology-framework-v1-8-clean/ |
+| VCSDEF | Verra. VCS Program Definitions, Version 5.0, 16 December 2025. | PDF opened 2026-11-11: https://verra.org/documents/vcs-program-definitions-v5-0/ |
 
 H18 (Husson et al. 2018) is in `peat-swamp-wildlife.md`. Facts from H18 below repeat the facts in its "Concept facts" section.
 
@@ -121,6 +124,25 @@ The Dropbox folder `7. References/` holds only empty placeholder files (0 bytes)
 
 - The conversion from C to CO2 uses the ratio of molecular weights, 44/12 (IPCC06 Volume 4, Section 2.2.3, page 2.11). See `peat-hydrology-and-emissions.md`.
 - Calculation: 1 t C × 44/12 = 3.67 t CO2.
+
+### Peat stores carbon
+
+- Peat is "the surface layer of soil, consisting mostly of partially decomposed vegetation, with an organic content of at least 65% in a minimum thickness of 30 cm" (PAGE11 page 5).
+- "Published values of carbon content of Southeast Asian peats range from 41.6% … to 62.0%", as a fraction of the dry weight. PAGE11 uses 56±3% (PAGE11 pages 16 and 17).
+- "A single country, Indonesia, holds the largest share (57.4 Gt, 65%)" of the tropical peat carbon pool (PAGE11 abstract, page 2). The manuscript gives 88.5 Gt (range 81.5 to 91.8) for all tropical peat. A search snippet gives 88.6 Gt for the published paper, which we could not open, so the journal does not show the total.
+- "Draining inland organic soils lowers the water table and increases the oxygen content of the soil, thus increasing CO2 emissions" (IPCC13 Chapter 1, Box 1.1, page 1.9).
+- The same box: rewetting "decreases CO2 emissions … and increases CH4 emissions compared to the drained state" (IPCC13 page 1.9). The journal does not show CH4 yet.
+- Scope: PAGE11 counts the carbon in the peat soil only.
+
+### Baseline and project
+
+- Net emission reductions of a Wetlands Restoration and Conservation (WRC) project: `NER_WRC = GHG_BSL-WRC − GHG_WPS-WRC − GHG_LK-WRC`, the baseline scenario minus the project scenario minus leakage, up to year t*, in t CO2e (VM0007 Section 8.4.3, Equation 5, page 33).
+- The baseline "must be consistent with the description of the conditions prior to the project start date" (VM0007 Section 6.1, page 25).
+- Rewetting of Drained Peatland (RDP) is a subcategory of the WRC project category (VM0007 pages 12 and 16, footnote 13).
+- Leakage: "Net changes in anthropogenic emissions by GHG sources that occur outside the project or program boundary, but are attributable to the project or program" (VCSDEF page 14).
+- GHG emission reduction: a reduction "net of associated project and leakage emissions" (VCSDEF page 10).
+- Version check (2026-11-11): VM0007 v1.8 is the active version on the Verra page. That page links a transition to VM0048 for REDD projects. We did not open VM0048 or the peat modules VMD0042 and VMD0046.
+- NOT SOURCED: a VCS definition of "baseline scenario". VCSDEF page 1 points to ISO 14064-2, which we could not open. The CDM glossary returned a bot check page.
 
 ## Newer edition check (2026-11-10)
 

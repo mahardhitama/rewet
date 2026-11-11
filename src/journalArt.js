@@ -21,6 +21,19 @@ const ART = {
   ].map(([x, a, b, icon], k) => r(x - 30, 22, 60, 44, 'bx') + icon(x, 52) + t(x, 80, a, 'a', 'middle') + t(x, 92, b, 'm z', 'middle') + (k < 2 ? arrow(x + 31, 44, x + 36) : '')).join('')
     + t(100, 12, '3 steps of peat restoration', 'm', 'middle'),
 
+  store: () => {
+    // left: wet peat keeps its carbon. right: drained peat, oxygen in, CO2 out.
+    const side = (x, wet) => {
+      const wt = wet ? 34 : 64;
+      let s = r(x, 32, 86, 54, 'd') + r(x, wt, 86, 86 - wt, 'w') + r(x, 30, 86, 2, 'g');
+      for (const [dx, dy] of [[10, 44], [30, 58], [50, 48], [70, 62], [20, 74], [62, 78], [40, 40]]) if (wet || dy > wt) s += r(x + dx, dy, 4, 4, 'bgt'); else s += r(x + dx, dy, 4, 4, 'm');
+      return s + t(x + 43, 98, wet ? 'carbon stays' : 'carbon lost', wet ? 'w' : 'f', 'middle');
+    };
+    let s = side(4, true) + side(110, false);
+    for (const x of [126, 154, 182]) s += r(x, 16, 2, 12, 'f') + `<polygon points="${x + 1},12 ${x - 3},17 ${x + 5},17" class="f"/>` + r(x - 10, 14, 2, 10, 'w') + `<polygon points="${x - 9},28 ${x - 13},23 ${x - 5},23" class="w"/>`; // CO2 up, O2 down
+    return s + t(47, 14, 'wet peat', 'm', 'middle') + t(108, 22, 'O2 in', 'w', 'end') + t(196, 10, 'CO2 out', 'f', 'end');
+  },
+
   canals: () => {
     const wt = x => 52 + 18 * Math.exp(-(x - 24) / 40); // deepest at the canal, flat 1,000 m away
     return r(4, 26, 192, 60, 'd') + fillUnder(24, 196, wt, 86, 'wd') + r(4, 26, 20, 60, 'bg') + r(10, 40, 14, 46, 'w')
@@ -91,6 +104,15 @@ const ART = {
     s += atom(130, 30, 'm', 'C') + atom(146, 30, 'w', 'O') + atom(162, 30, 'w', 'O') + t(146, 50, '44', 'a', 'middle');
     // 1 t C = 30 px; 1 t C x 44/12 = 3.67 t CO2 = 110 px
     return s + r(4, 62, 30, 8, 'm') + t(38, 69, '1 t C', 'm') + r(4, 78, 110, 8, 'a') + t(118, 85, '3.67 t CO2', 'a') + t(196, 99, 'x 44/12', 'a', 'end');
+  },
+
+  baseline: () => {
+    // emissions add up over time. A trend only: the slopes are not values.
+    let s = ln(16, 86, 196, 86, 'm') + ln(16, 14, 16, 86, 'm');
+    s += fillUnder(16, 190, x => 86 - (x - 16) * 0.38, 86, 'fd') + fillUnder(16, 190, x => 86 - (x - 16) * 0.06, 86, 'bg');
+    s += ln(16, 86, 190, 20, 'a') + ln(16, 86, 190, 76, 'w') + ln(16, 86, 190, 70, 'p', true);
+    return s + t(186, 18, 'baseline', 'a', 'end') + t(186, 66, 'leakage', 'p', 'end') + t(186, 84, 'project', 'w', 'end') + t(110, 52, 'reduction', 'f', 'middle')
+      + t(20, 12, 'emissions so far', 'm') + t(196, 97, 'years', 'm', 'end');
   },
 
   plants: () => {
