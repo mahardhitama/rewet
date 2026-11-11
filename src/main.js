@@ -1,5 +1,5 @@
 import { LANG } from './i18n.js'; // first: it merges the Indonesian copy before any module reads the text
-import { createGame, step, ACTIONS } from './sim/game.js';
+import { createGame, step, ACTIONS, isWetSeason } from './sim/game.js';
 import { TICKS_PER_YEAR } from './sim/season.js';
 import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
@@ -147,8 +147,9 @@ function boot() {
     const wd = game.world; let peat = 0, wet = 0, burn = 0;
     for (let i = 0; i < wd.n; i++) { if (wd.fire[i]) burn++; if (wd.kind[i] === KIND.PEAT) { peat++; if (wd.wt[i] <= WET_WT) wet++; } }
     wetFrac += ((peat ? wet / peat : 0) - wetFrac) * .02;
-    const pct = peat ? wet / peat * 100 : 0, m = MILES.filter(v => pct >= v).length; // milestones: a toast, a chime and a burst the first time each one is reached
-    if (mile == null) mile = m;
+    const pct = peat ? wet / peat * 100 : 0, m = MILES.filter(v => pct >= v).length; // milestones: a toast, a chime and a burst when the dry-season wet share climbs past one
+    if (isWetSeason(game)) mile = null; // rain wets all peat for free: only dry-season peat that stays wet counts
+    else if (mile == null) mile = m;
     else if (m > mile) { mile = m; toast(TOAST.wet(MILES[m - 1])); sfx('star', Math.min(2, m - 1)); celebrate(1, wd.w, wd.h); }
     return { on, rain: rainLevel() > .3, health: Math.min(1, wetFrac * .7 + game.goodwill / 300), fire: Math.min(1, burn / 8) };
   }

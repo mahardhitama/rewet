@@ -43,3 +43,11 @@ Reuse the named colours at the top of `iso.js`: `DRY`, `WET`, `GREEN`, `FOREST`,
 3. Zoom into the tile with the browser zoom action. Compare it with its neighbours.
 4. Check the map edge and the data view.
 5. Expect to move pixels by 1 px after the first look.
+
+## Map effects (`src/render/fx.js`)
+
+- `drawFx()` runs at the end of `drawWorld()`. It draws particles, rings, floating cost numbers, the action cursor, rain, cloud shadows, fireflies, embers and glints on wet peat.
+- Effect positions are offsets from tile 0, like the smoke, so a pan or a zoom moves them with the map.
+- Once per tick, `diffTick()` finds tiles that turned wet, fires that went out and finished jobs. It queues events. `frame()` in `src/main.js` drains them with `takeFxEvents()` and plays the sounds.
+- The UI calls `placed()`, `denied()` and `setArmed()`. `main.js` calls `shake()` and `celebrate()`.
+- With reduced motion, fx.js spawns no particles, no weather and no shake.

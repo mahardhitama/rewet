@@ -12,6 +12,11 @@ All sound is WebAudio synthesis in `src/audio.js`. No audio files.
 
 `src/sim/**` never calls audio. A new event must not add an `rng()` call.
 
+## Sound bed and one-shot sounds
+
+- `sfx(name, k)` plays a one-shot sound. Each action id has a sound. The other names are `done`, `wet`, `star`, `deny`, `find` and `fireOut`.
+- `frame()` in `src/main.js` calls `setAmbience()` each frame. It plays slendro bell music, rain in a shower and nature sounds only while a level runs and is not paused.
+
 ## Rules
 
 1. Each sound obeys `isMuted()`. A loop also stops when the user mutes.
