@@ -35,6 +35,7 @@ The game is inspired by penjagarimba.jilf.id but must not copy it.
 - **Single test file:** `node --test test/hydro.test.js`
 - **Single test by name:** `node --test --test-name-pattern="C1" test/hydro.calibration.test.js`
 - **Headless level run:** `node scripts/sim-run.js --level 1 --plan test/fixtures/l1-cascade.json`
+- **Link preview image:** serve the game, then run `node scripts/og-image.js`. It writes `og.png` from the menu in headless Chrome. The menu map is random, so each run gives a different image.
 - There is no build step, no linter and no npm dependencies. Don't add dependencies.
 
 ## Architecture (per spec section 6)
