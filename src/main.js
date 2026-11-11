@@ -68,6 +68,7 @@ function boot() {
   function menuStats() { table($('menuStats'), [MENU.stars(totalStars(save), MAX_LEVEL * 3), MENU.found(save.found.length, SPECIES.length)], { label: MENU.label }); }
   function toMenu() {
     if (phase === 'menu') return;
+    clearNotes(); // no level note may show on the menu
     show('menu'); game = null; map.leave(); panTo = Math.random() < 0.5 ? -PAN : PAN; // leave: a level's pan must not carry into the menu
     $('bCont').disabled = !hasProgress(save);
     menuStats();
@@ -120,7 +121,7 @@ function boot() {
     const level = resolveLevel(L);
     game = createGame(level, save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave(); mile = null; wetFrac = 0;
-    clearNotes(); noted.clear(); wasBurning = false; fireYear = -1; wasWet = true; warnedYear = -1;
+    clearNotes(); noted.clear(); wasBurning = false; fireYear = -1; wasWet = true;
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
@@ -179,11 +180,11 @@ function boot() {
   function backToDebrief() { show('debrief'); $('dbView').focus({ preventScroll: true }); }
   // Field notes: what happened and why, once for each level. The first fire of each year also pauses the game.
   const noted = new Set();
-  let wasBurning = false, fireYear = -1, wasWet = true, warnedYear = -1;
+  let wasBurning = false, fireYear = -1, wasWet = true;
   const note = key => { if (!noted.has(key)) { noted.add(key); toast(NOTES[key]); } };
   function fieldNotes(ev) {
     const wd = game.world, y = Math.floor(game.tick / TICKS_PER_YEAR), wet = isWetSeason(game), dryIn = dryStart(game) - seasonAt(game.tick).week;
-    if (wet && dryIn <= 4 && warnedYear !== y) { warnedYear = y; if (!noted.has('dryIn')) { noted.add('dryIn'); toast(NOTES.dryIn(dryIn)); } }
+    if (wet && dryIn <= 4 && !noted.has('dryIn')) { noted.add('dryIn'); toast(NOTES.dryIn(dryIn)); }
     if (wasWet && !wet) note('dry');
     wasWet = wet;
     for (const e of ev) {
