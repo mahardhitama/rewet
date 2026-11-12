@@ -4,7 +4,7 @@ import { FRAMES, CREW, PS, crewPlan, crewPal, crewSeen, crewSweep, crewPhase, gu
 import { ACTIONS } from '../src/sim/game.js';
 import { KIND } from '../src/sim/world.js';
 
-const KEYS = new Set('kspht mwgbe'.replace(' ', ''));
+const KEYS = new Set('ksphtmwgbefr');
 
 test('each pose has 2 frames that fit the sprite, with known keys, feet on the bottom row', () => {
   for (const [pose, frames] of Object.entries(FRAMES)) {
@@ -89,4 +89,14 @@ test('guard pose changes within 6 s and uses at least 3 poses in 30 s', () => {
     assert.notEqual(guardPose(i, 0), guardPose(i, 6000)) ;
     assert.ok(new Set(Array.from({ length: 30 }, (_, s) => guardPose(i, s * 1000))).size >= 3);
   }
+});
+
+test('threat people: illegal diggers stay on their tile, arson comes from the nearest map edge, both wear the threat clothes', () => {
+  const dig = crewPlan('illegal', 55, 'illegal:0:3', W, H, kind);
+  assert.equal(dig.length, 2);
+  for (const m of dig) { assert.deepEqual(m.from, [5, 5]); assert.ok(m.pal.bad); }
+  const [a] = crewPlan('arson', 1 * W + 5, 'arson:15:0', W, H, kind); // x 5, y 1: the nearest edge is the top (y 0)
+  assert.ok(a.pal.bad);
+  assert.ok(a.from[1] < 1 && a.from[0] === 5, JSON.stringify(a.from));
+  assert.ok(!crewPal(1, 0).bad);
 });

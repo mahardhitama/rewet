@@ -22,7 +22,9 @@
 - Animals draw in their own pass after the tiles. After each animal, `drawWorld()` draws the plants of its tile and of the tiles in front of it again (`frontTiles()`, `vegSprite()`), so a forest hides its wildlife. The tap area does not change.
 - Draw with `fillRect` only. No image files.
 - Fire: `cache.flame[size][variant][frame]` (3 sizes, 3 variants, 4 frames), `cache.ember[variant][frame]` for smouldering peat, and `cache.cool[variant][frame]` for 2 weeks after a fire goes out. Ember and cool sprites cover the whole tile top. `fireSize()` gives the size from the ticks since the tile was lit. `trackFire()` in `iso.js` records those ticks on the render side, so the sim does not change.
+- Scorched trees: `cache.bare[0][k]` (no leaves, charred bark) and `cache.bare[1][k]` (bare limbs with buds) for each tree sprite `k`. They come from the same draw functions (`TREES`) with `leafMode` set. A large fire (3 or more burning tiles within 2 tiles) scorches the trees within 2 tiles. `scorch()` and `treeState()` in `iso.js` record it on the render side. In the wet season the trees bud for 4 weeks, then get their full leaves again.
 - Work crews (`src/render/crew.js`): 1 to 3 people at each job tile, and 1 guard at each fire group post. They are display only.
+  - Threat people (`illegal` diggers at the head of each illegal canal, the `arson` person with a torch) wear dark clothes and a 1 px red outline (`pal.bad`), so they look different from the player's crew.
   - `FRAMES` holds the poses as row strings, 2 frames each, with the body on columns 4 to 8. `CREW` gives the crew size and the poses for each action.
   - `crewPlan()` picks the size, the poses, the clothes and the start point from a hash of the job key. People walk in from the nearest village tile.
   - A crew walks in for 800 ms and fades in. It works at least 600 ms. It walks away for 800 ms and fades out. `drawWorld()` adds the people to the animal pass, so the depth sort includes them.

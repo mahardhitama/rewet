@@ -24,6 +24,10 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#0e0d0b;color:var(--ink);font-family:Silkscreen,monospace;font-size:var(--fs-body);overflow:hidden;touch-action:manipulation}
 #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;touch-action:none}
+/* A fire burns: a hard-edged frame of 3 bands, red, orange and amber, that steps through the colours. Reduced motion: it stays still. */
+#fireEdge{position:fixed;inset:0;z-index:30;pointer-events:none;visibility:hidden;--f1:#e0301e;--f2:#ff7a1e;--f3:#ffb43a;box-shadow:inset 0 0 0 4px var(--f1),inset 0 0 0 8px var(--f2),inset 0 0 0 12px color-mix(in srgb,var(--f3) 45%,transparent);animation:fireEdge .9s steps(1) infinite}
+body.burning #fireEdge{visibility:visible}
+@keyframes fireEdge{0%{--f1:#e0301e;--f2:#ff7a1e;--f3:#ffb43a}33%{--f1:#ff7a1e;--f2:#ffb43a;--f3:#e0301e}66%{--f1:#ffb43a;--f2:#e0301e;--f3:#ff7a1e}}
 #intro{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none}
 #line{font-size:var(--fs-head);text-shadow:0 2px 0 #0e0d0b,0 0 8px #0e0d0bd9;padding:12px 16px;max-width:min(640px,100% - 32px);text-align:center;transition:opacity .6s}
 #skip,.jb,.btn{display:grid;grid-template-columns:24px 1fr 24px;align-items:center;gap:8px;text-align:center}
@@ -253,6 +257,7 @@ h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3
 </head>
 <body>
 <canvas id="bg" aria-label="Pixel art peat swamp recovering from drought and fire"></canvas>
+<div id="fireEdge" aria-hidden="true"></div>
 
 <div id="intro"><div id="line" aria-live="polite"></div></div>
 <button id="skip"></button>

@@ -4,6 +4,7 @@ import { KIND, WET_WT, BLOCK } from '../sim/world.js';
 import { ACTIONS, costOf, freeCrews, plantTiles, isWetSeason } from '../sim/game.js';
 import { TW, TH } from './isoMath.js';
 import { FX } from '../strings.js';
+import { arsonAt } from './crew.js';
 
 const HW = TW / 2, HH = TH / 2;
 const REDUCED = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -123,6 +124,22 @@ function diffTick(game, pos, now) {
     }
   }
   prevJobs = cur;
+}
+
+// A threat event from the sim (main.js passes it on). washout: a splash, flying planks and sacks, and words. arson: red rings, words and a masked person with a torch.
+export function threat(e, now = performance.now()) {
+  if (!lastPos) return;
+  const [x, y] = tileAt(lastPos, e.i);
+  if (e.type === 'washout') {
+    rings.push({ x, y, col: '#5ff0ff', born: now, life: 700 }, { x, y, col: '#bff8ff', born: now + 150, life: 600, small: true });
+    burst(x, y - 2, '#8ad0f0', 14, now, 50);
+    for (let k = 0; k < 8; k++) spawn(x + (Math.random() - .5) * 8, y - 2, (Math.random() - .5) * 40, -24 - Math.random() * 16, k & 1 ? '#c8b088' : '#8a5a32', 900, now, 70, 2);
+    floats.push({ x, y: y - 14, text: FX.washout, col: '#5ff0ff', born: now, life: 2200 });
+  } else if (e.type === 'arson') {
+    for (let k = 0; k < 3; k++) rings.push({ x, y, col: k & 1 ? '#ff6a3a' : BAD, born: now + k * 400, life: 600 });
+    floats.push({ x, y: y - 18, text: FX.arson, col: '#ff6a3a', born: now, life: 2200 });
+    arsonAt(e.i, now);
+  }
 }
 
 // The blocked canal tiles within 6 tiles of tile i, i included. 6 tiles: the reach of one block upstream (CLAUDE.md).

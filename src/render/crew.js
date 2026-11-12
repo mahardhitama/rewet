@@ -8,7 +8,7 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 export const PS = 12; // person sprite size in px; the feet are at the bottom centre (column 6)
 export const WALK_MS = 800, STAY_MS = 600, WORK_FRAME_MS = 300, WALK_FRAME_MS = 150, GUARD_MS = 5000;
 
-// Person frames, facing right. Keys: k skin, s shirt, p trousers, h hat or hair, t wood, m metal, w water, g plant green, b sack, e peat.
+// Person frames, facing right. Keys: k skin, s shirt, p trousers, h hat or hair, t wood, m metal, w water, g plant green, b sack, e peat, f flame, r flame core.
 // All rows put the body on columns 4 to 8 and the feet on the last row.
 const STAND = ['.....hhh....', '.....kkk....', '....sssss...', '....sssss...', '....ksssk...', '.....ppp....', '.....p.p....', '.....p.p....'];
 const KNEEL = ['.....hhh....', '.....kkk....', '....sssss...', '....sssss...', '....ssssk...', '....pppp....', '...ppp.p....'];
@@ -67,6 +67,8 @@ export const FRAMES = {
     ['.....hhh....', '.....kkk....', '....ssssskt.', '....sssss..t', '....ssss...t', '.....ppp..mm', '.....p.p..mm', '.....p.p....']],
   backpack: [['.....hhh....', '....mkkk....', '...msssss...', '...mssssskm.', '...msssss..w', '.....ppp...w', '.....p.p....', '.....p.p....'],
     ['.....hhh....', '....mkkk....', '...msssss...', '...mssssskm.', '...msssss.w.', '.....ppp..w.', '.....p.p.w..', '.....p.p....']],
+  torch: [['.........f..', '.....hhhfrf.', '.....kkk.t..', '....sssskt..', '....sssss...', '....ssss....', '.....ppp....', '.....p.p....', '.....p.p....'],
+    ['..........f.', '.....hhh.rf.', '.....kkk.ft.', '....sssskt..', '....sssss...', '....ssss....', '.....ppp....', '.....p.p....', '.....p.p....']],
 };
 
 // Poses for each job type, and the crew size range [min, max].
@@ -82,16 +84,21 @@ export const CREW = {
   fireCrew: { size: [3, 3], poses: ['hose', 'beater', 'backpack'], fire: true },
   fireGroup: { size: [2, 2], poses: ['post', 'hammer'] },
   guard: { size: [1, 1], poses: ['stand', 'look', 'walk', 'shade'] },
+  // Threats, not the player's crew: dark clothes, a red face scarf and a red outline (bad). still: no walk in or out.
+  illegal: { size: [2, 2], poses: ['dig', 'throw'], bad: true, still: true },
+  arson: { size: [1, 1], poses: ['torch', 'torch'], bad: true, edge: true }, // edge: comes from and runs to the nearest map edge
 };
 
 // Clothes: 4 palettes, 2 skin tones and 4 hat types. The fire crew always wears yellow and a red helmet.
 const SHIRTS = ['#3c7ec8', '#e2683e', '#f6eed8', '#4e9e4e'], TROUSERS = ['#3a3430', '#4a4a5a', '#5a4632', '#2e3a4a'];
 const SKIN = ['#d8955e', '#b07244'], HATS = ['straw', 'cap', 'scarf', 'none'], HAT_COL = { straw: '#f0d47c', cap: '#2e6aa8', scarf: '#c8406a', none: '#2a2018', helmet: '#d23a2a' };
-const TOOLS = { t: '#8a5a32', m: '#9aa0a4', w: '#8ad0f0', g: '#5aa040', b: '#c8b088', e: '#4a3424' };
+const TOOLS = { t: '#8a5a32', m: '#9aa0a4', w: '#8ad0f0', g: '#5aa040', b: '#c8b088', e: '#4a3424', f: '#ff8a1e', r: '#ffe066' };
+const BAD_LINE = '#e0301e'; // the outline of a threat person
 
 // Pure. The pal for person k of the job with key seed: { k, s, p, h, hat }.
-export function crewPal(seed, k, fire = false) {
+export function crewPal(seed, k, fire = false, bad = false) {
   const r = n => Math.floor(hash(seed * 13.7 + k * 3.1 + n) * 4);
+  if (bad) return { k: SKIN[r(2) & 1], s: ['#3a2c30', '#2e3228'][r(3) & 1], p: '#1e1a1c', h: '#4a1c1a', hat: 'scarf', bad: true };
   const hat = fire ? 'helmet' : HATS[r(1)];
   return { k: SKIN[r(2) & 1], s: fire ? '#e8c030' : SHIRTS[r(3)], p: TROUSERS[r(4)], h: HAT_COL[hat], hat };
 }
@@ -99,7 +106,7 @@ export function crewPal(seed, k, fire = false) {
 const sprites = new Map();
 // Builds the sprite of one frame the first time, then keeps it. The hat type changes the h pixels of the lowest hat row.
 export function personSprite(pose, frame, pal, flip) {
-  const key = `${pose}/${frame}/${pal.k}${pal.s}${pal.p}${pal.h}${pal.hat}/${flip ? 1 : 0}`;
+  const key = `${pose}/${frame}/${pal.k}${pal.s}${pal.p}${pal.h}${pal.hat}/${flip ? 1 : 0}/${pal.bad ? 1 : 0}`;
   let c = sprites.get(key);
   if (c) return c;
   const rows = FRAMES[pose][frame], oy = PS - rows.length, px = new Map();
@@ -113,6 +120,13 @@ export function personSprite(pose, frame, pal, flip) {
   }
   c = document.createElement('canvas'); c.width = c.height = PS;
   const g = c.getContext('2d');
+  if (pal.bad) { // a 1 px red outline on the empty pixels beside the body, so a threat reads apart from the player's crew
+    g.fillStyle = BAD_LINE;
+    for (const xy of px.keys()) {
+      const [x, y] = xy.split(',').map(Number);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!px.has(x + dx + ',' + (y + dy))) g.fillRect(flip ? PS - 1 - x - dx : x + dx, y + dy, 1, 1);
+    }
+  }
   for (const [xy, ch] of px) {
     const [x, y] = xy.split(',').map(Number);
     g.fillStyle = pal[ch] ?? TOOLS[ch];
@@ -132,7 +146,8 @@ export function crewPlan(type, i, key, w, h, kind, tiles) {
   const [lo, hi] = spec.size, size = lo + Math.floor(r(0) * (hi - lo + 1));
   let vx = 1, vy = 1, best = Infinity; // walk in from the nearest village; with no village, from the bottom of the screen
   const x0 = i % w, y0 = (i / w) | 0;
-  for (let j = 0; j < w * h; j++) if (kind[j] === KIND.VILLAGE && j !== i) {
+  if (spec.edge) { const d = [x0, w - 1 - x0, y0, h - 1 - y0]; [vx, vy] = [[-1, 0], [1, 0], [0, -1], [0, 1]][d.indexOf(Math.min(...d))]; best = -1; }
+  if (best > 0) for (let j = 0; j < w * h; j++) if (kind[j] === KIND.VILLAGE && j !== i) {
     const dx = j % w - x0, dy = ((j / w) | 0) - y0, d = dx * dx + dy * dy;
     if (d < best) { best = d; vx = dx; vy = dy; }
   }
@@ -144,9 +159,9 @@ export function crewPlan(type, i, key, w, h, kind, tiles) {
     const back = spec.fire ? 0.7 : 0; // the fire crew stands 0.7 tile back from the flames, on the side it came from (1 tile = 16 px across, 8 px down)
     const ox = sx + Math.round(r(10 + k) * 4 - 2 + back * (vx - vy) / n * 16), oy = sy + Math.round(r(20 + k) * 2 - 1 + back * (vx + vy) / n * 8);
     const tx = tile % w, ty = (tile / w) | 0;
-    out.push({ tile, pose: spec.poses[(first + k) % spec.poses.length], pal: crewPal(seed, k, spec.fire), ox, oy,
+    out.push({ tile, pose: spec.poses[(first + k) % spec.poses.length], pal: crewPal(seed, k, spec.fire, spec.bad), ox, oy,
       flip: spec.fire ? vx - vy < 0 : ox > 2 || (ox >= -2 && r(30 + k) < 0.5), // the fire crew faces the fire
-      from: type === 'guard' ? [tx, ty] : [tx + 2 * vx / n, ty + 2 * vy / n] });
+      from: type === 'guard' || spec.still ? [tx, ty] : [tx + 2 * vx / n, ty + 2 * vy / n] });
   }
   return out;
 }
@@ -156,7 +171,12 @@ export const guardPose = (i, now) => CREW.guard.poses[(Math.floor(now / GUARD_MS
 
 // Crew state by key: { plan, seenAt, leaveAt, f }. f is the draw frame that last saw the job.
 const crews = new Map();
-export const resetCrews = () => crews.clear();
+// Arson: one masked person with a torch at each new arson tile for ARSON_MS, then a run to the map edge.
+const ARSON_MS = 1500;
+let arsons = [];
+export const arsonAt = (i, now) => { arsons.push({ i, born: now }); };
+export const arsonsNow = now => (arsons = arsons.filter(a => now < a.born + ARSON_MS));
+export const resetCrews = () => { crews.clear(); arsons = []; };
 export const crewCount = () => crews.size;
 
 // Marks the crew of key as seen in this frame. make() builds the plan the first time.
