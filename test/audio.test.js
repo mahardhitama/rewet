@@ -56,3 +56,9 @@ test('sfx throttles per name, obeys mute and does not throw without AudioContext
 test('setAmbience and mute are no-ops without AudioContext', () => {
   assert.doesNotThrow(() => { setAmbience({ on: true, rain: true, health: 0.8, fire: 0.2 }); setMuted(true); setMuted(false); setAmbience({ on: false }); });
 });
+
+test('a fire makes the music beat faster', async () => {
+  const { beatLen } = await import('../src/audio.js');
+  assert.ok(beatLen(0.125) < beatLen(0) / 1.5);
+  assert.equal(beatLen(0), beatLen(0));
+});

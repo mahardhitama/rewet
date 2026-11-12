@@ -117,7 +117,9 @@ export function sfx(name, k = 0, now = performance.now()) {
 }
 
 // ---- Ambience: music, rain and wildlife on one master gain ----
-const BEAT = 60 / 70, LOOK = 0.3, ROOT = 233; // 70 BPM; schedule 0.3 s ahead
+const BEAT = 60 / 70, FIRE_BEAT = 60 / 132, LOOK = 0.3, ROOT = 233; // 70 BPM, 132 BPM while a fire burns; schedule 0.3 s ahead
+// Pure. The beat length in s: a fire makes the music fast and urgent.
+export const beatLen = fire => fire > 0 ? FIRE_BEAT : BEAT;
 let amb = { on: false, rain: false, health: 0, fire: 0 }, master = null, rainG = null, timer = 0;
 let nextBeat = 0, beat = 0, cur = [], nextBird = 0, nextFrog = 0, nextCricket = 0, nextDrop = 0;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -125,12 +127,18 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 function playBeat(a, t, n) {
   const i = n % 8, { health: h, fire: f } = amb, r = mulberry32(n * 31 + 7);
   if (i === 0) cur = phrase(1 + ((n >> 4) % 16), h); // each phrase plays twice; 16 phrases loop in about 3.6 min
-  const dark = f > 0.2, root = dark ? ROOT / 2 : ROOT, sc = dark ? PELOG : SLENDRO, s = cur[i];
+  const fire = f > 0, half = beatLen(f) / 2, root = fire ? ROOT * 1.5 : ROOT, sc = fire ? PELOG : SLENDRO, s = fire ? Math.max(0, cur[i], cur[(i + 3) % 8]) : cur[i];
   if (i === 7) { note(a, 62, t, 3.5, 'sine', 0.012, 62, master); note(a, 62.7, t, 3.5, 'sine', 0.012, 62.7, master); } // two detuned sines beat slowly
-  if (s < 0 || r() < f * 0.8) return; // fire thins the music out
+  if (fire) { // kendang drive: a low thump on the beat, slaps on the offbeat, the pelog line with no rests
+    note(a, 110, t, 0.12, 'triangle', 0.03, 60, master);
+    noise(a, t + half, 0.05, 0.02, 2600, 3, 2600, master);
+    if (i % 2) noise(a, t + half * 1.5, 0.04, 0.014, 3200, 3, 3200, master);
+  }
+  if (s < 0) return;
   const v = 0.012 + 0.006 * h;
   bell(a, slendro(s, root, sc), t, v, 1.6, master);
-  if (!dark && h > 0.6 && r() < h - 0.4) bell(a, slendro(s + 5 + (r() < 0.5 ? 1 : 0), root, sc), t + BEAT / 2, v * 0.6, 1, master); // bright ornament
+  if (fire && r() < 0.3 + f * 0.5) bell(a, slendro(s + 5, root, sc), t + half, v * 0.6, 0.5, master); // more fire, more off-beat hits
+  else if (!fire && h > 0.6 && r() < h - 0.4) bell(a, slendro(s + 5 + (r() < 0.5 ? 1 : 0), root, sc), t + BEAT / 2, v * 0.6, 1, master); // bright ornament
 }
 function nature(a, t, h) {
   if (t > nextFrog && h > 0.3) { // a burst of frog pulses
@@ -151,7 +159,7 @@ function tick() {
   if (a.state === 'suspended') a.resume();
   const now = a.currentTime;
   if (nextBeat < now) nextBeat = now + 0.05; // a background tab throttles timers: restart the grid
-  while (nextBeat < now + LOOK) { playBeat(a, nextBeat, beat++); nextBeat += BEAT; }
+  while (nextBeat < now + LOOK) { playBeat(a, nextBeat, beat++); nextBeat += beatLen(amb.fire); }
   if (amb.rain && now > nextDrop) { nextDrop = now + rnd(0.05, 0.3); note(a, rnd(1500, 3500), now, 0.03, 'sine', 0.006, undefined, master); } // a soft droplet tick
   nature(a, now, amb.health);
 }

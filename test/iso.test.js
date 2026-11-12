@@ -293,3 +293,16 @@ test('flame frames: more and taller tongues for bigger fires, all inside the spr
   const tallest = s => Math.max(...flameFrames(s, 0).flat().map(t => t[2]));
   assert.ok(tallest(0) < tallest(1) && tallest(1) < tallest(2));
 });
+
+test('a large fire scorches the trees near it; a small fire does not; the leaves bud, then come back in the wet season', async () => {
+  const { scorch, treeState } = await import('../src/render/iso.js');
+  const w = 10, h = 10, fire = new Uint8Array(w * h), at = new Int32Array(w * h).fill(-1e9);
+  fire[55] = 1; scorch(fire, w, h, at, 5);
+  assert.ok(at.every(v => v === -1e9), 'one burning tile is not a large fire');
+  fire[56] = fire[45] = 1; scorch(fire, w, h, at, 6);
+  assert.equal(at[55 + 2], 6); assert.equal(at[33], 6); assert.equal(at[0], -1e9);
+  assert.equal(treeState(-1e9, 10, -1e9), 0);
+  assert.equal(treeState(6, 10, -1e9), 1, 'bare in the dry season');
+  assert.equal(treeState(6, 100, 90), 2, 'buds early in the wet season');
+  assert.equal(treeState(6, 120, 90), 0, 'full leaves later in the wet season');
+});

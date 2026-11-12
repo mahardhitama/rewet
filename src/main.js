@@ -5,7 +5,7 @@ import { checkEarlyLoss, evaluate } from './sim/score.js';
 import { LEVELS, buildLevelWorld } from './levels.js';
 import { resolveLevel } from './sim/mapgen.js';
 import { blip, tap, cue, sfx, setAmbience, setMuted, isMuted } from './audio.js';
-import { takeFxEvents, rainLevel, shake, celebrate, setArmed } from './render/fx.js';
+import { takeFxEvents, rainLevel, shake, celebrate, setArmed, threat } from './render/fx.js';
 import { KIND, WET_WT } from './sim/world.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
@@ -207,7 +207,10 @@ function boot() {
     const ev = game.events.splice(0); // drain (yearEnd.year is 0-based)
     const yearEnd = ev.some(e => e.type === 'yearEnd');
     for (const e of ev) if (!(yearEnd && e.type === 'elNinoWarning')) cue(e.type); // the year report shows the warning; one sound at a time
-    for (const e of ev) if (e.type === 'arson' || e.type === 'villageFire') shake(2, 300); else if (e.type === 'washout') shake(1, 250);
+    for (const e of ev) {
+      if (e.type === 'arson' || e.type === 'villageFire') shake(2, 300); else if (e.type === 'washout') shake(1, 250);
+      if (e.type === 'arson' || e.type === 'washout') threat(e);
+    }
     fieldNotes(ev);
     if (game.tick >= game.level.years * TICKS_PER_YEAR) return toDebrief();
     if (checkEarlyLoss(game)) return toDebrief(); // triggers the early end; evaluate() in the debrief re-derives the cause
@@ -237,6 +240,7 @@ function boot() {
     else if (phase === 'scenic') tickScenic(dt);
     for (const e of takeFxEvents()) if (phase === 'level' || phase === 'scenic') e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
     setAmbience(ambience());
+    document.body.classList.toggle('burning', phase === 'level' && !!game && game.world.fire.some(f => f)); // the pulsing fire frame (index.html #fireEdge)
     if (game && phase !== 'debrief' && phase !== 'scenic') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
     if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.cursor = phase === 'level'; map.found = save.found; map.draw(game, now); }
