@@ -94,7 +94,7 @@ try {
     // The level button picks a random seed from L.seeds; random 0 gives the first one, as in sim-run.js.
     await evaluate(`{ const r = Math.random; Math.random = () => 0; document.querySelectorAll('#lsList button')[${LEVEL - 1}].click(); Math.random = r; }`);
     await sleep(500);
-    await evaluate(click('hGo')); await sleep(300);
+    await evaluate(`while (document.getElementById('dHow').open) document.getElementById('hGo').click()`); await sleep(300); // past every slide of the level
     await evaluate(INSTALL);
     await size(PANEL_W, PANEL_H); await evaluate(css('shotUi', NO_UI)); await sleep(300);
     await wholeZoom();

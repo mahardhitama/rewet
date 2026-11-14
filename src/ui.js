@@ -102,8 +102,8 @@ function bind() {
   for (const [id, s] of Object.entries(speed)) { $(id).textContent = HUD[id.slice(1).toLowerCase()]; $(id).onclick = e => { H.setSpeed(s); e.currentTarget.blur(); }; }
   $('bData').onclick = e => { H.toggleData(); e.currentTarget.blur(); }; // blur: Space must pause, not re-toggle
   // icon and text. The text hides on a phone, so the name goes in aria-label too. renderUI changes the data button text through setText.
-  $('bData').textContent = HUD.dataView;
-  for (const [id, name] of Object.entries({ bPause: 'pause', bX1: 'play', bX2: 'fast', bData: 'data', bJournal: 'journal' })) {
+  $('bData').textContent = HUD.dataView; $('bHelp').textContent = HUD.help; $('bMenu').textContent = HUD.menu;
+  for (const [id, name] of Object.entries({ bPause: 'pause', bX1: 'play', bX2: 'fast', bData: 'data', bJournal: 'journal', bHelp: 'help', bMenu: 'menu' })) {
     const b = $(id), t = Object.assign(document.createElement('span'), { className: 't', textContent: b.textContent });
     b.replaceChildren(icon(name), t); b.setAttribute('aria-label', t.textContent); b.title = t.textContent; // the title is the tooltip when the text is hidden
   }
@@ -114,7 +114,7 @@ function bind() {
   [...$('legend').querySelectorAll('i')].forEach((el, k) => { el.textContent = HUD.legend[k]; });
   $('legendMark').style.left = $('legend').querySelectorAll('i')[1].style.left = `${(WET_WT / 1.5 * 100).toFixed(1)}%`;
   $('hudKeys').textContent = HUD.keys;
-  short = matchMedia('(max-width:1759px), (max-height:500px)');
+  short = matchMedia('(max-width:1849px), (max-height:500px)');
   for (const id of ['rpChart', 'dbChart']) $(id).setAttribute('aria-label', REPORT.chartAria);
   // canvas-only listener: clicks on HUD/panels never reach it; drags are pans, not taps
   H.canvas.addEventListener('click', e => {
@@ -129,6 +129,9 @@ function bind() {
 }
 
 // Per level. handlers: { canvas, map, isLevel(), setSpeed(s; 0 = pause), toggleData() }
+// The map shows the selected action again (the how-to slides set their own while they are open).
+export const rearm = () => setArmed(armed);
+
 export function initUI(game, handlers) {
   G = game; H = handlers; weeks = [];
   if (!bound) bind();

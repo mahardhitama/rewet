@@ -871,6 +871,9 @@ export function treeState(at, tick, wetFrom) {
   const t = tick - Math.max(at, wetFrom);
   return t < 0 ? 1 : t < BUD_TICKS ? 2 : 0;
 }
+// The how-to slides draw their own game: clearTrack gives each demo a fresh start, keepTrack gives the level its scorch and fire age back after.
+export function clearTrack() { scorchAt = null; litAt = null; }
+export function keepTrack() { const s = { scorchAt, wetSince, wasWet, litAt, outAt, prevFire, trackTick }; return () => ({ scorchAt, wetSince, wasWet, litAt, outAt, prevFire, trackTick } = s); }
 function trackScorch(game) {
   const { fire, w, h } = game.world, tick = game.tick ?? 0, wet = !!game.level && isWetSeason(game);
   if (!scorchAt || scorchAt.length !== fire.length || tick < trackTick) { scorchAt = new Int32Array(fire.length).fill(NEVER); wetSince = NEVER; wasWet = null; }

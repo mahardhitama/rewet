@@ -75,15 +75,16 @@ Success criteria:
 - The label text and the accessible name come from `src/strings.js`. On a phone, the label is hidden; the part has `title` and `aria-label` with the full text (for example "Funds 3600").
 - The dry-season part keeps the "(scored)" meaning in its label and in its accessible name.
 - Buttons in the HUD use the icon and the text on desktop, and the icon only on a phone (with `aria-label`). Each button is at least 44×44 CSS px.
+- Help and Menu are the last two HUD buttons. They show the icon only at all widths, with `aria-label` and `title`. Help opens the how-to slides of this level and of the earlier levels. Menu opens the pause menu (`#dMenu`). Esc in a level also opens the pause menu.
 - The water depth legend shows only in the data view. It goes under the HUD row, centred.
 - The keys hint (`#hudKeys`) moves under the bar on desktop and stays hidden on touch.
 - Short landscape (max-height 500px): one row, with labels hidden as on a phone.
-- Width steps. The font is Silkscreen. With funds 123456, the row needs 1734 px with all labels and the button text, 1306 px with the labels only, and 834 px with neither:
-  - Under 1760 px, the button text hides (the button keeps `aria-label` and `title`), and the time value is the short form ("1/5 · Wet · wk 2").
-  - Under 1340 px, the labels hide too.
-  - Up to 860 px wide, the HUD is 2 rows: the parts, then the buttons. Short landscape (max-height 500px) keeps one row above 800 px, because its row is smaller.
+- Width steps. The font is Silkscreen. With funds 123456, the row needs 1822 px with all labels and the button text, 1402 px with the labels only, and 930 px with neither:
+  - Under 1850 px, the button text hides (the button keeps `aria-label` and `title`), and the time value is the short form ("1/5 · Wet · wk 2").
+  - Under 1430 px, the labels hide too.
+  - Up to 956 px wide, the HUD is 2 rows: the parts, then the buttons. Short landscape (max-height 500px) keeps one row from 1024 px: its row is 922 px, and the HUD leaves 80 px for the zoom buttons. Under 480 px the buttons wrap.
   - Under 480 px, the parts wrap to a second line and the dividers hide.
-- At every width from 320 to 1920 px, `#hud` has `scrollWidth <= clientWidth` and the Journal button is on the screen.
+- At every width from 320 to 1920 px, `#hud` has `scrollWidth <= clientWidth` and the Menu button is on the screen.
 - On a phone, the gap and the padding of the parts are 2 px. This is an exception to the 4 px scale in section 2. With 24 px icons, the parts wrap to 2 lines at 390 px.
 - `#hud` is a grid, so the legend can sit under the row.
 

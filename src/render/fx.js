@@ -33,6 +33,8 @@ export function pixelText(ctx, s, x, y, col) {
 const MAX_P = 400;
 let parts = [], floats = [], rings = [], marks = [], events = [], armed = null, banner = null, prevWet = null;
 let seen = null, prevTick = -1, everWet = null, prevFire = null, prevJobs = new Map(), shakeUntil = 0, shakeAmp = 0, rain = 0;
+// The how-to slides draw their own game: keepFx gives the level its tracking, rain, haze and warmth back after.
+export function keepFx() { const s = { seen, prevTick, prevWet, everWet, prevFire, prevJobs, rain, haze, warm }; return () => ({ seen, prevTick, prevWet, everWet, prevFire, prevJobs, rain, haze, warm } = s); }
 export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; haze = 0; warm = 0; shakeUntil = 0; shakeAmp = 0; flock = null; banner = null; prevWet = null; }
 export const setArmed = id => { armed = id; };
 export const takeFxEvents = () => events.splice(0);

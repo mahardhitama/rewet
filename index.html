@@ -188,16 +188,18 @@ dialog p{margin:6px 0;color:var(--dim)}
 #dFind h2{color:var(--accent)}
 #fBody .jPage{overflow:visible;padding:12px 0 4px;border-top:2px solid var(--line);margin-top:10px}
 #fBody .jSprite{align-self:center}
-#dHow{width:min(640px,calc(100% - 24px));max-height:calc(100% - 24px);padding-bottom:0}
-#hGo{position:sticky;bottom:12px;margin:0 0 12px;background:#14120e;box-shadow:0 -12px 0 #14120e,0 12px 0 #14120e} /* Start stays in view when the list scrolls; the shadow is the dialog background, so text does not show around it */
+#dHow{width:min(640px,calc(100% - 24px));max-height:calc(100% - 24px)}
 #hSub{text-align:center;margin:-8px 0 8px}
-#hList{list-style:none;margin:0 0 12px;padding:0}
-#hList li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line)}
-#hList .ic{--c:var(--line);display:flex;align-items:center;justify-content:center;width:44px;height:44px;box-sizing:border-box;background:#14120e;border:2px solid var(--line);border-top:5px solid var(--c);color:var(--ink)}
-#hList .ic[data-r=rewet]{--c:var(--c-rewet)}#hList .ic[data-r=reveg]{--c:var(--c-reveg)}#hList .ic[data-r=revit]{--c:var(--c-revit)}#hList .ic[data-r=defense]{--c:var(--c-defense)}
-#hList b{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);color:var(--ink)}
-#hList kbd{margin-left:8px;font:inherit;font-size:var(--fs-body);color:var(--accent);border:1px solid var(--line);padding:0 4px;white-space:nowrap}
-#hList p{margin:2px 0 0}
+#hMap{display:block;width:100%;height:min(300px,38dvh);image-rendering:pixelated;background:#0e0d0b;border:2px solid var(--line);box-sizing:border-box} /* the level map, zoomed in on the demo */
+#hCap{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start;padding:10px 0;min-height:96px}
+#hCap .ic{--c:var(--line);display:flex;align-items:center;justify-content:center;width:44px;height:44px;box-sizing:border-box;background:#14120e;border:2px solid var(--line);border-top:5px solid var(--c);color:var(--ink)}
+#hCap .ic[data-r=rewet]{--c:var(--c-rewet)}#hCap .ic[data-r=reveg]{--c:var(--c-reveg)}#hCap .ic[data-r=revit]{--c:var(--c-revit)}#hCap .ic[data-r=defense]{--c:var(--c-defense)}
+#hCap .ic.on{background:var(--c);color:#14120e} /* the button press, when the demo does its action */
+#hName{font-family:Silkscreen,monospace;font-weight:400;font-size:var(--fs-label);color:var(--ink)}
+#hText{margin:2px 0 0}
+#hNav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#hPos{color:var(--dim)}
+#dMenu .btn:last-child{margin-bottom:0}
 #hHint{display:block;color:var(--dim);text-align:center;margin-bottom:12px}
 #jNav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
 #jPos{color:var(--dim);text-align:center}
@@ -208,15 +210,16 @@ dialog p{margin:6px 0;color:var(--dim)}
 #hudKeys{display:block;margin-top:4px;color:var(--dim);font-size:var(--fs-body)}
 @media (pointer:coarse),(max-width:600px),(max-height:500px){#hudKeys{display:none}}
 /* Narrow windows drop width in steps, so the HUD stays one row at the widest value (funds 123456). Measured with Silkscreen:
-   the row needs 1734 px with the labels and the button text, 1306 px with the labels only, and 834 px with neither.
-   Under 1760 px the button text hides (the name stays in aria-label) and the time value is short (src/ui.js uses the same query);
-   under 1340 px, and in short landscape, the labels hide too. */
-@media (max-width:1759px),(max-height:500px){.hb .t{display:none}}
-@media (max-width:1339px),(max-height:500px){.part .l{display:none}.part{padding:0 4px}.sep{margin-left:4px}}
-/* the HUD is 2 rows (parts, then buttons) up to 860 px wide: one row needs 834 px. Short landscape keeps the 800 px limit, because its row is smaller. Under 480 px the parts wrap to 2 lines. */
-@media (max-width:860px) and (min-height:501px),(max-width:800px){#hud{grid-template-columns:auto;max-width:calc(100% - 8px);padding:4px 0}.sep{display:none}#hudBtns{justify-self:center}.part{gap:2px;padding:0 2px}}
+   the row needs 1822 px with the labels and the button text, 1402 px with the labels only, and 930 px with neither (Help and Menu add 88 to 96 px).
+   Under 1850 px the button text hides (the name stays in aria-label) and the time value is short (src/ui.js uses the same query);
+   under 1430 px, and in short landscape, the labels hide too. */
+@media (max-width:1849px),(max-height:500px){.hb .t{display:none}}
+#bHelp .t,#bMenu .t{display:none} /* icon only at every width: the name is in aria-label and the tooltip */
+@media (max-width:1429px),(max-height:500px){.part .l{display:none}.part{padding:0 4px}.sep{margin-left:4px}}
+/* the HUD is 2 rows (parts, then buttons) up to 956 px wide: one row needs 930 px. Short landscape keeps one row from 1024 px: its row is 922 px and the HUD leaves 80 px for the zoom buttons. Under 480 px the parts and the buttons wrap. */
+@media (max-width:956px) and (min-height:501px),(max-width:1023px){#hud{grid-template-columns:auto;max-width:calc(100% - 8px);padding:4px 0}.sep{display:none}#hudBtns{justify-self:center}.part{gap:2px;padding:0 2px}}
 /* the dividers go, so a wrapped part shows no divider at a line start */
-@media (max-width:480px){#hudRow{flex-wrap:wrap;justify-content:center;gap:4px 8px}.part{border-left:0}}
+@media (max-width:480px){#hudRow,#hudBtns{flex-wrap:wrap;justify-content:center}#hudRow{gap:4px 8px}.part{border-left:0}}
 @media (max-height:500px) and (min-width:601px){#hud{max-width:calc(100% - 80px);left:calc(50% - 32px)}}
 /* very short window: smaller HUD text, and the zoom buttons are a row, because a 144 px column does not fit between the HUD and the bar */
 @media (max-height:360px){#hud{max-width:calc(100% - 16px);left:50%}#zoom{flex-direction:row;gap:4px}}
@@ -297,7 +300,7 @@ h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3
 </div>
 <div id="hud" hidden>
   <div id="hudRow"><span class="part" data-id="time" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="funds" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="crew" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="goodwill" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="wet" role="group"><b class="l"></b><span class="v"></span></span><span class="part" data-id="score" role="group"><b class="l"></b><span class="v"></span></span><i class="sep"></i></div>
-  <div id="hudBtns"><button class="hb" id="bPause"></button><button class="hb" id="bX1"></button><button class="hb" id="bX2"></button><button class="hb" id="bData"></button><button class="hb" id="bJournal"></button></div>
+  <div id="hudBtns"><button class="hb" id="bPause"></button><button class="hb" id="bX1"></button><button class="hb" id="bX2"></button><button class="hb" id="bData"></button><button class="hb" id="bJournal"></button><button class="hb" id="bHelp"></button><button class="hb" id="bMenu"></button></div>
   <div id="legend"><div id="legendIn"><div id="legendBar"><b id="legendMark"></b></div><i></i><i></i><i></i></div></div>
 </div>
 <div id="bar" hidden>
@@ -322,7 +325,14 @@ h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3
   <div id="jNav"><button class="jb" id="jPrev"></button><span id="jPos" aria-live="polite"></span><button class="jb" id="jNext"></button></div>
   <small id="jHint"></small>
 </dialog>
-<dialog id="dHow" aria-labelledby="hTitle"><h2 id="hTitle"></h2><p id="hSub"></p><ul id="hList"></ul><small id="hHint"></small><button class="btn" id="hGo" autofocus></button></dialog>
+<dialog id="dHow" aria-labelledby="hTitle">
+  <h2 id="hTitle"></h2><p id="hSub"></p>
+  <canvas id="hMap" aria-hidden="true"></canvas>
+  <div id="hCap" aria-live="polite"><span class="ic"></span><div><b id="hName"></b><p id="hText"></p></div></div>
+  <div id="hNav"><button class="jb" id="hPrev"></button><span id="hPos"></span><button class="jb" id="hGo" autofocus></button></div>
+  <small id="hHint"></small>
+</dialog>
+<dialog id="dMenu" aria-labelledby="mTitle"><h2 id="mTitle"></h2><button class="btn" id="mResume" autofocus></button><button class="btn" id="mSnd" aria-pressed="false"></button><button class="btn" id="mRestart"></button><button class="btn" id="mQuit"></button></dialog>
 <dialog id="dFind" aria-labelledby="fTitle"><h2 id="fTitle"></h2><p id="fHint"></p><div id="fBody"></div><button class="btn" id="fJournal"></button><button class="btn" id="fGo" autofocus></button></dialog>
 <dialog id="dQuit"><h2 id="qTitle"></h2><p id="qBody"></p><button class="btn" id="qYes"></button><button class="btn" id="qNo" autofocus></button></dialog>
 <div id="toast" role="status"></div>
