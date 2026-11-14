@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rewet</title>
+<title>Re-Wet</title>
 <meta name="description" content="A pixel-art game about peatland restoration in Indonesia. Block canals, rewet the peat, stop fires, replant and help the village.">
 <!-- Link preview for WhatsApp, Slack and social sites. Crawlers need an absolute image URL. og.png: the menu map with the title, 1200x630. -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://hexaconservation-rewet.netlify.app/">
-<meta property="og:title" content="Rewet: a peatland restoration game">
+<meta property="og:title" content="Re-Wet: a peatland restoration game">
 <meta property="og:description" content="A pixel-art game about peatland restoration in Indonesia. Block canals, rewet the peat, stop fires, replant and help the village.">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <meta property="og:image" content="https://hexaconservation-rewet.netlify.app/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="A pixel-art peat swamp with canals, a river and a village, under the title Rewet">
+<meta property="og:image:alt" content="A pixel-art peat swamp with canals, a river and a village, under the title Re-Wet">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -249,7 +249,7 @@ dialog p{margin:6px 0;color:var(--dim)}
 #levelSelect:not([hidden]),#report:not([hidden]),#debrief:not([hidden]),dialog[open],#hud:not([hidden]),#toast.on{animation:pop .2s steps(4) backwards}
 #bar:not([hidden]){animation:barIn .2s steps(4) backwards}
 h1 span{display:inline-block;animation:bob 2.4s steps(2) infinite;animation-delay:calc(var(--k,0) * -.3s)}
-h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3}h1 span:nth-child(5){--k:4}
+h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3}h1 span:nth-child(5){--k:4}h1 span:nth-child(6){--k:5}
 @keyframes bob{50%{translate:0 -4px}}
 #menu.on>.sub,#menu.on>.btn,#menu.on>#menuStats{animation:menuIn .4s steps(4) backwards;animation-delay:calc(var(--i,1) * .08s)}
 #menu>:nth-child(2){--i:1}#menu>:nth-child(3){--i:2}#menu>:nth-child(4){--i:3}#menu>:nth-child(5){--i:4}#menu>:nth-child(6){--i:5}#menu>:nth-child(7){--i:6}#menu>:nth-child(8){--i:7}
@@ -272,7 +272,7 @@ h1 span:nth-child(2){--k:1}h1 span:nth-child(3){--k:2}h1 span:nth-child(4){--k:3
 <button id="skip"></button>
 
 <nav id="menu" aria-label="Main menu">
-  <h1 aria-label="REWET"><span aria-hidden="true">R</span><span aria-hidden="true">E</span><span aria-hidden="true">W</span><span aria-hidden="true">E</span><span aria-hidden="true">T</span></h1>
+  <h1 aria-label="Re-Wet"><span aria-hidden="true">R</span><span aria-hidden="true">E</span><span aria-hidden="true">-</span><span aria-hidden="true">W</span><span aria-hidden="true">E</span><span aria-hidden="true">T</span></h1>
   <div class="sub">a peatland restoration game</div>
   <button class="btn" id="bNew">New game</button>
   <button class="btn" id="bCont" disabled>Continue</button>

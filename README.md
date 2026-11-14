@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/press/hero.gif" alt="Rewet: a peatland restoration game. The title over an animated pixel-art peat swamp with forest, canals, a river and a village.">
+  <img src="docs/press/hero.gif" alt="Re-Wet: a peatland restoration game. The title over an animated pixel-art peat swamp with forest, canals, a river and a village.">
 </p>
 
 <p align="center">
@@ -94,7 +94,7 @@ At the end of each level, the debrief shows your start and end water maps, your 
 
 | | |
 |---|---|
-| Title | Rewet |
+| Title | Re-Wet |
 | One line | A pixel-art game about peatland restoration in Indonesia. Block canals, rewet the peat, stop fires, replant and help the village. |
 | Genre | Strategy, simulation, educational |
 | Platform | Web browser, desktop and phone |
@@ -103,7 +103,7 @@ At the end of each level, the debrief shows your start and end water maps, your 
 | Price | Free to play |
 | Play | https://hexaconservation-rewet.netlify.app/ |
 
-**Short description (45 words).** Rewet is a pixel-art strategy game about saving a tropical peat swamp. Block old drainage canals, keep the peat wet through the dry season, stop fires and replant the forest. A water model, checked against field research in Kalimantan, decides if your plan works.
+**Short description (45 words).** Re-Wet is a pixel-art strategy game about saving a tropical peat swamp. Block old drainage canals, keep the peat wet through the dry season, stop fires and replant the forest. A water model, checked against field research in Kalimantan, decides if your plan works.
 
 **Images.** All images are in [`docs/press/`](docs/press/). The maps show at a whole zoom step, so each game pixel stays square.
 
@@ -121,7 +121,7 @@ To make the images again, serve the game and run `node scripts/press-kit.js`. It
 
 ## The science
 
-**The science in Rewet is simplified for education.** The game shows how canals, blocks, seasons and fire work together. It is not a planning tool: do not use its numbers for a real site.
+**The science in Re-Wet is simplified for education.** The game shows how canals, blocks, seasons and fire work together. It is not a planning tool: do not use its numbers for a real site.
 
 What we simplified:
 
