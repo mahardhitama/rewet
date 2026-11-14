@@ -290,7 +290,7 @@ test('crewed fire re-lit by a neighbour is capped and put out', () => {
 test('fire crew fights every burning tile in the 3x3 square around its fire', () => {
   const g = createGame(lvl());
   const i = at(8, 8), nb = at(9, 9), out = at(10, 8);
-  g.world.wt.fill(-0.3); // nothing can catch or re-light
+  g.world.wt.fill(0.3); // wet, not flooded: nothing can catch or re-light
   for (const k of [i, nb, out]) { g.world.fire[k] = 2; g.world.fireT[k] = 50; }
   assert.equal(applyAction(g, 'fireCrew', i).ok, true);
   step(g);
@@ -304,7 +304,7 @@ test('fire crew fights every burning tile in the 3x3 square around its fire', ()
 test('fire crew puts out its whole 3x3 square when its fire goes out', () => {
   const g = createGame(lvl());
   const i = at(8, 8), nb = at(7, 9), out = at(10, 8);
-  g.world.wt.fill(-0.3); // nothing can catch or re-light
+  g.world.wt.fill(0.3); // wet, not flooded: nothing can catch or re-light
   g.world.fire[i] = 1; g.world.fireT[i] = 8; // surface fire: cap 1, out in the first tick
   for (const k of [nb, out]) { g.world.fire[k] = 2; g.world.fireT[k] = 50; }
   assert.equal(applyAction(g, 'fireCrew', i).ok, true);
@@ -418,4 +418,12 @@ test('growSeedlings: a seedling beside cover >= 0.6 grows twice as fast; a wet t
   assert.equal(g.seedlings.get(lone), 0);
   assert.ok(!g.seedlings.has(dry), 'dead');
   assert.equal(wd.cover[dry], 0);
+});
+
+test('an illegal canal dug through a smouldering tile puts the fire out', () => {
+  const g = createGame(lvl({ canals: [], illegalCanals: [[[0, 2], [1, 2]]] }));
+  g.world.fire[at(0, 2)] = 2; g.world.fireT[at(0, 2)] = 56; g.world.wt[at(0, 2)] = 0.8;
+  for (let t = 0; t < 8; t++) step(g);
+  assert.equal(g.world.kind[at(0, 2)], KIND.CANAL);
+  assert.equal(g.world.fire[at(0, 2)], 0);
 });

@@ -251,7 +251,7 @@ export function step(g) {
       const i = idx(wd.w, path[p][0], path[p][1]);
       if (wd.block[i] !== BLOCK.NONE || kind[i] === KIND.VILLAGE || kind[i] === KIND.RIVER) { g.illegal[c] = -1; return; }
       if (kind[i] !== KIND.CANAL) {
-        kind[i] = KIND.CANAL; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]);
+        kind[i] = KIND.CANAL; fire[i] = fireT[i] = 0; wd.z[i] = Math.min(wd.z[i], (g.dome ??= domeZ(g.level))[i]);
         wd.cWidth[i] = BRANCH.w; wd.cDepth[i] = BRANCH.d;
         dug.push(i);
       }
