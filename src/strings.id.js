@@ -21,7 +21,7 @@ const timeShort = (year, years, wet, week) => `${year}/${years} · ${wet ? 'Huja
 
 export const STRINGS = {
   LINES: [[0, 'Rawa gambut ini dulu basah.'], [2.8, 'Kanal mengeringkannya. Lalu ia terbakar.'], [5.6, 'Sekat kanal. Basahi gambut. Tanam kembali.']],
-  FX: { cascade: 'BERJENJANG', dry: 'MUSIM KEMARAU', washout: 'SEKAT JEBOL', arson: 'PEMBAKARAN' },
+  FX: { cascade: 'BERJENJANG', dry: 'MUSIM KEMARAU', washout: 'SEKAT JEBOL', arson: 'PEMBAKARAN', fire: 'KEBAKARAN!' },
   NOTES: {
     dryIn: n => `Musim kemarau mulai dalam ${n} minggu. Biaya kerja 20% lebih murah sampai saat itu, jadi selesaikan sekat sekarang.`,
     dry: 'Musim kemarau. Kanal kini mengeringkan gambut lebih cepat, dan gambut kering bisa terbakar.',
@@ -89,6 +89,7 @@ export const STRINGS = {
     group: 'Zum',
     in: ['+', 'Perbesar (+)'],
     out: ['−', 'Perkecil (-)'],
+    flow: 'Aliran air: kanal mengalirkan air keluar dari lahan ke arah ini',
     fit: ['SEMUA', 'Semua: seluruh peta (0)'], // the name starts with the visible word (WCAG 2.5.3)
   },
   R_NAMES: { rewet: 'Pembasahan Kembali', reveg: 'Revegetasi', revit: 'Revitalisasi', defense: 'Pertahanan' },

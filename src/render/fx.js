@@ -411,28 +411,30 @@ const AW = 112, AH = 64, ARROW_F = 8, SLAB = 3, arrowCache = new Map();
 const AQ = [44, 128, 172], shade = t => `rgb(${AQ.map(v => Math.round(v * (1 - t))).join()})`; // AQ: WATER in iso.js; shade: mix to black
 const A_TOP = shade(0), A_LIP = 'rgb(90,160,196)', A_RIP = 'rgb(139,185,210)', A_LEFT = shade(.35), A_RIGHT = shade(.55); // lip and ripple: mix to white .2 and .45, as the canal
 let mouths = null;
-function mouthSprite(d, f) {
-  const key = `${d}|${f}`; // d.toString(): '0,1'
+// k: the scale (1 on the map, 0.5 on the flow tile in the zoom column).
+function mouthSprite(d, f, k = 1) {
+  const key = `${d}|${f}|${k}`; // d.toString(): '0,1'
   if (arrowCache.has(key)) return arrowCache.get(key);
-  const c = document.createElement('canvas'); c.width = AW; c.height = AH;
-  const g = c.getContext('2d'), top = new Uint8Array(AW * AH);
+  const W = AW * k, H = AH * k, hw = HW * k, hh = HH * k, slab = Math.max(2, Math.round(SLAB * k));
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), top = new Uint8Array(W * H);
   const shape = (u, v) => u >= 0 && (u <= 1.2 ? Math.abs(v) <= 0.24 : u <= 2.1 && Math.abs(v) <= 0.6 * (2.1 - u) / 0.9);
-  const at = (x, y) => x >= 0 && y >= 0 && x < AW && y < AH && top[y * AW + x];
-  for (let py = 0; py < AH; py++) for (let px = 0; px < AW; px++) {
-    const X = (px - AW / 2 + 0.5) / HW, Y = (py - AH / 2 + 0.5) / HH, gx = (X + Y) / 2, gy = (Y - X) / 2;
+  const at = (x, y) => x >= 0 && y >= 0 && x < W && y < H && top[y * W + x];
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    const X = (px - W / 2 + 0.5) / hw, Y = (py - H / 2 + 0.5) / hh, gx = (X + Y) / 2, gy = (Y - X) / 2;
     const u = gx * d[0] + gy * d[1], v = -gx * d[1] + gy * d[0];
     if (!shape(u, v)) continue;
-    const jit = Math.abs(Math.sin(Math.floor(v * 16 / 3) * 78.2 + 1.3) * 43758.5) % 1; // rows across the flow get their own offset, so the ripples break into dashes
-    top[py * AW + px] = (((u * 2 - f / ARROW_F - jit) % 1) + 1) % 1 < 0.14 && u < 1.9 ? 2 : 1; // 2: ripple, 2 dashes a tile, 1 dash period in ARROW_F frames
+    const jit = Math.abs(Math.sin(Math.floor(v * 16 * k / 3) * 78.2 + 1.3) * 43758.5) % 1; // rows across the flow get their own offset, so the ripples break into dashes
+    top[py * W + px] = (((u * 2 - f / ARROW_F - jit) % 1) + 1) % 1 < 0.14 && u < 1.9 ? 2 : 1; // 2: ripple, 2 dashes a tile, 1 dash period in ARROW_F frames
   }
-  for (let py = 0; py < AH; py++) for (let px = 0; px < AW; px++) {
-    const m = top[py * AW + px];
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    const m = top[py * W + px];
     if (m) g.fillStyle = m === 2 ? A_RIP : at(px, py - 1) ? A_TOP : A_LIP; // the far edge catches the light
     else {
-      let k = 1; while (k <= SLAB && !at(px, py - k)) k++;
-      if (k > SLAB) continue;
-      const nx = (at(px + 1, py - k) ? 1 : 0) - (at(px - 1, py - k) ? 1 : 0); // which way the face looks, as the left and right faces of a tile
-      g.fillStyle = nx > 0 ? A_LEFT : nx < 0 ? A_RIGHT : k === 1 && at(px - 1, py - 1) && !at(px + 1, py - 1) ? A_RIGHT : A_LEFT;
+      let j = 1; while (j <= slab && !at(px, py - j)) j++;
+      if (j > slab) continue;
+      const nx = (at(px + 1, py - j) ? 1 : 0) - (at(px - 1, py - j) ? 1 : 0); // which way the face looks, as the left and right faces of a tile
+      g.fillStyle = nx > 0 ? A_LEFT : nx < 0 ? A_RIGHT : j === 1 && at(px - 1, py - 1) && !at(px + 1, py - 1) ? A_RIGHT : A_LEFT;
     }
     g.fillRect(px, py, 1, 1);
   }
@@ -440,16 +442,24 @@ function mouthSprite(d, f) {
   return c;
 }
 
-// An arrow at each canal mouth, and a small fixed arrow in the bottom-left corner of box (the free band of the view).
-export function flowArrows(ctx, game, box, now) {
+// An arrow at each canal mouth.
+export function flowArrows(ctx, game, now) {
   const d = outletDir(game.level), pos = lastPos, wd = game.world; if (!d || !pos || !wd) return;
   if (mouths?.wd !== wd) mouths = { wd, list: outlets(wd, d) }; // the canal ends do not move: find the mouths once per world
   const f = REDUCED ? 0 : Math.floor(now / 150) % ARROW_F, sp = mouthSprite(d, f); // 150 ms a frame, as the canal ripples
   for (const m of mouths.list) ctx.drawImage(sp, Math.round(pos[2 * m.i] + m.x - AW / 2), Math.round(pos[2 * m.i + 1] + m.y - AH / 2));
-  const sx = (d[0] - d[1]) * HW, sy = (d[0] + d[1]) * HH, n = Math.hypot(sx, sy);
-  const cx = box.l + 20, cy = box.b - 20;
-  ctx.fillStyle = DARK; ctx.globalAlpha = 0.55; ctx.fillRect(cx - 15, cy - 15, 31, 31); ctx.globalAlpha = 1;
-  arrow(ctx, cx, cy, sx / n, sy / n, 11, 2, -11, 1, A_RIP);
+}
+
+// The flow tile in the zoom column (#flow, canvas #flowCv): the mouth arrow at half scale, centred. Hidden on a map with no outlet.
+let badge = '';
+export function flowBadge(level, now) {
+  const el = globalThis.document?.getElementById('flow'), d = outletDir(level); if (!el) return;
+  el.hidden = !d; if (!d) return;
+  const f = REDUCED ? 0 : Math.floor(now / 150) % ARROW_F, key = `${d}|${f}`; if (key === badge) return; badge = key;
+  const cv = document.getElementById('flowCv'), g = cv.getContext('2d'), sp = mouthSprite(d, f, 0.5);
+  const ox = (d[0] - d[1]) * HW * 0.5 * 1.05, oy = (d[0] + d[1]) * HH * 0.5 * 1.05; // the arrow middle is 1.05 tiles out from the sprite origin
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.drawImage(sp, Math.round(cv.width / 2 - sp.width / 2 - ox), Math.round(cv.height / 2 - sp.height / 2 - oy));
 }
 
 // ---- new finds: an animal whose species is not in the journal yet gets a small gold twinkle above it, so the player taps it.

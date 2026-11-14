@@ -4,7 +4,7 @@ export const PAGE = {};
 export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals drained it. Then it burned.'], [5.6, 'Block the canals. Rewet the peat. Replant.']];
 
 // FX: words drawn in 3x5 pixel letters on the map. Use A-Z, 0-9 and spaces only.
-export const FX = { cascade: 'CASCADE', dry: 'DRY SEASON', washout: 'DAM WASHED OUT', arson: 'ARSON' };
+export const FX = { cascade: 'CASCADE', dry: 'DRY SEASON', washout: 'DAM WASHED OUT', arson: 'ARSON', fire: 'FIRE!' };
 
 export const TOAST = {
   noSave: 'No save.',
@@ -89,6 +89,7 @@ export const ZOOM = {
   group: 'Zoom',
   in: ['+', 'Zoom in (+)'],
   out: ['−', 'Zoom out (-)'],
+  flow: 'Water flow: the canals drain off the site this way',
   fit: ['ALL', 'All of the map (0)'], // the name starts with the visible word (WCAG 2.5.3)
 };
 

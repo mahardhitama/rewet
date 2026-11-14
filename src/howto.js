@@ -48,7 +48,7 @@ export function openHowto({ level, title, sub, items, onClose }) {
     backdrop(ctx, cv.width, cv.height);
     setArmed(nx && ACTIONS[nx[1]] ? nx[1] : null);
     drawWorld(ctx, demo.g, cam, demo.mode, nx ? nx[2] : null, now);
-    flowArrows(ctx, demo.g, { l: 0, t: 0, r: cv.width, b: cv.height }, now);
+    flowArrows(ctx, demo.g, now);
   }
   function frame(now) {
     raf = requestAnimationFrame(frame);

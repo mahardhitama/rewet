@@ -9,7 +9,7 @@ import { takeFxEvents, rainLevel, shake, celebrate, setArmed, threat } from './r
 import { KIND, WET_WT } from './sim/world.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
-import { LINES, INTRO, TOAST, NOTES, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE, PAUSE } from './strings.js';
+import { LINES, INTRO, TOAST, NOTES, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE, PAUSE, FX } from './strings.js';
 import { openHowto } from './howto.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal, speciesPage } from './journalView.js';
@@ -183,7 +183,7 @@ function boot() {
   function backToDebrief() { show('debrief'); $('dbView').focus({ preventScroll: true }); }
   // Field notes: what happened and why, once for each level. The first fire of each year also pauses the game.
   const noted = new Set();
-  let wasBurning = false, fireYear = -1, wasWet = true;
+  let wasBurning = false, fireYear = -1, wasWet = true, fireKey = ''; // fireKey: the FIRE! tag text now shown
   const note = key => { if (!noted.has(key)) { noted.add(key); toast(NOTES[key]); } };
   function fieldNotes(ev) {
     const wd = game.world, y = Math.floor(game.tick / TICKS_PER_YEAR), wet = isWetSeason(game), dryIn = dryStart(game) - seasonAt(game.tick).week;
@@ -244,7 +244,9 @@ function boot() {
     else if (phase === 'scenic') tickScenic(dt);
     for (const e of takeFxEvents()) if ((phase === 'level' || phase === 'scenic') && !$('dHow').open) e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens and from the how-to demos are dropped, so they do not play late
     setAmbience(ambience());
-    document.body.classList.toggle('burning', phase === 'level' && !!game && game.world.fire.some(f => f)); // the pulsing fire frame (index.html #fireEdge)
+    const burning = phase === 'level' && game ? game.world.fire.reduce((n, f) => n + (f ? 1 : 0), 0) : 0;
+    document.body.classList.toggle('burning', burning > 0); // the pulsing fire frame and the FIRE! tag (index.html #fireEdge, #fireTag)
+    if (`${FX.fire}${burning}` !== fireKey) { fireKey = `${FX.fire}${burning}`; const [w, c] = $('fireTag').children; w.textContent = FX.fire; c.textContent = burning > 1 ? ` ×${burning}` : ''; } // the count is hidden from screen readers, so a spreading fire does not repeat the announcement
     if (game && phase !== 'debrief' && phase !== 'scenic') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
     if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { if (!$('dHow').open) drawLevel(now); }
@@ -364,6 +366,7 @@ function boot() {
   $('mRestart').onclick = () => { leaveMenu(); startLevel(current); };
   $('mQuit').onclick = () => { $('dMenu').close(); $('dQuit').showModal(); };
   $('zoom').setAttribute('aria-label', ZOOM.group);
+  $('flow').title = ZOOM.flow; $('flow').setAttribute('aria-label', ZOOM.flow);
   for (const [id, key, dir, name] of [['bZoomIn', 'in', 1, 'zoomIn'], ['bZoomOut', 'out', -1, 'zoomOut'], ['bZoomFit', 'fit', 0, 'fit']]) {
     const b = $(id); b.title = ZOOM[key][1]; b.setAttribute('aria-label', b.title); b.replaceChildren(icon(name));
     b.onclick = () => map.zoom(dir);
