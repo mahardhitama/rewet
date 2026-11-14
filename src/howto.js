@@ -3,7 +3,7 @@
 import { ACTIONS } from './sim/game.js';
 import { newDemo, demoStep, nextAction } from './demo.js';
 import { drawWorld, resetSlides, resetSmoke, clearTrack, keepTrack } from './render/iso.js';
-import { backdrop, resetFx, placed, setArmed, keepFx } from './render/fx.js';
+import { backdrop, resetFx, placed, setArmed, keepFx, flowArrows } from './render/fx.js';
 import { cameraFor, tileToScreen, TW } from './render/isoMath.js';
 import { HOWTO } from './strings.js';
 import { icon, setText } from './icons.js';
@@ -48,6 +48,7 @@ export function openHowto({ level, title, sub, items, onClose }) {
     backdrop(ctx, cv.width, cv.height);
     setArmed(nx && ACTIONS[nx[1]] ? nx[1] : null);
     drawWorld(ctx, demo.g, cam, demo.mode, nx ? nx[2] : null, now);
+    flowArrows(ctx, demo.g, { l: 0, t: 0, r: cv.width, b: cv.height }, now);
   }
   function frame(now) {
     raf = requestAnimationFrame(frame);

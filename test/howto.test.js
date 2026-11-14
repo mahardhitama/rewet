@@ -23,6 +23,7 @@ test('HOWTO has items for each level but the last, and each item has a real icon
 test('level 1 shows the basics: blocks, the 40 cm line and fire crews', () => {
   for (const i of ['tempBlock', 'permBlock', 'fireCrew']) assert.ok(icons(1).includes(i), i);
   assert.match(all(1), /40 cm/);
+  assert.match(all(1), /arrow/); // the water flow slide
 });
 
 test('each later level shows only what is new in it', () => {

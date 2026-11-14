@@ -210,6 +210,7 @@ export const HOWTO = {
       act('permBlock', 'Tap a temp block to make it permanent. Floods do not break it.'),
       { icon: 'wet', demo: 'wetLine', name: 'The 40 cm line', text: 'Peat with the water table 40 cm or less below the surface is wet. Wet peat does not burn. Keep it wet through the dry season.' },
       { icon: 'tempBlock', demo: 'distance', name: 'Distance', text: 'A block rewets the peat near the canal most. Peat far from a block stays dry. Put blocks along all of the canal.' },
+      { icon: 'wet', demo: 'flow', name: 'Water flow', text: 'The big blue arrow shows where the water flows off the site. A block keeps water in the canal upstream of it. Put the first blocks at the low end of a canal, or at its top. Try both and compare the result.' },
       act('fireCrew', 'Tap a fire to send a crew to it.'),
     ],
     2: [

@@ -57,6 +57,12 @@ export const DEMOS = {
   palud: { start: MID_WET, site: wd => ({ focus: nearest(wd, villageSite(wd), i => wd.kind[i] === KIND.PEAT && nextToVillage(wd, i), 3) }), plan: s => [[20, 'palud', s.focus]] },
   pond: { site: wd => { const c = canalSite(wd); return { c, focus: upstream(wd, c, 2) }; }, plan: s => [[2, 'tempBlock', s.c], [10, 'pond', s.focus]] },
   fireGroup: { site: wd => ({ focus: villageSite(wd) }), plan: s => [[2, 'fireGroup', s.focus]] },
+  // flow: a block at the low end of a canal, then one 6 tiles upstream. The flow arrows show the way to the outlet.
+  flow: {
+    span: 14,
+    site: wd => { let m = -1; for (let i = 0; i < wd.n; i++) if (wd.kind[i] === KIND.CANAL && (m < 0 || wd.z[i] < wd.z[m])) m = i; return { c: m, focus: upstream(wd, m, 3), u: upstream(wd, m, 6) }; },
+    plan: s => [[2, 'tempBlock', s.c], [12, 'tempBlock', s.u]],
+  },
   cascade: {
     mode: 'data', span: 14,
     site: wd => { const c = canalSite(wd); return { c, focus: upstream(wd, c, 5), u: upstream(wd, c, 10) }; },

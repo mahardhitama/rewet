@@ -176,6 +176,7 @@ export const STRINGS = {
         act('permBlock', 'Ketuk sekat sementara untuk membuatnya permanen. Banjir tidak merusaknya.'),
         { icon: 'wet', demo: 'wetLine', name: 'Garis 40 cm', text: 'Gambut dengan muka air tanah 40 cm atau kurang di bawah permukaan itu basah. Gambut basah tidak terbakar. Jaga tetap basah sepanjang musim kemarau.' },
         { icon: 'tempBlock', demo: 'distance', name: 'Jarak', text: 'Sekat paling membasahi gambut di dekat kanal. Gambut yang jauh dari sekat tetap kering. Pasang sekat di sepanjang kanal.' },
+        { icon: 'wet', demo: 'flow', name: 'Aliran air', text: 'Panah biru besar menunjukkan arah air mengalir keluar dari lahan. Sekat menahan air di kanal di hulu sekat. Pasang sekat pertama di ujung rendah kanal, atau di ujung atasnya. Coba keduanya dan bandingkan hasilnya.' },
         act('fireCrew', 'Ketuk api untuk mengirim regu ke sana.'),
       ],
       2: [
