@@ -3,8 +3,8 @@ import { KIND, WET_WT } from './world.js';
 export const FIRE = { base: 0.0004, spreadP: 0.15, smoulderP: 0.2, surfaceTicks: 8, smoulderTicks: 56 };
 // fire[i]: 0 none, 1 surface burning, 2 smouldering; fireT[i]: ticks left in that state.
 
-const ignitable = (world, i) =>
-  world.fire[i] === 0 && world.wt[i] > WET_WT && (world.kind[i] === KIND.PEAT || world.kind[i] === KIND.FARM);
+const isFuel = (world, i) => world.kind[i] === KIND.PEAT || world.kind[i] === KIND.FARM;
+const ignitable = (world, i) => world.fire[i] === 0 && world.wt[i] > WET_WT && isFuel(world, i);
 
 function light(world, i) {
   world.fire[i] = 1;
@@ -25,6 +25,7 @@ export function fireTick(world, env, wind) {
   for (let i = 0; i < n; i++) if (fire[i]) burning.push(i); // snapshot: tiles lit below don't act this tick
   const lit = (i) => { light(world, i); burnt.push(i); };
   for (const i of burning) {
+    if (!isFuel(world, i) || wt[i] <= 0) { fire[i] = 0; fireT[i] = 0; continue; } // dug into a canal, or flooded
     if (fire[i] === 1) {
       const x = i % w, y = (i / w) | 0;
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { // 8 neighbours

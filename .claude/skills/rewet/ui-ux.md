@@ -7,6 +7,7 @@
 | Layout, CSS tokens, buttons, `@media (max-width:600px)` | `index.html` |
 | HUD fill, action bar, map input (tap, drag, hover) | `src/ui.js`, `src/render/view.js` |
 | Camera scale, `screenToTile`, `clampPan` | `src/render/isoMath.js` |
+| Fire alerts: the pulsing frame (`#fireEdge`) and the `FIRE!` tag under the HUD (`#fireTag`, the word is `FX.fire`). `frame()` sets the `burning` body class and the tag count. The count is `aria-hidden`, so a spreading fire does not repeat the announcement. | `index.html`, `frame()` in `src/main.js` |
 | Debrief buttons and the bar of the map view after the debrief (`#scenic`, Esc goes back) | `index.html`, `toScenic()` and `backToDebrief()` in `src/main.js` |
 | All text. English is in `src/strings.js`. Indonesian is in `src/strings.id.js`; `src/i18n.js` merges it when `settings.lang` is `id`. | `src/strings.js`, `src/strings.id.js` |
 

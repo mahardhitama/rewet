@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { drawFx, takeFxEvents, resetFx, textWidth, pixelText } from '../src/render/fx.js';
+import { drawFx, takeFxEvents, resetFx, textWidth, pixelText, outletDir, outlets } from '../src/render/fx.js';
+import { LEVELS } from '../src/levels.js';
+import { resolveLevel } from '../src/sim/mapgen.js';
+import { placeLevel } from '../src/sim/game.js';
 import { KIND } from '../src/sim/world.js';
 
 const stubCtx = () => ({ n: 0, fillStyle: '', globalAlpha: 1, fillRect() { this.n++; }, drawImage() {}, save() {}, restore() {}, translate() {}, scale() {} });
@@ -66,4 +69,27 @@ test('fx: a season change gives one season event, and the start of a level gives
   assert.deepEqual(takeFxEvents().filter(e => e.type === 'season'), []);
   g.tick = t; drawFx(ctx, g, pos, shown, null, true, 100, 100, 32, true);
   assert.deepEqual(takeFxEvents().filter(e => e.type === 'season').length, 1);
+});
+
+test('fx: the flow arrow points to the outlet edge, the lowest edge of the map', () => {
+  assert.equal(outletDir(null), null);
+  assert.equal(outletDir({ terrain: { tilt: 0, outlet: 'S' } }), null); // no tilt: no outlet edge
+  for (const L of LEVELS) {
+    const lv = resolveLevel(L), [dx, dy] = outletDir(lv), n = lv.size;
+    // the canals end at the outlet edge: the edge on the arrow side holds canal or river tiles
+    const edge = ([x, y]) => (dx > 0 && x === n - 1) || (dx < 0 && x === 0) || (dy > 0 && y === n - 1) || (dy < 0 && y === 0) || (lv.rivers.length && ((dx > 0 && x === n - 2) || (dx < 0 && x === 1) || (dy > 0 && y === n - 2) || (dy < 0 && y === 1)));
+    assert.ok(lv.canals.some(edge), `level ${L.id}: no canal at the ${lv.terrain.outlet} edge`);
+  }
+});
+
+test('fx: each level has a mouth arrow at each canal end on the outlet edge, and only there', () => {
+  for (const L of LEVELS) {
+    const lv = resolveLevel(L), wd = placeLevel(lv), d = outletDir(lv), list = outlets(wd, d);
+    assert.ok(list.length >= 1, `level ${L.id}: no mouth`);
+    for (const { i } of list) {
+      const x = i % wd.w + d[0], y = (i / wd.w | 0) + d[1];
+      assert.ok(x < 0 || y < 0 || x >= wd.w || y >= wd.h, `level ${L.id}: mouth ${i} is not at the outlet edge`);
+      assert.ok([KIND.CANAL, KIND.RIVER].includes(wd.kind[i]), `level ${L.id}: mouth ${i} is not on water`);
+    }
+  }
 });

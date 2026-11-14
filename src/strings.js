@@ -4,7 +4,7 @@ export const PAGE = {};
 export const LINES = [[0, 'This peat swamp was once wet.'], [2.8, 'Canals drained it. Then it burned.'], [5.6, 'Block the canals. Rewet the peat. Replant.']];
 
 // FX: words drawn in 3x5 pixel letters on the map. Use A-Z, 0-9 and spaces only.
-export const FX = { cascade: 'CASCADE', dry: 'DRY SEASON', washout: 'DAM WASHED OUT', arson: 'ARSON' };
+export const FX = { cascade: 'CASCADE', dry: 'DRY SEASON', washout: 'DAM WASHED OUT', arson: 'ARSON', fire: 'FIRE!' };
 
 export const TOAST = {
   noSave: 'No save.',
@@ -80,6 +80,8 @@ export const HUD = {
   keys: 'P/Space pause · 1/2 speed · D data view · drag/arrows pan · +/- zoom · 0 full map · Esc menu',
   dataView: 'Data view',
   mapView: 'Map view',
+  help: 'Help',
+  menu: 'Menu',
 };
 
 // visible text, label for screen readers and the tooltip
@@ -87,6 +89,7 @@ export const ZOOM = {
   group: 'Zoom',
   in: ['+', 'Zoom in (+)'],
   out: ['−', 'Zoom out (-)'],
+  flow: 'Water flow: the canals drain off the site this way',
   fit: ['ALL', 'All of the map (0)'], // the name starts with the visible word (WCAG 2.5.3)
 };
 
@@ -198,43 +201,42 @@ export const HOWTO = {
   sub: 'What to do on this site',
   newHere: 'New on this site',
   go: 'Start',
-  hint: 'The level stays paused until you close this. Esc also closes it.',
+  next: 'Next',
+  prev: 'Back',
+  pos: (k, n) => `${k} / ${n}`,
+  hint: 'The level stays paused until you close this. Left and right arrows change the page. Esc closes it.',
   items: {
     1: [
       act('tempBlock', 'Tap a canal tile. The block keeps the water in the peat. Floods can break it.'),
       act('permBlock', 'Tap a temp block to make it permanent. Floods do not break it.'),
-      { icon: 'wet', name: 'The 40 cm line', text: 'Peat with the water table 40 cm or less below the surface is wet. Wet peat does not burn. Keep it wet through the dry season.' },
-      { icon: 'tempBlock', name: 'Distance', text: 'A block rewets the peat near the canal most. Peat far from a block stays dry. Put blocks along all of the canal.' },
+      { icon: 'wet', demo: 'wetLine', name: 'The 40 cm line', text: 'Peat with the water table 40 cm or less below the surface is wet. Wet peat does not burn. Keep it wet through the dry season.' },
+      { icon: 'tempBlock', demo: 'distance', name: 'Distance', text: 'A block rewets the peat near the canal most. Peat far from a block stays dry. Put blocks along all of the canal.' },
+      { icon: 'wet', demo: 'flow', name: 'Water flow', text: 'The big blue arrow shows where the water flows off the site. A block keeps water in the canal upstream of it. Put the first blocks at the low end of a canal, or at its top. Try both and compare the result.' },
       act('fireCrew', 'Tap a fire to send a crew to it.'),
-      { icon: 'data', name: 'Data view', text: 'Shows the water-table depth. Blue is wet. Brown is dry.', key: 'D' },
-      { icon: 'pause', name: 'Pause, ×1, ×2', text: 'Stop or change the speed of time.', key: 'P, 1, 2' },
-      { icon: 'fit', name: 'Move the map', text: 'Drag or use the arrows to move. Zoom in, zoom out, or show all of the map.', key: '+, −, 0' },
     ],
     2: [
       act('plant', 'Tap peat to plant seedlings. They live only when the water table is 0 to 40 cm below the surface.'),
       act('mound', 'Seedlings in a low tile drown in a flood. A mound raises the tile 20 cm.'),
     ],
     3: [
-      { icon: 'goodwill', name: 'Goodwill', text: 'The village trusts you more when you help it. At 0 goodwill, you lose the level.' },
       act('palud', 'Tap wet peat next to the village. The village farms it and gives goodwill.'),
       act('pond', 'Tap a canal tile upstream of a block. It gives goodwill.'),
       act('fireGroup', 'Tap the village. Fires near it are found at once, and there is less arson.'),
     ],
     4: [
-      { icon: 'tempBlock', name: 'Cascades', text: 'One block holds water for only a short length of canal. Put a cascade of blocks along a long canal.' },
+      { icon: 'tempBlock', demo: 'cascade', name: 'Cascades', text: 'One block holds water for only a short length of canal. Put a cascade of blocks along a long canal.' },
       act('backfill', 'Tap a canal tile to fill it with peat. The canal stops drainage there. It costs a lot.'),
-      { icon: 'tempBlock', name: 'Illegal canals', text: 'People dig new illegal canals from the edge. Block an illegal canal early, when it is short.' },
+      { icon: 'tempBlock', demo: 'illegal', name: 'Illegal canals', text: 'People dig new illegal canals from the edge. Block an illegal canal early, when it is short.' },
     ],
     5: [
-      { icon: 'time', name: 'El Niño', text: 'In El Niño years the dry season starts 10 weeks early. The year report tells you one year before.' },
       act('well', 'Fire crews near a well put fires out 2 times faster.'),
-      { icon: 'fireCrew', name: 'Smouldering fire', text: 'A fire can burn under the surface. It starts again if the peat stays dry. Rewet the peat to stop it.' },
-    ],
-    6: [
-      { icon: 'score', name: 'Higher pass marks', text: 'This site is large and has all of the problems. Use all that you know.' },
+      { icon: 'fireCrew', demo: 'smoulder', name: 'Smouldering fire', text: 'A fire can burn under the surface. It starts again if the peat stays dry. Rewet the peat to stop it.' },
     ],
   },
 };
+
+// The pause menu: the Menu button in the HUD, or Esc in a level.
+export const PAUSE = { title: 'Paused', resume: 'Resume', sound: 'Sound', restart: 'Restart level', menu: 'Main menu' };
 
 export const QUIT ={ title: 'Leave this level?', body: 'Progress on this site will be lost.', yes: 'Leave', no: 'Stay' };
 

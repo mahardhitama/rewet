@@ -9,12 +9,13 @@ import { takeFxEvents, rainLevel, shake, celebrate, setArmed, threat } from './r
 import { KIND, WET_WT } from './sim/world.js';
 import { buildStory, storyAt } from './render/introStory.js';
 import { createMapView } from './render/view.js';
-import { LINES, INTRO, TOAST, NOTES, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE } from './strings.js';
+import { LINES, INTRO, TOAST, NOTES, SELECT, UPGRADES, QUIT, ZOOM, JOURNAL, MENU, HOWTO, PAGE, PAUSE, FX } from './strings.js';
+import { openHowto } from './howto.js';
 import { browserStorage, loadSave, writeSave, clearSave, recordResult, recordFind, buyUpgrade, availableStars, hasProgress, totalStars, UPGRADE_COST, MAX_LEVEL, DEFAULT_SAVE } from './save.js';
 import { openJournal, speciesPage } from './journalView.js';
 import { icon, withIcon, setText, sourceLink, starIcons } from './icons.js';
 import { SPECIES } from './journal.js';
-import { initUI, renderUI, afterStep, showYearReport, showDebrief, table } from './ui.js';
+import { initUI, renderUI, afterStep, showYearReport, showDebrief, table, rearm } from './ui.js';
 
 export const MAX_TICKS_PER_FRAME = 8;
 const TICKS_PER_MS = TICKS_PER_YEAR / 120000; // x1: 120 s a year, so a week is about 2.3 s. x2: 60 s a year.
@@ -49,7 +50,7 @@ function boot() {
   let phase, t0, h = 0, shown = -1, last = null, story = null, panTo = 0;
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const newStory = () => { story = buildStory(Math.floor(Math.random() * 2 ** 31)); map.leave(); };
-  let game = null, paused = false, speed = 1, carry = 0;
+  let game = null, current = null, paused = false, speed = 1, carry = 0; // current: the level as picked, for a restart
   const notes = []; // the toast queue (see toast()); declared here because toMenu() can run at boot
 
   // phase is one of intro | menu | levelSelect | level | yearReport | debrief
@@ -118,6 +119,7 @@ function boot() {
 
   // ---- level
   function startLevel(L) {
+    current = L;
     const level = resolveLevel(L);
     game = createGame(level, save.upgrades, buildLevelWorld(level));
     paused = false; speed = 1; carry = 0; map.leave(); mile = null; wetFrac = 0;
@@ -125,24 +127,25 @@ function boot() {
     if (map.mode === 'data') map.toggleMode(); // each level starts in map view; the sandbox switches it on after
     initUI(game, { canvas: cv, map, isLevel: () => phase === 'level', setSpeed, toggleData: () => map.toggleMode(), onFind });
     show('level');
-    if (HOWTO.items[L.id]) openHowto(L); // the sandbox has no how-to
+    howto(false); // the last level and the sandbox have nothing new: no slides
   }
-  // The how-to dialog. The level stays paused until it closes, by any way (button or Esc).
-  function openHowto(L) {
-    const dlg = $('dHow'), el = (tag, text) => Object.assign(document.createElement(tag), text == null ? {} : { textContent: text });
-    $('hTitle').textContent = HOWTO.title(L);
-    $('hSub').textContent = L.id === 1 ? HOWTO.sub : HOWTO.newHere;
-    $('hList').replaceChildren(...HOWTO.items[L.id].map(x => {
-      const li = el('li'), ic = el('span'), body = el('div'), head = el('b', x.name);
-      ic.className = 'ic'; ic.append(icon(x.icon)); if (ACTIONS[x.icon]) ic.dataset.r = ACTIONS[x.icon].r; // the colour of the action group, as on the slot
-      body.append(head); if (x.key) body.append(el('kbd', x.key)); body.append(el('p', x.text));
-      li.append(ic, body); return li;
-    }));
-    $('hHint').textContent = HOWTO.hint;
+  // The how-to slides. The level stays paused until they close, by any way (button or Esc).
+  // At the start: what is new on this level. Help: all levels up to this one.
+  function howto(all) {
+    const L = game.level, items = all ? LEVELS.filter(M => M.id <= L.id).flatMap(M => HOWTO.items[M.id] ?? []) : HOWTO.items[L.id];
+    if (!items?.length) return;
+    const was = { paused, speed };
     paused = true;
-    dlg.onclose = () => { dlg.onclose = null; paused = false; };
-    dlg.showModal();
-    dlg.scrollTop = 0;
+    drawLevel(performance.now()); // the level behind the dialog: the main map does not draw while the slides are open
+    openHowto({ level: L, title: L.sandbox ? L.name : HOWTO.title(L), sub: all || L.id === 1 ? HOWTO.sub : HOWTO.newHere, items, onClose: () => { ({ paused, speed } = was); rearm(); } });
+  }
+  // The pause menu. It pauses the level; on close, the speed and the paused state come back.
+  function openMenu() {
+    const was = { paused, speed };
+    paused = true;
+    $('mSnd').ariaPressed = String(!isMuted());
+    $('dMenu').onclose = () => { $('dMenu').onclose = null; ({ paused, speed } = was); };
+    $('dMenu').showModal();
   }
   // The sound bed follows the level: music and nature only while it runs, rain in a shower, darker with fire.
   let wetFrac = 0, mile = null;
@@ -180,7 +183,7 @@ function boot() {
   function backToDebrief() { show('debrief'); $('dbView').focus({ preventScroll: true }); }
   // Field notes: what happened and why, once for each level. The first fire of each year also pauses the game.
   const noted = new Set();
-  let wasBurning = false, fireYear = -1, wasWet = true;
+  let wasBurning = false, fireYear = -1, wasWet = true, fireKey = ''; // fireKey: the FIRE! tag text now shown
   const note = key => { if (!noted.has(key)) { noted.add(key); toast(NOTES[key]); } };
   function fieldNotes(ev) {
     const wd = game.world, y = Math.floor(game.tick / TICKS_PER_YEAR), wet = isWetSeason(game), dryIn = dryStart(game) - seasonAt(game.tick).week;
@@ -222,6 +225,7 @@ function boot() {
     }
   }
 
+  function drawLevel(now) { map.whole = false; map.cursor = phase === 'level'; map.found = save.found; map.draw(game, now); }
   function frame(now) {
     const dt = last == null ? 0 : now - last; last = now;
     if (phase === 'intro') {
@@ -236,14 +240,16 @@ function boot() {
       h += (1 - h) * 0.04;
       if (!reduce) { shot.zoom += (SHOT_ZOOM - shot.zoom) * 0.03; shot.pan += (panTo - shot.pan) * 0.01; } // eased: it slows down and stops at the edge
     }
-    if (phase === 'level' && !$('dQuit').open) tickLevel(dt);
+    if (phase === 'level' && !document.querySelector('dialog[open]')) tickLevel(dt);
     else if (phase === 'scenic') tickScenic(dt);
-    for (const e of takeFxEvents()) if (phase === 'level' || phase === 'scenic') e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens are dropped, so they do not play late
+    for (const e of takeFxEvents()) if ((phase === 'level' || phase === 'scenic') && !$('dHow').open) e.type === 'cascade' ? setTimeout(() => sfx('star', Math.min(2, e.n - 2)), 150) : sfx(e.type, e.n ?? 0); // events from other screens and from the how-to demos are dropped, so they do not play late
     setAmbience(ambience());
-    document.body.classList.toggle('burning', phase === 'level' && !!game && game.world.fire.some(f => f)); // the pulsing fire frame (index.html #fireEdge)
+    const burning = phase === 'level' && game ? game.world.fire.reduce((n, f) => n + (f ? 1 : 0), 0) : 0;
+    document.body.classList.toggle('burning', burning > 0); // the pulsing fire frame and the FIRE! tag (index.html #fireEdge, #fireTag)
+    if (`${FX.fire}${burning}` !== fireKey) { fireKey = `${FX.fire}${burning}`; const [w, c] = $('fireTag').children; w.textContent = FX.fire; c.textContent = burning > 1 ? ` ×${burning}` : ''; } // the count is hidden from screen readers, so a spreading fire does not repeat the announcement
     if (game && phase !== 'debrief' && phase !== 'scenic') renderUI(game, { paused: paused || phase !== 'level', speed, data: map.mode === 'data' });
     // Level screens draw the level. Every other screen draws the intro story at the fit zoom, so the whole map shows.
-    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { map.whole = false; map.cursor = phase === 'level'; map.found = save.found; map.draw(game, now); }
+    if (game && ['level', 'yearReport', 'debrief', 'scenic'].includes(phase)) { if (!$('dHow').open) drawLevel(now); }
     else {
       if (!story) newStory(); // first frame with reduced motion
       map.whole = true; map.shot = shot; storyAt(story, h); map.draw(story.game, now);
@@ -254,7 +260,7 @@ function boot() {
   ['click', 'keydown'].forEach(ev => addEventListener(ev, e => { if (phase === 'intro' && !e.target.closest?.('#skip')) toMenu(); }));
   addEventListener('keydown', e => {
     if (document.querySelector('dialog[open]')) return; // Esc there closes the dialog itself
-    if (e.key === 'Escape' && (phase === 'level' || phase === 'yearReport')) { e.preventDefault(); return $('dQuit').showModal(); } // preventDefault: this Esc would also cancel the new dialog
+    if (e.key === 'Escape' && (phase === 'level' || phase === 'yearReport')) { e.preventDefault(); return e.repeat || openMenu(); } // preventDefault: this Esc would also cancel the new dialog
     if (e.key === 'Escape' && ['levelSelect', 'debrief'].includes(phase)) return toMenu();
     if (phase === 'scenic') { // only look: pan and zoom keys, Esc goes back to the results
       if (e.key === 'Escape') return e.repeat || backToDebrief(); // a held Esc must not run on into the menu
@@ -293,7 +299,7 @@ function boot() {
     clearTimeout(t._h); t._h = setTimeout(() => { notes.shift(); showNote(); }, noteMs(msg));
   }
   function clearNotes() { notes.length = 0; clearTimeout($('toast')._h); $('toast').classList.remove('on'); }
-  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', fJournal: 'journal', fGo: 'play', skip: 'fast' })) withIcon($(id), name);
+  for (const [id, name] of Object.entries({ bNew: 'new', bCont: 'continue', bJrnMenu: 'journal', bSet: 'settings', bLang: 'journal', bCred: 'credits', mResume: 'play', mSnd: 'sound', mRestart: 'replay', mQuit: 'menu', hPrev: 'back', bReplay: 'replay', bReset: 'delete', lsBack: 'back', rpCont: 'play', dbMenu: 'menu', dbView: 'fit', scBack: 'back', qYes: 'back', qNo: 'close', jClose: 'close', jHome: 'menu', jPrev: 'back', jNext: 'continue', fJournal: 'journal', fGo: 'play', skip: 'fast' })) withIcon($(id), name);
   document.querySelectorAll('dialog form .btn').forEach(b => withIcon(b, 'close'));
   document.querySelectorAll('#dCred a.srcLink').forEach(a => a.replaceWith(sourceLink(a.href, a.getAttribute('aria-label'))));
   document.addEventListener('mouseover', e => { // delegated: the level select builds its buttons later
@@ -331,7 +337,7 @@ function boot() {
   }
   $('bSet').onclick = () => { $('snd').ariaPressed = String(!isMuted()); $('dSet').showModal(); };
   $('bCred').onclick = () => $('dCred').showModal();
-  $('snd').onclick = () => { setMuted(!isMuted()); $('snd').ariaPressed = String(!isMuted()); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
+  $('snd').onclick = $('mSnd').onclick = e => { setMuted(!isMuted()); e.currentTarget.ariaPressed = String(!isMuted()); persist({ ...save, settings: { ...save.settings, mute: isMuted() } }); blip(1320, 0.08); };
   $('bLang').onclick = () => { // all text is read at load, so the new language needs a reload
     persist({ ...save, settings: { ...save.settings, lang: LANG === 'id' ? 'en' : 'id' } });
     try { sessionStorage.setItem('rewet_menu', '1'); } catch { /* blocked storage: the reload plays the intro */ }
@@ -348,9 +354,19 @@ function boot() {
   $('qTitle').textContent = QUIT.title; $('qBody').textContent = QUIT.body; setText($('qYes'), QUIT.yes); setText($('qNo'), QUIT.no);
   $('qYes').onclick = () => { $('dQuit').close(); toMenu(); };
   $('qNo').onclick = () => $('dQuit').close();
-  setText(withIcon($('hGo'), 'play'), HOWTO.go);
-  $('hGo').onclick = () => $('dHow').close();
+  $('dQuit').onclose = () => (phase === 'level' || phase === 'yearReport') && openMenu(); // No or Esc: back to the pause menu it came from
+  setText(withIcon($('hGo'), 'play'), HOWTO.go); setText($('hPrev'), HOWTO.prev);
+  $('bHelp').onclick = e => { e.currentTarget.blur(); howto(true); };
+  $('bMenu').onclick = e => { e.currentTarget.blur(); openMenu(); };
+  $('mTitle').textContent = PAUSE.title;
+  for (const id of ['resume', 'sound', 'restart']) setText($(`m${id === 'sound' ? 'Snd' : id[0].toUpperCase() + id.slice(1)}`), PAUSE[id]);
+  setText($('mQuit'), PAUSE.menu);
+  $('mResume').onclick = () => $('dMenu').close();
+  const leaveMenu = () => { $('dMenu').onclose = null; $('dMenu').close(); }; // no restore: what comes next sets the paused state itself
+  $('mRestart').onclick = () => { leaveMenu(); startLevel(current); };
+  $('mQuit').onclick = () => { $('dMenu').close(); $('dQuit').showModal(); };
   $('zoom').setAttribute('aria-label', ZOOM.group);
+  $('flow').title = ZOOM.flow; $('flow').setAttribute('aria-label', ZOOM.flow);
   for (const [id, key, dir, name] of [['bZoomIn', 'in', 1, 'zoomIn'], ['bZoomOut', 'out', -1, 'zoomOut'], ['bZoomFit', 'fit', 0, 'fit']]) {
     const b = $(id); b.title = ZOOM[key][1]; b.setAttribute('aria-label', b.title); b.replaceChildren(icon(name));
     b.onclick = () => map.zoom(dir);

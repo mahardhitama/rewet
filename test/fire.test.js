@@ -74,3 +74,12 @@ test('spontaneous ignition happens on dry peat in dry season', () => {
   for (let t = 0; t < 20; t++) n += fireTick(world, DRY, [0, 0]).burnt.length;
   assert.ok(n > 0);
 });
+
+test('a burning tile that is now a canal or flooded goes out', () => {
+  const world = mk(5, 5, 1, 0.6);
+  world.fire[6] = 2; world.fireT[6] = FIRE.smoulderTicks; world.kind[6] = KIND.CANAL;
+  world.fire[18] = 1; world.fireT[18] = FIRE.surfaceTicks; world.wt[18] = 0;
+  fireTick(world, OFF, [0, 0]);
+  assert.equal(world.fire[6], 0);
+  assert.equal(world.fire[18], 0);
+});

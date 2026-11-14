@@ -33,6 +33,8 @@ export function pixelText(ctx, s, x, y, col) {
 const MAX_P = 400;
 let parts = [], floats = [], rings = [], marks = [], events = [], armed = null, banner = null, prevWet = null;
 let seen = null, prevTick = -1, everWet = null, prevFire = null, prevJobs = new Map(), shakeUntil = 0, shakeAmp = 0, rain = 0;
+// The how-to slides draw their own game: keepFx gives the level its tracking, rain, haze and warmth back after.
+export function keepFx() { const s = { seen, prevTick, prevWet, everWet, prevFire, prevJobs, rain, haze, warm }; return () => ({ seen, prevTick, prevWet, everWet, prevFire, prevJobs, rain, haze, warm } = s); }
 export function resetFx() { parts = []; floats = []; rings = []; marks = []; events = []; seen = null; prevTick = -1; prevJobs = new Map(); rain = 0; haze = 0; warm = 0; shakeUntil = 0; shakeAmp = 0; flock = null; banner = null; prevWet = null; }
 export const setArmed = id => { armed = id; };
 export const takeFxEvents = () => events.splice(0);
@@ -364,15 +366,100 @@ export function fireArrows(ctx, game, box, now) {
     if (x >= box.l && x <= box.r && y >= box.t && y <= box.b) continue;
     const cx = Math.max(l, Math.min(r, x)), cy = Math.max(t, Math.min(b, y)), key = `${cx / 24 | 0},${cy / 24 | 0}`; // one arrow per 24 px of edge
     if (used.has(key)) continue; used.add(key);
-    const d = Math.hypot(x - cx, y - cy) || 1, ux = (x - cx) / d, uy = (y - cy) / d;
-    for (const [col, o] of [[DARK, 1], [on ? '#ff6a3a' : BAD, 0]]) { // a 1 px dark shadow, like the pixel text
-      ctx.fillStyle = col;
-      for (let py = -5; py <= 5; py++) for (let px = -5; px <= 5; px++) { // a triangle: tip 5 px ahead, base 3 px behind
-        const a = px * ux + py * uy, s = -px * uy + py * ux;
-        if (a <= 5 && a >= -3 && Math.abs(s) <= (5 - a) / 2) ctx.fillRect(cx + px + o, cy + py + o, 1, 1);
-      }
+    const d = Math.hypot(x - cx, y - cy) || 1;
+    arrow(ctx, cx, cy, (x - cx) / d, (y - cy) / d, 5, -3, -3, 0, on ? '#ff6a3a' : BAD); // a triangle: tip 5 px ahead, base 3 px behind
+  }
+}
+
+// A pixel arrow along the unit vector (ux, uy), with a 1 px dark shadow like the pixel text. Distances are px along the arrow from (cx, cy):
+// the head runs from base to tip, the shaft (half width sw) from tail to base.
+function arrow(ctx, cx, cy, ux, uy, tip, base, tail, sw, col) {
+  const r = Math.ceil(Math.max(tip, -tail, (tip - base) / 2)) + 1;
+  for (const [c, o] of [[DARK, 1], [col, 0]]) {
+    ctx.fillStyle = c;
+    for (let py = -r; py <= r; py++) for (let px = -r; px <= r; px++) {
+      const a = px * ux + py * uy, s = Math.abs(-px * uy + py * ux);
+      if (a <= tip && (a >= base ? s <= (tip - a) / 2 : a >= tail && s <= sw)) ctx.fillRect(cx + px + o, cy + py + o, 1, 1);
     }
   }
+}
+
+// ---- water flow: the map surface falls toward its outlet edge, so the canals drain there.
+// The grid step toward the outlet edge, or null on a map with no tilt (the sandbox dome).
+export const outletDir = level => level?.terrain?.tilt > 0 ? { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] }[level.terrain.outlet] ?? null : null;
+// The canal mouths: a canal tile whose next tile toward the outlet is off the map, or a river that runs off the map.
+// Each gives { i, x, y }: i is the last map tile on that line (the canal or river tile at the edge), x and y the buffer offset
+// from its top vertex to the middle of its outer edge. One mouth for each run of side-by-side canal ends.
+export function outlets(wd, d) {
+  const { w, h, kind } = wd, inMap = (x, y) => x >= 0 && y >= 0 && x < w && y < h, ends = new Set(), out = [];
+  for (let i = 0; i < wd.n; i++) if (kind[i] === KIND.CANAL) {
+    let x = i % w + d[0], y = (i / w | 0) + d[1];
+    while (inMap(x, y) && kind[y * w + x] === KIND.RIVER) { x += d[0]; y += d[1]; }
+    if (inMap(x, y)) continue; // the canal goes on, or ends in the peat
+    const p = i - d[0] * w + d[1], q = i + d[0] * w - d[1]; // the 2 side neighbours: index steps along (-d[1], d[0]) and back
+    ends.add(i);
+    if (ends.has(p) || ends.has(q)) continue;
+    out.push({ i: (y - d[1]) * w + x - d[0], x: (d[0] - d[1]) * HW / 2, y: (2 + d[0] + d[1]) * HH / 2 });
+  }
+  return out;
+}
+
+// Mouth arrow sprite: a low slab of canal water in the shape of an arrow, flat on the ground, that goes on from the canal. It has the
+// side faces and the ripple dashes of the map art, so it looks like part of the map. Built once for each direction and frame.
+// Ground units are tiles: u runs out from the mouth, v across. Origin of the sprite: the mouth point.
+const AW = 112, AH = 64, ARROW_F = 8, SLAB = 3, arrowCache = new Map();
+const AQ = [44, 128, 172], shade = t => `rgb(${AQ.map(v => Math.round(v * (1 - t))).join()})`; // AQ: WATER in iso.js; shade: mix to black
+const A_TOP = shade(0), A_LIP = 'rgb(90,160,196)', A_RIP = 'rgb(139,185,210)', A_LEFT = shade(.35), A_RIGHT = shade(.55); // lip and ripple: mix to white .2 and .45, as the canal
+let mouths = null;
+// k: the scale (1 on the map, 0.5 on the flow tile in the zoom column).
+function mouthSprite(d, f, k = 1) {
+  const key = `${d}|${f}|${k}`; // d.toString(): '0,1'
+  if (arrowCache.has(key)) return arrowCache.get(key);
+  const W = AW * k, H = AH * k, hw = HW * k, hh = HH * k, slab = Math.max(2, Math.round(SLAB * k));
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), top = new Uint8Array(W * H);
+  const shape = (u, v) => u >= 0 && (u <= 1.2 ? Math.abs(v) <= 0.24 : u <= 2.1 && Math.abs(v) <= 0.6 * (2.1 - u) / 0.9);
+  const at = (x, y) => x >= 0 && y >= 0 && x < W && y < H && top[y * W + x];
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    const X = (px - W / 2 + 0.5) / hw, Y = (py - H / 2 + 0.5) / hh, gx = (X + Y) / 2, gy = (Y - X) / 2;
+    const u = gx * d[0] + gy * d[1], v = -gx * d[1] + gy * d[0];
+    if (!shape(u, v)) continue;
+    const jit = Math.abs(Math.sin(Math.floor(v * 16 * k / 3) * 78.2 + 1.3) * 43758.5) % 1; // rows across the flow get their own offset, so the ripples break into dashes
+    top[py * W + px] = (((u * 2 - f / ARROW_F - jit) % 1) + 1) % 1 < 0.14 && u < 1.9 ? 2 : 1; // 2: ripple, 2 dashes a tile, 1 dash period in ARROW_F frames
+  }
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    const m = top[py * W + px];
+    if (m) g.fillStyle = m === 2 ? A_RIP : at(px, py - 1) ? A_TOP : A_LIP; // the far edge catches the light
+    else {
+      let j = 1; while (j <= slab && !at(px, py - j)) j++;
+      if (j > slab) continue;
+      const nx = (at(px + 1, py - j) ? 1 : 0) - (at(px - 1, py - j) ? 1 : 0); // which way the face looks, as the left and right faces of a tile
+      g.fillStyle = nx > 0 ? A_LEFT : nx < 0 ? A_RIGHT : j === 1 && at(px - 1, py - 1) && !at(px + 1, py - 1) ? A_RIGHT : A_LEFT;
+    }
+    g.fillRect(px, py, 1, 1);
+  }
+  arrowCache.set(key, c);
+  return c;
+}
+
+// An arrow at each canal mouth.
+export function flowArrows(ctx, game, now) {
+  const d = outletDir(game.level), pos = lastPos, wd = game.world; if (!d || !pos || !wd) return;
+  if (mouths?.wd !== wd) mouths = { wd, list: outlets(wd, d) }; // the canal ends do not move: find the mouths once per world
+  const f = REDUCED ? 0 : Math.floor(now / 150) % ARROW_F, sp = mouthSprite(d, f); // 150 ms a frame, as the canal ripples
+  for (const m of mouths.list) ctx.drawImage(sp, Math.round(pos[2 * m.i] + m.x - AW / 2), Math.round(pos[2 * m.i + 1] + m.y - AH / 2));
+}
+
+// The flow tile in the zoom column (#flow, canvas #flowCv): the mouth arrow at half scale, centred. Hidden on a map with no outlet.
+let badge = '';
+export function flowBadge(level, now) {
+  const el = globalThis.document?.getElementById('flow'), d = outletDir(level); if (!el) return;
+  el.hidden = !d; if (!d) return;
+  const f = REDUCED ? 0 : Math.floor(now / 150) % ARROW_F, key = `${d}|${f}`; if (key === badge) return; badge = key;
+  const cv = document.getElementById('flowCv'), g = cv.getContext('2d'), sp = mouthSprite(d, f, 0.5);
+  const ox = (d[0] - d[1]) * HW * 0.5 * 1.05, oy = (d[0] + d[1]) * HH * 0.5 * 1.05; // the arrow middle is 1.05 tiles out from the sprite origin
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.drawImage(sp, Math.round(cv.width / 2 - sp.width / 2 - ox), Math.round(cv.height / 2 - sp.height / 2 - oy));
 }
 
 // ---- new finds: an animal whose species is not in the journal yet gets a small gold twinkle above it, so the player taps it.
