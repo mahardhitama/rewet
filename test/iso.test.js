@@ -306,3 +306,12 @@ test('a large fire scorches the trees near it; a small fire does not; the leaves
   assert.equal(treeState(6, 100, 90), 2, 'buds early in the wet season');
   assert.equal(treeState(6, 120, 90), 0, 'full leaves later in the wet season');
 });
+
+test('a tree that grew back in the wet season stays green in the next dry season; a tree scorched in that dry season is bare', async () => {
+  const { regrow, treeState } = await import('../src/render/iso.js');
+  const at = Int32Array.of(6, 200, -1e9);
+  regrow(at, 230, 90); // the dry season starts at tick 230; the wet season started at 90
+  assert.equal(treeState(at[0], 240, -1e9), 0, 'scorched at 6, full leaves by 106: green');
+  assert.equal(treeState(at[1], 240, -1e9), 0, 'scorched 30 ticks before the dry season: it grew back too');
+  at[2] = 235; assert.equal(treeState(at[2], 240, -1e9), 1, 'scorched in this dry season: bare');
+});

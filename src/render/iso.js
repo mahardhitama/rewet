@@ -874,10 +874,12 @@ export function treeState(at, tick, wetFrom) {
 // The how-to slides draw their own game: clearTrack gives each demo a fresh start, keepTrack gives the level its scorch and fire age back after.
 export function clearTrack() { scorchAt = null; litAt = null; }
 export function keepTrack() { const s = { scorchAt, wetSince, wasWet, litAt, outAt, prevFire, trackTick }; return () => ({ scorchAt, wetSince, wasWet, litAt, outAt, prevFire, trackTick } = s); }
+// Pure. At the start of the dry season: a tree with its full crown back (state 0) forgets its scorch, so the dry season does not make it bare again.
+export function regrow(at, tick, wetFrom) { for (let i = 0; i < at.length; i++) if (at[i] > NEVER && treeState(at[i], tick, wetFrom) === 0) at[i] = NEVER; }
 function trackScorch(game) {
   const { fire, w, h } = game.world, tick = game.tick ?? 0, wet = !!game.level && isWetSeason(game);
   if (!scorchAt || scorchAt.length !== fire.length || tick < trackTick) { scorchAt = new Int32Array(fire.length).fill(NEVER); wetSince = NEVER; wasWet = null; }
-  if (wet !== wasWet) { wetSince = wet && wasWet !== null ? tick : NEVER; wasWet = wet; } // a level that starts wet has no scorched trees yet
+  if (wet !== wasWet) { if (wasWet) regrow(scorchAt, tick, wetSince); wetSince = wet && wasWet !== null ? tick : NEVER; wasWet = wet; } // a level that starts wet has no scorched trees yet
   scorch(fire, w, h, scorchAt, tick);
 }
 // ---- fire age. Render-side only: the tick each tile was lit, and the tick its fire went out. drawWorld updates it once for each tick.
