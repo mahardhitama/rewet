@@ -926,8 +926,9 @@ export function drawWorld(ctx, game, view, mode = 'normal', hover = null, now = 
   const jobs = new Set(game.jobs.map(j => j.i)), hits = [];
   const pos = new Int16Array(w * h * 2), shown = new Uint8Array(w * h);
   wind = yearDir(wd.seed, year); setFireCount(nFire); nFire = 0; trackScorch(game); trackFire(fire, game.tick ?? 0); // the fire count of the last frame sets the smoke rate
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { // water tiles stay flat, so a channel has no steps at the joins
-    const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) ? 0 : zMicro(w, h, z, x, y), view);
+  // Water tiles stay flat, so a channel has no steps at the joins. Front-edge tiles stay flat too: their wall has a fixed depth, so a lift would make the wall foot jagged.
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, [sx, sy] = tileToScreen(x, y, isWater(kind[i]) || x === w - 1 || y === h - 1 ? 0 : zMicro(w, h, z, x, y), view);
     pos[2 * i] = sx; pos[2 * i + 1] = sy;
   }
   originX = pos[0]; originY = pos[1];
